@@ -70,10 +70,13 @@ This packet includes:
 - FastAPI service shells for the agents and core services;
 - Agent Card JSON for each remote agent;
 - root-to-Policy and root-to-Knowledge HTTP A2A calls with evidence logging;
+- root summarization adapter for Vertex AI Gemini, with a labeled local test mode;
 - baseline P0 tests;
 - Cloud Run deployment scaffolding.
 
-The ADK/Gemini integration is intentionally isolated behind `agents/root_orchestrator/` so deterministic controls can be stabilized first.
+The root Gemini path is isolated behind `common/gemini.py`. Set `AKRETIC_GEMINI_MODE=vertex`
+with `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, and `VERTEX_MODEL` for the Cloud Run demo.
+The `local` mode is explicitly labeled and reserved for tests.
 
 ## Public-claim discipline
 

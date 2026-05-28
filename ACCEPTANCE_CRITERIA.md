@@ -12,6 +12,7 @@
 | `test_approval_gate` | External-facing exception action pauses until reviewer approve/reject is recorded |
 | `test_evidence_verify` | Verify endpoint detects valid and tampered event chains |
 | `test_evidence_report` | Evidence report includes A2A calls, retrieval allow/deny, approval, reviewer decision, and verification |
+| `test_gemini_context` | Gemini prompt builder excludes denied document contents and records the model path |
 | `test_claims_public_copy` | Public copy excludes banned overclaims |
 
 ## Evidence required for final demo

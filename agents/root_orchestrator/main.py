@@ -8,6 +8,7 @@ from fastapi import FastAPI, Header
 
 from common.a2a_client import call_skill
 from common.evidence import append_event, verify_chain
+from common.gemini import summarize_vendor_review
 from common.identity import derive_actor_from_request
 from common.models import Actor
 from common.models import Resource
@@ -185,11 +186,28 @@ async def run_vendor_review_workflow(
             "reason": "external export cannot complete until reviewer decision is recorded",
         }
 
-    permitted_source_ids = [chunk["source_id"] for chunk in retrieval["chunks"]]
-    summary = (
-        "VendorNova review assembled from permitted synthetic context only. "
-        f"Permitted sources: {', '.join(permitted_source_ids) or 'none'}. "
-        f"External export decision: {export_decision['outcome']}."
+    model_summary = summarize_vendor_review(
+        query=query,
+        actor=actor,
+        retrieval=retrieval,
+        export_decision=export_decision,
+        mode=payload.get("model_mode"),
+    )
+    append_event(
+        run_id=run_id,
+        actor=actor,
+        agent_id="root_orchestrator",
+        action="summarize_review",
+        resource_id="vendornova_review_summary",
+        outcome="result" if model_summary["mode"] == "vertex" else "local_test_summary",
+        reason="review summarized from permitted context only",
+        metadata={
+            "mode": model_summary["mode"],
+            "model": model_summary["model"],
+            "service_path": model_summary["service_path"],
+            "permitted_source_ids": model_summary["prompt"]["permitted_source_ids"],
+            "denied_source_ids": model_summary["prompt"]["denied_source_ids"],
+        },
     )
 
     return {
@@ -200,9 +218,12 @@ async def run_vendor_review_workflow(
         "export_decision": export_decision,
         "approval_request": approval_request,
         "export_result": export_result,
-        "summary": summary,
+        "model_summary": model_summary,
+        "summary": model_summary["text"],
         "verification": verify_chain(run_id),
-        "model_path_note": "ADK/Gemini integration should summarize only the permitted chunks returned here.",
+        "model_path_note": (
+            "Vertex mode uses Gemini through Google Cloud. Local mode is labeled and reserved for tests."
+        ),
     }
 
 
