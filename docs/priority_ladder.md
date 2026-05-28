@@ -16,6 +16,7 @@ before selecting or expanding work.
 - P7 is blocked post-challenge productization until P5 is stable and the challenge path is complete.
 - P1 acceptance is tracked in `docs/p1_acceptance.md`.
 - P2 acceptance is tracked in `docs/p2_acceptance.md`.
+- P3 acceptance is tracked in `docs/p3_acceptance.md`.
 - P4 acceptance is tracked in `docs/p4_acceptance.md`.
 
 ## Ladder
