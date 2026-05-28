@@ -9,8 +9,8 @@ Date: 2026-05-28
 - Project number: `472908523998`
 - Region: `us-central1`
 - Image: `us-central1-docker.pkg.dev/akretic-a2a-trust-gateway/akretic/akretic-p0:p0-latest`
-- Latest build: `cce67ae5-b735-431b-9f28-2af470608a97`
-- Latest image digest: `sha256:547c5adbf36cf54842791d445a6b8448559b8edbfd82140dfcab8cc7bb00eb36`
+- Latest build: `ff289fcd-1606-4b49-b0d7-b8efcf45031c`
+- Latest image digest: `sha256:e0f28e860e0c3e38d340282bca32e13f4fa81e93640e49df9b575233f323325a`
 
 ## Resources Created Or Updated
 
@@ -20,12 +20,12 @@ Date: 2026-05-28
 - Cloud Build source bucket: `gs://akretic-a2a-trust-gateway_cloudbuild/`
 - Cloud Build execution service account: `472908523998-compute@developer.gserviceaccount.com`
 - Cloud Run services:
-  - `akretic-demo-ui`: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
-  - `akretic-root-orchestrator`: `https://akretic-root-orchestrator-oes3slkexq-uc.a.run.app`
-  - `akretic-policy-agent`: `https://akretic-policy-agent-oes3slkexq-uc.a.run.app`
-  - `akretic-knowledge-agent`: `https://akretic-knowledge-agent-oes3slkexq-uc.a.run.app`
-  - `akretic-research-agent`: `https://akretic-research-agent-oes3slkexq-uc.a.run.app`
-  - `akretic-approval-evidence`: `https://akretic-approval-evidence-oes3slkexq-uc.a.run.app`
+  - `akretic-demo-ui` revision `akretic-demo-ui-00004-8gc`: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
+  - `akretic-root-orchestrator` revision `akretic-root-orchestrator-00004-4p5`: `https://akretic-root-orchestrator-oes3slkexq-uc.a.run.app`
+  - `akretic-policy-agent` revision `akretic-policy-agent-00004-rwp`: `https://akretic-policy-agent-oes3slkexq-uc.a.run.app`
+  - `akretic-knowledge-agent` revision `akretic-knowledge-agent-00004-dmm`: `https://akretic-knowledge-agent-oes3slkexq-uc.a.run.app`
+  - `akretic-research-agent` revision `akretic-research-agent-00004-4wf`: `https://akretic-research-agent-oes3slkexq-uc.a.run.app`
+  - `akretic-approval-evidence` revision `akretic-approval-evidence-00004-nln`: `https://akretic-approval-evidence-oes3slkexq-uc.a.run.app`
 
 ## IAM Changes
 
@@ -47,6 +47,7 @@ No owner/editor grants were added by the deploy work.
 .\scripts\deploy_cloudrun.ps1
 gcloud run services add-iam-policy-binding akretic-demo-ui --project akretic-a2a-trust-gateway --region us-central1 --member allUsers --role roles/run.invoker
 gcloud auth print-identity-token
+.\scripts\verify_cloudrun_p0.ps1
 ```
 
 The deploy script also ran the documented `gcloud services enable`, Artifact Registry,
@@ -57,12 +58,16 @@ Cloud Storage, Cloud Build, and Cloud Run deploy/update commands for the P0 reso
 - Local test matrix: `17 passed`.
 - Cloud Build latest build: `SUCCESS`.
 - Authenticated Cloud Run smoke:
-  - Run ID: `run_240ed99ef56e45c1b852883e1420fe68`
-  - Approval ID: `apr_ed6b422144d547c89216c4632539c4d0`
+  - Run ID: `run_9e24c7f1d4d0452989c0e39c0e48a4c1`
+  - Approval ID: `apr_cde153b3c70c4d5d842c7110a3b239c7`
+  - Public unauthenticated GET `/`: HTTP 403 until org policy is fixed.
   - UI `/run`: HTTP 200.
   - UI `/approval/decide`: HTTP 200.
   - Evidence report endpoint: HTTP 200.
-- Sample evidence report: `artifacts/sample-evidence-report-run_240ed99ef56e45c1b852883e1420fe68.json`
+- Sample evidence report: `artifacts/sample-evidence-report-run_9e24c7f1d4d0452989c0e39c0e48a4c1.json`
+- Sample screenshots:
+  - `output/playwright/demo-home.png`
+  - `output/playwright/demo-review-result.png`
 - Evidence report facts:
   - `verification.valid`: `true`
   - `event_count`: `19`

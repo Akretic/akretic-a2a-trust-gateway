@@ -68,10 +68,10 @@ A good goal includes:
 /goal Implement approval_required path for draft/export side effects. Side effects must not complete until a reviewer decision is recorded. Definition of done: tests/test_approval_gate.py passes and UI or API can approve/reject.
 ```
 
-### T09 — ADK/Gemini root integration
+### T09 — Gemini root integration
 
 ```text
-/goal Integrate the root orchestrator with ADK/Gemini through the Google Cloud approved path. Gemini may summarize only permitted context. It must not decide policy, reveal denied document contents, or claim approval-gated actions completed. Definition of done: local VendorNova review succeeds with permitted sources and denied memo stays out of model context.
+/goal Integrate the root orchestrator with Gemini through the Google Cloud approved Vertex AI path. A thin HTTP Agent Card/A2A adapter is acceptable for P0 if direct ADK integration would block the proof path. Gemini may summarize only permitted context. It must not decide policy, reveal denied document contents, or claim approval-gated actions completed. Definition of done: local VendorNova review succeeds with permitted sources and denied memo stays out of model context.
 ```
 
 ### T10 — Cloud Run deployment

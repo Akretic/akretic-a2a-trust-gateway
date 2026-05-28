@@ -6,7 +6,7 @@
 |---|---|---|
 | Google Cloud Project | Single project for challenge demo | Create early; keep region consistent |
 | Vertex AI / Gemini | Model path for root orchestrator summarization | Gemini may summarize permitted context only; it does not authorize |
-| Google ADK | Root orchestrator framework and agent development path | Integrate after deterministic controls are green |
+| Google ADK | Alignment target for the root orchestrator path | P0 uses the approved thin Vertex AI/Gemini root if ADK integration would block the proof path |
 | A2A / Agent Cards | Remote Policy and Knowledge agents are discoverable and callable | Expose both `/agent-card.json` and `/.well-known/agent-card.json` |
 | Cloud Run | Deploy all P0 services | Cloud Run first; public judge URL must stay live |
 | Artifact Registry | Store container images | Prefer regional Docker repository |

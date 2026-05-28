@@ -6,13 +6,13 @@ Enterprises are beginning to deploy multiple AI agents that read internal docume
 
 ## Our solution
 
-Akretic A2A Trust Gateway is a B2B multi-agent control-plane prototype for secure enterprise agent collaboration. The demo implements a vendor-risk review workflow for procurement and security teams. An ADK root orchestrator powered by Gemini coordinates specialized A2A agents: a policy agent, a private knowledge agent, a public research agent, and an approval/evidence agent.
+Akretic A2A Trust Gateway is a B2B multi-agent control-plane prototype for secure enterprise agent collaboration. The demo implements a vendor-risk review workflow for procurement and security teams. A root orchestrator using Vertex AI Gemini coordinates specialized A2A agents: a policy agent, a private knowledge agent, a public research agent, and an approval/evidence agent.
 
 Before retrieval, public research, A2A exchange, or external-facing draft action runs, Gate0-lite evaluates deterministic policy and returns `allow`, `deny`, or `approval_required`. A RAG DMZ-lite layer filters synthetic enterprise documents by user role before context reaches Gemini. Sensitive actions pause for reviewer approval. Material decisions are written to a tamper-evident evidence ledger with a verify endpoint.
 
 ## Technologies used
 
-Gemini API through Vertex AI; Google Agent Development Kit; A2A protocol and Agent Cards; Cloud Run; Artifact Registry; Cloud Build or gcloud; Cloud Storage; Cloud Logging; Cloud Trace; optional Vertex AI embeddings or custom in-memory embeddings; Python; FastAPI; Pydantic; Uvicorn; Docker; pytest; and standard Python cryptographic/hash libraries.
+Gemini through Vertex AI; A2A-style HTTP calls and Agent Cards; Cloud Run; Artifact Registry; Cloud Build; Cloud Storage; Cloud Logging; Cloud Trace API enablement; IAM service accounts; Python; FastAPI; Pydantic; Uvicorn; Docker; pytest; and standard Python cryptographic/hash libraries.
 
 ## Data sources
 

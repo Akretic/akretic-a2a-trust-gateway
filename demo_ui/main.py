@@ -13,6 +13,124 @@ from common.a2a_client import cloud_run_auth_headers
 
 app = FastAPI(title="Akretic Demo UI")
 
+BASE_CSS = """
+:root {
+  color-scheme: light;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #111827;
+  --muted: #5b6575;
+  --line: #d9dee7;
+  --accent: #0f766e;
+  --accent-dark: #115e59;
+  --warn: #b45309;
+  --deny: #b91c1c;
+  --ok: #166534;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+a { color: var(--accent-dark); }
+.shell { max-width: 1180px; margin: 0 auto; padding: 28px 24px 44px; }
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 0 24px;
+  border-bottom: 1px solid var(--line);
+}
+.brand { font-size: 23px; font-weight: 760; letter-spacing: 0; }
+.status-pill {
+  border: 1px solid #a7d7cb;
+  background: #e8f6f2;
+  color: #0f513f;
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.hero, .panel, .metric {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.hero { margin-top: 24px; padding: 26px; }
+.hero h1, .page-title h1 { margin: 0 0 10px; font-size: 34px; line-height: 1.08; letter-spacing: 0; }
+.hero p, .page-title p { margin: 0; color: var(--muted); line-height: 1.55; max-width: 760px; }
+.form-grid { display: grid; grid-template-columns: 220px 1fr; gap: 16px; margin-top: 24px; align-items: end; }
+label { display: block; margin-bottom: 7px; color: #263244; font-size: 13px; font-weight: 700; }
+select, textarea, input {
+  width: 100%;
+  border: 1px solid #c8d0dc;
+  border-radius: 6px;
+  padding: 10px 11px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+textarea { min-height: 112px; resize: vertical; }
+button {
+  border: 0;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+button:hover { background: var(--accent-dark); }
+.page-title { margin: 24px 0 18px; }
+.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.metric { padding: 14px; min-height: 86px; }
+.metric span { display: block; color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.metric strong { display: block; margin-top: 8px; font-size: 18px; overflow-wrap: anywhere; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.panel { padding: 18px; margin-bottom: 16px; }
+.panel h2 { margin: 0 0 12px; font-size: 19px; letter-spacing: 0; }
+.panel p { line-height: 1.55; }
+.source-list { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; list-style: none; }
+.source-list li {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.decision { color: var(--warn); font-weight: 780; }
+.valid { color: var(--ok); font-weight: 780; }
+pre {
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #0f172a;
+  color: #e5eefb;
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.approval-form {
+  display: grid;
+  grid-template-columns: 190px 140px 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+.footer-nav { margin-top: 22px; }
+@media (max-width: 820px) {
+  .shell { padding: 20px 14px 32px; }
+  .topbar, .form-grid, .grid, .metrics, .approval-form { grid-template-columns: 1fr; display: grid; }
+  .hero h1, .page-title h1 { font-size: 27px; }
+}
+"""
+
 
 def _approval_url() -> str:
     return os.getenv("APPROVAL_EVIDENCE_URL", "http://127.0.0.1:8104")
@@ -20,6 +138,36 @@ def _approval_url() -> str:
 
 def _json_pre(value: object) -> str:
     return html.escape(json.dumps(value, indent=2, sort_keys=True))
+
+
+def _page(title: str, content: str, *, status: str = "P0 Cloud Run demo") -> str:
+    return f"""
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{html.escape(title)}</title>
+        <style>{BASE_CSS}</style>
+      </head>
+      <body>
+        <main class="shell">
+          <header class="topbar">
+            <div class="brand">Akretic A2A Trust Gateway</div>
+            <div class="status-pill">{html.escape(status)}</div>
+          </header>
+          {content}
+        </main>
+      </body>
+    </html>
+    """
+
+
+def _source_list(source_ids: list[str]) -> str:
+    if not source_ids:
+        return "<p>No sources returned.</p>"
+    items = "".join(f"<li>{html.escape(source_id)}</li>" for source_id in source_ids)
+    return f'<ul class="source-list">{items}</ul>'
 
 
 async def run_review_from_ui(persona: str, query: str) -> dict:
@@ -72,29 +220,33 @@ def healthz() -> dict[str, str]:
 
 @app.get("/", response_class=HTMLResponse)
 def home() -> str:
-    return """
-    <html>
-      <head><title>Akretic A2A Trust Gateway</title></head>
-      <body style="font-family: Arial, sans-serif; margin: 40px; max-width: 980px;">
+    return _page(
+        "Akretic A2A Trust Gateway",
+        """
+        <section class="hero">
         <h1>Akretic A2A Trust Gateway</h1>
         <p>Challenge prototype: policy-mediated A2A vendor-risk review.</p>
         <form method="post" action="/run">
-          <label>Persona:</label>
-          <select name="persona">
-            <option value="procurement_user">procurement_user</option>
-            <option value="security_reviewer">security_reviewer</option>
-            <option value="legal_reviewer">legal_reviewer</option>
-            <option value="admin">admin</option>
-          </select>
-          <br><br>
-          <label>Query:</label><br>
-          <textarea name="query" rows="4" cols="90">VendorNova procurement security policy</textarea>
-          <br><br>
-          <button type="submit">Start VendorNova Review</button>
+          <div class="form-grid">
+            <div>
+              <label>Persona</label>
+              <select name="persona">
+                <option value="procurement_user">procurement_user</option>
+                <option value="security_reviewer">security_reviewer</option>
+                <option value="legal_reviewer">legal_reviewer</option>
+                <option value="admin">admin</option>
+              </select>
+            </div>
+            <div>
+              <label>Query</label>
+              <textarea name="query">VendorNova procurement security policy</textarea>
+            </div>
+          </div>
+          <p><button type="submit">Start VendorNova Review</button></p>
         </form>
-      </body>
-    </html>
-    """
+        </section>
+        """,
+    )
 
 
 @app.post("/run", response_class=HTMLResponse)
@@ -104,47 +256,78 @@ async def run(persona: str = Form(...), query: str = Form(...)) -> str:
     approval_html = ""
     if approval:
         approval_html = f"""
-        <h2>Approval request</h2>
+        <section class="panel">
+        <h2>Approval Request</h2>
         <pre>{_json_pre(approval)}</pre>
-        <form method="post" action="/approval/decide">
+        <form class="approval-form" method="post" action="/approval/decide">
           <input type="hidden" name="run_id" value="{html.escape(result['run_id'])}">
           <input type="hidden" name="approval_id" value="{html.escape(approval['approval_id'])}">
-          <label>Reviewer persona:</label>
-          <select name="reviewer_persona">
-            <option value="security_reviewer">security_reviewer</option>
-            <option value="procurement_user">procurement_user</option>
-          </select>
-          <label>Decision:</label>
-          <select name="status">
-            <option value="approved">approved</option>
-            <option value="rejected">rejected</option>
-          </select>
-          <input name="reason" value="demo reviewer decision">
+          <div>
+            <label>Reviewer persona</label>
+            <select name="reviewer_persona">
+              <option value="security_reviewer">security_reviewer</option>
+              <option value="procurement_user">procurement_user</option>
+            </select>
+          </div>
+          <div>
+            <label>Decision</label>
+            <select name="status">
+              <option value="approved">approved</option>
+              <option value="rejected">rejected</option>
+            </select>
+          </div>
+          <div>
+            <label>Reason</label>
+            <input name="reason" value="demo reviewer decision">
+          </div>
           <button type="submit">Record reviewer decision</button>
         </form>
+        </section>
         """
-    return f"""
-    <html>
-      <body style="font-family: Arial, sans-serif; margin: 40px; max-width: 980px;">
-        <h1>VendorNova Review</h1>
-        <p><strong>Run ID:</strong> {html.escape(result['run_id'])}</p>
-        <p><strong>Persona:</strong> {html.escape(persona)}</p>
-        <p><strong>Summary:</strong> {html.escape(result['summary'])}</p>
-        <h2>Permitted sources</h2>
-        <pre>{_json_pre([chunk['source_id'] for chunk in result['retrieval']['chunks']])}</pre>
-        <h2>Denied sources</h2>
-        <pre>{_json_pre(result['retrieval']['denied_sources'])}</pre>
-        <h2>External action decision</h2>
-        <pre>{html.escape(result['export_decision']['outcome'])}: {html.escape(result['export_decision']['reason'])}</pre>
-        <h2>Export result</h2>
-        <pre>{_json_pre(result['export_result'])}</pre>
+    permitted_source_ids = [chunk["source_id"] for chunk in result["retrieval"]["chunks"]]
+    denied_source_ids = [source["source_id"] for source in result["retrieval"]["denied_sources"]]
+    verification = result["verification"]
+    return _page(
+        "VendorNova Review",
+        f"""
+        <section class="page-title">
+          <h1>VendorNova Review</h1>
+          <p>{html.escape(result['summary'])}</p>
+        </section>
+        <section class="metrics">
+          <div class="metric"><span>Run ID</span><strong>{html.escape(result['run_id'])}</strong></div>
+          <div class="metric"><span>Persona</span><strong>{html.escape(persona)}</strong></div>
+          <div class="metric"><span>External action</span><strong class="decision">{html.escape(result['export_decision']['outcome'])}</strong></div>
+          <div class="metric"><span>Evidence chain</span><strong class="valid">{html.escape(str(verification.get('valid')).lower())}</strong></div>
+        </section>
+        <section class="grid">
+          <div class="panel">
+            <h2>Permitted Sources</h2>
+            {_source_list(permitted_source_ids)}
+          </div>
+          <div class="panel">
+            <h2>Denied Sources</h2>
+            {_source_list(denied_source_ids)}
+          </div>
+        </section>
+        <section class="grid">
+          <div class="panel">
+            <h2>Policy Decision</h2>
+            <p><strong>{html.escape(result['export_decision']['outcome'])}</strong>: {html.escape(result['export_decision']['reason'])}</p>
+          </div>
+          <div class="panel">
+            <h2>Export Result</h2>
+            <pre>{_json_pre(result['export_result'])}</pre>
+          </div>
+        </section>
         {approval_html}
-        <h2>Evidence verification</h2>
+        <section class="panel">
+        <h2>Evidence Verification</h2>
         <pre>{_json_pre(result['verification'])}</pre>
-        <p><a href="/">Back</a></p>
-      </body>
-    </html>
-    """
+        </section>
+        <p class="footer-nav"><a href="/">Back</a></p>
+        """,
+    )
 
 
 @app.post("/approval/decide", response_class=HTMLResponse)
@@ -163,17 +346,21 @@ async def decide_approval(
         reason=reason,
     )
 
-    return f"""
-    <html>
-      <body style="font-family: Arial, sans-serif; margin: 40px; max-width: 980px;">
-        <h1>Approval Decision</h1>
-        <p><strong>Run ID:</strong> {html.escape(run_id)}</p>
-        <p><strong>Reviewer persona:</strong> {html.escape(reviewer_persona)}</p>
-        <h2>Decision result</h2>
+    return _page(
+        "Approval Decision",
+        f"""
+        <section class="page-title">
+          <h1>Approval Decision</h1>
+          <p>Run ID: {html.escape(run_id)}. Reviewer persona: {html.escape(reviewer_persona)}.</p>
+        </section>
+        <section class="panel">
+        <h2>Decision Result</h2>
         <pre>{_json_pre(decision)}</pre>
-        <h2>Evidence verification</h2>
+        </section>
+        <section class="panel">
+        <h2>Evidence Verification</h2>
         <pre>{_json_pre(verification)}</pre>
-        <p><a href="/">Back</a></p>
-      </body>
-    </html>
-    """
+        </section>
+        <p class="footer-nav"><a href="/">Back</a></p>
+        """,
+    )

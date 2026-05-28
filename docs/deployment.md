@@ -23,6 +23,18 @@ Run from the repository root:
 .\scripts\deploy_cloudrun.ps1
 ```
 
+Verify after deployment:
+
+```powershell
+.\scripts\verify_cloudrun_p0.ps1
+```
+
+After the public `allUsers` invoker policy is allowed, require the public URL gate:
+
+```powershell
+.\scripts\verify_cloudrun_p0.ps1 -RequirePublic
+```
+
 The script:
 
 1. sets the active project to `akretic-a2a-trust-gateway`;

@@ -1,15 +1,28 @@
 # Architecture
 
-```text
-Demo UI
-  -> ADK Root Orchestrator / root service
-      -> Policy Agent / Gate0-lite
-      -> Knowledge Agent / RAG DMZ-lite
-      -> Research Agent / seeded public snippets
-      -> Approval/Evidence Agent
-          -> Evidence Ledger
-          -> Verify Report
-      -> Vertex AI Gemini for permitted-context summarization
+```mermaid
+flowchart LR
+  user["Demo user"]
+  ui["Demo UI<br/>Cloud Run public target"]
+  root["Root Orchestrator<br/>Cloud Run private"]
+  gate["Policy Agent<br/>Gate0-lite"]
+  rag["Knowledge Agent<br/>RAG DMZ-lite"]
+  research["Research Agent<br/>seeded public snippets"]
+  approval["Approval/Evidence Agent<br/>approval state machine"]
+  ledger["Hash-chained evidence ledger<br/>Cloud Storage"]
+  gemini["Vertex AI Gemini<br/>permitted context only"]
+
+  user --> ui
+  ui -->|"derived demo persona + ID token"| root
+  root -->|"A2A authorize_intent"| gate
+  root -->|"A2A retrieve_permitted_context"| rag
+  root -->|"seeded public-risk lookup"| research
+  root -->|"request_approval / verify / report"| approval
+  rag -->|"allow/deny evidence"| ledger
+  gate -->|"policy evidence"| ledger
+  approval -->|"approval + report evidence"| ledger
+  root -->|"permitted chunks, denied IDs only"| gemini
+  root -->|"summary + decision evidence"| ledger
 ```
 
 ## Invariant
@@ -29,4 +42,11 @@ Identity, retrieval, tool calls, egress, approvals, and evidence are controlled 
 
 ## Trust boundary
 
-Gemini may plan and summarize. Gemini does not decide authorization, approval, identity, source access, or evidence validity.
+Gemini may summarize permitted context. Gemini does not decide authorization,
+approval, identity, source access, or evidence validity.
+
+## P0 implementation note
+
+P0 uses a thin root service with Vertex AI Gemini and HTTP Agent Card/A2A calls.
+Full ADK wrapping or managed Agent Runtime alignment is stretch work after the
+Cloud Run proof path is public and stable.

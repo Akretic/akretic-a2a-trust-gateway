@@ -42,6 +42,16 @@ Run one service locally:
 uvicorn services.gate0_lite.main:app --reload --port 8101
 ```
 
+Smoke the local policy service:
+
+```bash
+curl -s http://127.0.0.1:8101/.well-known/agent-card.json
+curl -s -X POST http://127.0.0.1:8101/authorize_intent \
+  -H "content-type: application/json" \
+  -H "x-akretic-persona: procurement_user" \
+  -d '{"action":"retrieve_internal","resource":{"resource_id":"vendornova_profile","classification":"public","source_type":"synthetic","allowed_groups":["procurement"]}}'
+```
+
 Run the local service stack:
 
 ```bash
@@ -83,6 +93,30 @@ organization policy for `allUsers` IAM bindings. See `docs/deployment_notes.md`.
 The root Gemini path is isolated behind `common/gemini.py`. Set `AKRETIC_GEMINI_MODE=vertex`
 with `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, and `VERTEX_MODEL` for the Cloud Run demo.
 The `local` mode is explicitly labeled and reserved for tests.
+
+## Judging instructions
+
+Target demo URL: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
+
+The intended judging flow:
+
+1. Open the demo URL.
+2. Keep persona as `procurement_user`.
+3. Start the VendorNova review.
+4. Confirm the page shows a `run_id`, permitted sources, denied sources, an
+   `approval_required` external-action decision, and hash-chain verification.
+5. Submit the reviewer decision as `security_reviewer`.
+6. Use the sample evidence report in `artifacts/` or the private evidence report
+   endpoint to inspect the A2A, policy, retrieval, approval, and verification events.
+
+Current deployment blocker: the service is deployed, but the Akretic organization
+policy currently blocks unauthenticated `allUsers` Cloud Run invoker access. Once
+that policy exception is applied for `akretic-demo-ui`, rerun:
+
+```powershell
+.\scripts\deploy_cloudrun.ps1
+.\scripts\verify_cloudrun_p0.ps1 -RequirePublic
+```
 
 ## Public-claim discipline
 
