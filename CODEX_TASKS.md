@@ -3,13 +3,13 @@
 Use `/plan` for ambiguous work, then `/goal` for execution. Keep every goal bounded and testable.
 
 Before selecting work, read `PROJECT_SOURCE_OF_TRUTH.md`, then
-`docs/priority_ladder.md`. P0, P1, P2, and P3 are cleared; P4 Judge hardening is
-the active lane. P6 Google stretch and P7 post-challenge productization are
-non-blocking and must not displace P4-P5 work.
+`docs/priority_ladder.md`. P0, P1, P2, P3, and P4 are cleared; P5 Submission
+package is the active lane. P6 Google stretch and P7 post-challenge
+productization are non-blocking and must not displace P5 work.
 
 ## Current active lane
 
-P4 Judge hardening is the active lane. The P0 tickets below are
+P5 Submission package is the active lane. The P0 tickets below are
 regression and reference material only unless tests fail or the user explicitly
 assigns P0 regression work. Do not rebuild cleared P0/P1 work just because the
 historical ticket sequence is still documented here.
