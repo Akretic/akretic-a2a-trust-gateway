@@ -71,6 +71,8 @@ bash scripts/run_local.sh
 - `docs/p1_acceptance.md` — completed P1 demo-path polish acceptance checks.
 - `docs/p2_acceptance.md` — completed P2 Gemini/Vertex hardening acceptance checks.
 - `docs/p3_acceptance.md` — completed P3 Cloud Run deployment hardening acceptance checks.
+- `docs/p4_acceptance.md` — active P4 judge hardening acceptance checks.
+- `docs/judge_readiness.md` — public judge-path checklist and trust-boundary verifier.
 - `docs/cloudrun_runbook.md` — Cloud Run verification, troubleshooting, and rollback drill commands.
 - `CODEX_TASKS.md` — bounded `/goal` prompts and ticket sequence.
 - `GOOGLE_TOOLS.md` — required and stretch Google Cloud tools.
@@ -175,6 +177,7 @@ The public UI uses Cloud Run's no-invoker IAM check mode so it can remain public
 for judging without an `allUsers` IAM binding. Verify the public proof path with:
 
 ```powershell
+.\scripts\verify_judge_readiness.ps1
 .\scripts\verify_cloudrun_p0.ps1 -RequirePublic
 ```
 
