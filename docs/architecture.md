@@ -51,6 +51,8 @@ approval, identity, source access, or evidence validity.
 
 ## P0 implementation note
 
-P0 uses a thin root service with Vertex AI Gemini and HTTP Agent Card/A2A calls.
-Full ADK wrapping or managed Agent Runtime alignment is stretch work after the
-Cloud Run proof path is public and stable.
+The current proof path uses Vertex/Gemini summarization and thin A2A Agent Card
+skill-call wiring, with ADK alignment documented as part of the Google Cloud
+agent architecture path rather than overclaiming full ADK-native orchestration.
+Managed Agent Runtime alignment remains stretch work after the Cloud Run proof
+path is public and stable.

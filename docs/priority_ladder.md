@@ -29,13 +29,13 @@ before selecting or expanding work.
 | P3 | Cloud Run deployment | Complete | Harden deploy scripts, service configuration, IAM notes, verification scripts, and rollback/runbook material for the existing Cloud Run shape. |
 | P4 | Judge hardening | Complete | Make the public judging path more resilient and self-explanatory while keeping admin/evidence surfaces role-checked and claims bounded. |
 | P5 | Submission package | Active | Keep submission artifacts, screenshots, evidence samples, architecture images, and public-safe copy current with the running demo. |
-| P6 | Google stretch | Blocked; non-blocking stretch | Explore ADK alignment, Agent Runtime or Registry, Firestore, Vertex AI embeddings, and controlled Google Search grounding only after P5 is stable. |
+| P6 | Google stretch | Blocked; non-blocking stretch | Treat ADK alignment as part of the Google Cloud agent architecture path rather than overclaiming full ADK-native orchestration; explore Agent Runtime or Registry, Firestore, Vertex AI embeddings, and controlled Google Search grounding only after P5 is stable. |
 | P7 | Post-challenge productization | Blocked; post-challenge | Consider SSO, real enterprise connectors, broader policy administration, production monitoring, incident workflows, and customer environment hardening only after P5 is stable and the challenge path is complete. |
 
 ## Selection Rules
 
 1. Do not pick P6 or P7 work if any P5 acceptance gap is open.
-2. Do not let Gemini, ADK, embeddings, or search grounding decide authorization.
+2. Do not let Gemini, future ADK-aligned orchestration, embeddings, or search grounding decide authorization.
 3. Do not introduce customer data, private third-party data, real secrets, or production certification claims.
 4. Do not expand the workflow beyond VendorNova unless the source of truth is updated first.
 5. Prefer narrow branches named after the active priority, for example `p5/submission-package`.

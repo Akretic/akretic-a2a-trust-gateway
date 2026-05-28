@@ -72,6 +72,9 @@ bash scripts/run_local.sh
 - `docs/p2_acceptance.md` — completed P2 Gemini/Vertex hardening acceptance checks.
 - `docs/p3_acceptance.md` — completed P3 Cloud Run deployment hardening acceptance checks.
 - `docs/p4_acceptance.md` — completed P4 judge hardening acceptance checks.
+- `docs/p5_acceptance.md` — active P5 submission package acceptance checks.
+- `docs/devpost_answers.md` — paste-ready public submission answers.
+- `docs/demo_video_script.md` and `docs/video_shot_list.md` — hosted demo video planning material.
 - `docs/judge_readiness.md` — public judge-path checklist and trust-boundary verifier.
 - `docs/cloudrun_runbook.md` — Cloud Run verification, troubleshooting, and rollback drill commands.
 - `CODEX_TASKS.md` — bounded `/goal` prompts and ticket sequence.
@@ -156,7 +159,7 @@ tests or local development.
 - This is not a legal opinion, audit attestation, or Marketplace status claim.
 - This is not a guarantee that every possible data leak or policy bypass is impossible.
 - This does not replace enterprise SSO, full policy administration, monitoring, incident response, or customer-specific controls.
-- ADK-native orchestration is not overclaimed; the current proof path uses the Vertex/Gemini summarization adapter and thin A2A Agent Card skill-call wiring.
+- The current proof path uses Vertex/Gemini summarization and thin A2A Agent Card skill-call wiring, with ADK alignment documented as part of the Google Cloud agent architecture path rather than overclaiming full ADK-native orchestration.
 
 ## Judging instructions
 
@@ -185,4 +188,4 @@ for judging without an `allUsers` IAM binding. Verify the public proof path with
 
 Use: policy-mediated, permission-preserving for this synthetic corpus, approval-gated, tamper-evident, challenge prototype.
 
-Do not claim: unhackable, guaranteed compliance, universal data-leak prevention, legal non-repudiation, Marketplace-approved, certified, or production-ready.
+Do not make claims of perfect security, compliance guarantees, universal leak prevention, legal attestation, Marketplace status, certification, or production launch readiness.

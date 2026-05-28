@@ -2,6 +2,43 @@
 
 Date: 2026-05-28
 
+## P5 Submission Package Update
+
+Date: 2026-05-28
+
+### Scope
+
+- Added P5 acceptance, Devpost-ready answers, hosted-video script, and shot-list docs.
+- Refreshed submission checklist and package docs for hosted video URL handling.
+- Excluded raw video binaries from the repo and final zip; `dist/video_url.txt`
+  is the hosted-video URL placeholder until upload.
+- Regenerated public-safe brief PDF from `docs/public_brief.md`.
+- Refreshed public demo screenshots and a public-safe evidence report preview.
+- Added reproducible local helpers for screenshots, PDF rendering, and zip packaging.
+- No Cloud Run redeploy was performed because P5 changes are docs and local
+  submission artifacts only.
+
+### Artifact Snapshot
+
+- Final zip: `dist/akretic-a2a-trust-gateway-submission.zip`
+- Public-safe PDF: `dist/akretic-a2a-trust-gateway-public-brief.pdf`
+- Hosted video URL placeholder: `dist/video_url.txt`
+- Screenshot artifacts:
+  - `artifacts/screenshots/demo-home.png`
+  - `artifacts/screenshots/demo-review-result.png`
+  - `artifacts/screenshots/evidence-report.png`
+- Evidence report artifact: latest `artifacts/sample-evidence-report-<run_id>.json`
+
+### Verification Commands
+
+```powershell
+.\scripts\verify_judge_readiness.ps1
+.\.venv\Scripts\python.exe -m pytest -q
+.\scripts\deploy_cloudrun.ps1 -PreflightOnly
+.\scripts\verify_cloudrun_config.ps1
+.\scripts\verify_cloudrun_p0.ps1 -RequirePublic -KeepReport
+```
+
 ## P4 Judge Hardening Update
 
 Date: 2026-05-28

@@ -1,5 +1,9 @@
 # Two-Minute Demo Script
 
+Current P5 video planning source: `docs/demo_video_script.md` and
+`docs/video_shot_list.md`. Use a hosted video URL for submission; do not commit
+or package raw video exports.
+
 | Time | Screen/action | Narration |
 |---|---|---|
 | 0:00–0:15 | Architecture slide / UI home | Enterprises are moving from single assistants to networks of agents. A2A makes collaboration possible, but businesses still need to control what agents may read, share, and trigger. |

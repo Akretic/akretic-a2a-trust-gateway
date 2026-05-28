@@ -31,8 +31,8 @@ the P0/P1/P2/P3 trust semantics.
 ## Scope Boundary
 
 P4 does not change workflows, routes, resource classes, IAM, public URL shape,
-private-service exposure, ADK posture, Agent Runtime, Registry, Firestore,
-embeddings, search grounding, data sources, secrets, or P0/P1/P2/P3 trust
-semantics.
+private-service exposure, full ADK-native orchestration, Agent Runtime,
+Registry, Firestore, embeddings, search grounding, data sources, secrets, or
+P0/P1/P2/P3 trust semantics.
 
 Recommended branch: `p4/judge-hardening`.

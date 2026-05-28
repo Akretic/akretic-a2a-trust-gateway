@@ -36,6 +36,13 @@ The demo proves three controls in one short path:
 - Cloud Storage for the synthetic P0 evidence ledger export path.
 - IAM service accounts and Cloud Run invoker checks for service boundaries.
 
+## Agent Architecture Posture
+
+The current proof path uses Vertex/Gemini summarization and thin A2A Agent Card
+skill-call wiring, with ADK alignment documented as part of the Google Cloud
+agent architecture path rather than overclaiming full ADK-native orchestration.
+The challenge submission does not create a Google Cloud Marketplace listing.
+
 ## Synthetic Data Disclosure
 
 The P0 corpus is synthetic and challenge-specific. It includes sample vendor

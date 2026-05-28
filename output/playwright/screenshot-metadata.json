@@ -1,23 +1,9 @@
 {
-  "captured_at": "2026-05-28T18:18:48.797267Z",
-  "demo_url": "https://akretic-demo-ui-oes3slkexq-uc.a.run.app/",
-  "review_url": "https://akretic-demo-ui-oes3slkexq-uc.a.run.app/run",
-  "review_run_id": "run_9d01c9f7213e4b6f9aad64bcf2d3056b",
-  "source": "public Cloud Run UI after P1 demo-path polish",
-  "renderer": "python playwright chromium",
-  "viewport": {
-    "width": 1440,
-    "height": 1100
-  },
-  "screenshots": [
-    "output/playwright/demo-home.png",
-    "output/playwright/demo-review-result.png"
-  ],
-  "visible_checks": {
-    "judge_walkthrough": true,
-    "denied_before_context": true,
-    "approval_required": true,
-    "a2a_correlation_ids": true,
-    "evidence_verification": true
+  "captured_at": "2026-05-28T22:24:10.918730+00:00",
+  "demo_url": "https://akretic-demo-ui-oes3slkexq-uc.a.run.app",
+  "screenshots": {
+    "home": "artifacts\\screenshots\\demo-home.png",
+    "review_result": "artifacts\\screenshots\\demo-review-result.png",
+    "evidence_report": "artifacts\\screenshots\\evidence-report.png"
   }
 }
