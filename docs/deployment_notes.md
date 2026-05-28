@@ -2,6 +2,57 @@
 
 Date: 2026-05-28
 
+## P3 Cloud Run Deployment Hardening Update
+
+Date: 2026-05-28
+
+### Scope
+
+- Added deploy preflight-only mode; no resource changes are made by `-PreflightOnly`.
+- Added read-only Cloud Run config verifier.
+- Changed the proof-path verifier to delete transient evidence reports by default and retain them only with `-KeepReport`.
+- Added rollback drill documentation with current revisions and previous ready rollback targets.
+- No redeploy was performed for P3 because changes are docs and local script hardening only.
+- No new resource classes, broad IAM grants, public private-service exposure, or trust-semantics changes were introduced.
+
+### Commands Run
+
+```powershell
+.\scripts\deploy_cloudrun.ps1 -PreflightOnly
+.\scripts\verify_cloudrun_config.ps1
+.\.venv\Scripts\python.exe -m pytest -q
+.\scripts\verify_cloudrun_p0.ps1 -RequirePublic
+.\scripts\verify_cloudrun_p0.ps1 -RequirePublic -KeepReport
+```
+
+### Verification Snapshot
+
+- Deploy preflight:
+  - Account: `sean.w@akretic.com`
+  - Project: `akretic-a2a-trust-gateway`
+  - Region: `us-central1`
+  - Billing: enabled
+  - Allowed services: `akretic-demo-ui`, `akretic-root-orchestrator`, `akretic-policy-agent`, `akretic-knowledge-agent`, `akretic-research-agent`, `akretic-approval-evidence`
+- Cloud Run config verifier:
+  - `akretic-demo-ui`: public HTTP 200, revision `akretic-demo-ui-00012-ht7`
+  - `akretic-root-orchestrator`: private unauthenticated HTTP 404, revision `akretic-root-orchestrator-00010-c5s`
+  - `akretic-policy-agent`: private unauthenticated HTTP 404, revision `akretic-policy-agent-00010-xxq`
+  - `akretic-knowledge-agent`: private unauthenticated HTTP 404, revision `akretic-knowledge-agent-00010-lpv`
+  - `akretic-research-agent`: private unauthenticated HTTP 404, revision `akretic-research-agent-00010-55l`
+  - `akretic-approval-evidence`: private unauthenticated HTTP 404, revision `akretic-approval-evidence-00010-85n`
+- Rollback targets documented in `docs/cloudrun_runbook.md`; no rollback traffic shift was executed.
+- Proof-path verifier default cleanup run:
+  - Run ID: `run_8d1fa6226c2c48e98e7ffc289a8b3e9c`
+  - Approval ID: `apr_c4d58339a1eb4a99bb267a883b5eeaa9`
+  - `report_path`: `null`
+  - `report_kept`: `false`
+  - Evidence report valid: `true`
+- Proof-path verifier `-KeepReport` run:
+  - Run ID: `run_e23a7e38fd074e9ca2a9b53fd38977fb`
+  - Approval ID: `apr_7814ca3e9ff146d5a18c677bd873aa12`
+  - `report_kept`: `true`
+  - Retained report was deleted after verification because this was a script behavior check, not a submission artifact refresh.
+
 ## P2 Gemini/Vertex Hardening Deployment Update
 
 Date: 2026-05-28

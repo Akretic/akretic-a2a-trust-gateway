@@ -23,6 +23,12 @@ Run from the repository root:
 .\scripts\deploy_cloudrun.ps1
 ```
 
+Run the read-only preflight before any deploy-capable path:
+
+```powershell
+.\scripts\deploy_cloudrun.ps1 -PreflightOnly
+```
+
 Verify after deployment:
 
 ```powershell
@@ -33,6 +39,19 @@ Require the public URL gate:
 
 ```powershell
 .\scripts\verify_cloudrun_p0.ps1 -RequirePublic
+```
+
+Verify deployed Cloud Run configuration without changing resources:
+
+```powershell
+.\scripts\verify_cloudrun_config.ps1
+```
+
+The proof-path verifier deletes transient evidence reports by default. Keep a
+report only when needed for debugging, audit capture, or submission packaging:
+
+```powershell
+.\scripts\verify_cloudrun_p0.ps1 -RequirePublic -KeepReport
 ```
 
 The script:
@@ -100,3 +119,11 @@ Expected failure classes are credential/auth, service-account permission, quota,
 model/project/location configuration, disabled API, billing/org policy, and bad
 local configuration. Do not switch to AI Studio or broaden IAM to resolve these;
 stop and record the exact blocker.
+
+## Redeploy Boundary
+
+Do not redeploy for docs-only or local verifier-only changes. Redeploy only when
+runtime config, container image contents, Cloud Run service settings, IAM,
+environment variables, deployed verifier behavior, or public UI behavior changes.
+
+Rollback and incident commands are documented in `docs/cloudrun_runbook.md`.

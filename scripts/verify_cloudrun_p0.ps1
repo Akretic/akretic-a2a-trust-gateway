@@ -4,7 +4,8 @@ param(
   [string]$DemoUrl = "https://akretic-demo-ui-oes3slkexq-uc.a.run.app",
   [string]$ApprovalEvidenceUrl = "https://akretic-approval-evidence-oes3slkexq-uc.a.run.app",
   [string]$Query = "VendorNova procurement security policy",
-  [switch]$RequirePublic
+  [switch]$RequirePublic,
+  [switch]$KeepReport
 )
 
 $ErrorActionPreference = "Stop"
@@ -121,10 +122,13 @@ if ($latestModel.denied_source_ids -notcontains "executive_acquisition_memo") {
   throw "Evidence report did not include executive_acquisition_memo as a denied source ID"
 }
 
-$outDir = Join-Path (Get-Location) "artifacts"
-New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-$reportPath = Join-Path $outDir "sample-evidence-report-$runId.json"
-Set-Content -Path $reportPath -Value $reportResponse.Content -Encoding UTF8
+$reportPath = $null
+if ($KeepReport) {
+  $outDir = Join-Path (Get-Location) "artifacts"
+  New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+  $reportPath = Join-Path $outDir "sample-evidence-report-$runId.json"
+  Set-Content -Path $reportPath -Value $reportResponse.Content -Encoding UTF8
+}
 
 [ordered]@{
   project_id = $ProjectId
@@ -136,6 +140,7 @@ Set-Content -Path $reportPath -Value $reportResponse.Content -Encoding UTF8
   run_id = $runId
   approval_id = $approvalId
   report_path = $reportPath
+  report_kept = [bool]$KeepReport
   has_denied_sources = $runHtml.Contains("Denied Sources")
   has_approval = $runHtml.Contains("Approval Request")
   has_verification = $runHtml.Contains("Evidence Verification")

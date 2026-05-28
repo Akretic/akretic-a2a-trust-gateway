@@ -4,10 +4,23 @@ param(
   [string]$Repository = "akretic",
   [string]$ImageTag = "p0-latest",
   [string]$RuntimeServiceAccount = "akretic-p0-runtime",
-  [string]$EvidenceBucket = "akretic-a2a-trust-gateway-evidence"
+  [string]$EvidenceBucket = "akretic-a2a-trust-gateway-evidence",
+  [string]$ExpectedAccount = "sean.w@akretic.com",
+  [switch]$PreflightOnly
 )
 
 $ErrorActionPreference = "Stop"
+
+$AllowedProjectId = "akretic-a2a-trust-gateway"
+$AllowedRegion = "us-central1"
+$AllowedServices = @(
+  "akretic-demo-ui",
+  "akretic-root-orchestrator",
+  "akretic-policy-agent",
+  "akretic-knowledge-agent",
+  "akretic-research-agent",
+  "akretic-approval-evidence"
+)
 
 function Run-Step {
   param(
@@ -21,6 +34,48 @@ function Run-Step {
   & $exe @args
   if ($LASTEXITCODE -ne 0) {
     throw "Command failed with exit code ${LASTEXITCODE}: $($Command -join ' ')"
+  }
+}
+
+function Assert-Equal {
+  param(
+    [object]$Actual,
+    [object]$Expected,
+    [string]$Name
+  )
+  if ($Actual -ne $Expected) {
+    throw "$Name was '$Actual', expected '$Expected'"
+  }
+}
+
+function Test-DeploymentPreflight {
+  Assert-Equal $ProjectId $AllowedProjectId "target project"
+  Assert-Equal $Region $AllowedRegion "target region"
+  foreach ($service in $AllowedServices) {
+    if (-not $service.StartsWith("akretic-")) {
+      throw "Service allowlist contains non-akretic service '$service'"
+    }
+  }
+
+  $activeAccount = (& gcloud config get-value account).Trim()
+  $activeProject = (& gcloud config get-value project).Trim()
+  Assert-Equal $activeAccount $ExpectedAccount "active gcloud account"
+  Assert-Equal $activeProject $ProjectId "active gcloud project"
+
+  $billing = gcloud billing projects describe $ProjectId --format=json | ConvertFrom-Json
+  if (-not [bool]$billing.billingEnabled) {
+    throw "Billing is not enabled for $ProjectId"
+  }
+
+  return [ordered]@{
+    project_id = $ProjectId
+    region = $Region
+    active_account = $activeAccount
+    active_project = $activeProject
+    billing_enabled = [bool]$billing.billingEnabled
+    allowed_services = $AllowedServices
+    runtime_service_account = "$RuntimeServiceAccount@$ProjectId.iam.gserviceaccount.com"
+    evidence_bucket = $EvidenceBucket
   }
 }
 
@@ -151,6 +206,12 @@ function Get-ServiceUrl {
 
 $RuntimeSaEmail = "$RuntimeServiceAccount@$ProjectId.iam.gserviceaccount.com"
 $Image = "$Region-docker.pkg.dev/$ProjectId/$Repository/akretic-p0:$ImageTag"
+
+$preflight = Test-DeploymentPreflight
+if ($PreflightOnly) {
+  $preflight | ConvertTo-Json -Depth 4
+  return
+}
 
 Run-Step "Set active project" @("gcloud", "config", "set", "project", $ProjectId)
 

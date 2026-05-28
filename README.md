@@ -70,6 +70,8 @@ bash scripts/run_local.sh
 - `docs/priority_ladder.md` — P0-P7 priority ladder; P0/P1/P2 are cleared and P3 is active.
 - `docs/p1_acceptance.md` — completed P1 demo-path polish acceptance checks.
 - `docs/p2_acceptance.md` — completed P2 Gemini/Vertex hardening acceptance checks.
+- `docs/p3_acceptance.md` — active P3 Cloud Run deployment hardening acceptance checks.
+- `docs/cloudrun_runbook.md` — Cloud Run verification, troubleshooting, and rollback drill commands.
 - `CODEX_TASKS.md` — bounded `/goal` prompts and ticket sequence.
 - `GOOGLE_TOOLS.md` — required and stretch Google Cloud tools.
 - `DAILY_BUILD_TEMPO.md` — day-by-day shipping cadence.
