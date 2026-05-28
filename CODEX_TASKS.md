@@ -12,8 +12,8 @@ productization must not displace the challenge path.
 
 P6 ADK alignment exploration may begin in isolated branches. The P0 tickets below are
 regression and reference material only unless tests fail or the user explicitly
-assigns P0 regression work. Do not rebuild cleared P0/P1 work just because the
-historical ticket sequence is still documented here.
+assigns P0 regression work. Do not rebuild cleared P0-P4 work or the P5 package
+baseline unless tests fail or the user explicitly assigns regression work.
 
 ## Goal mode operating rule
 

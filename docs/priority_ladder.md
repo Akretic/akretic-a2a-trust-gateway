@@ -19,6 +19,7 @@ before selecting or expanding work.
 - P2 acceptance is tracked in `docs/p2_acceptance.md`.
 - P3 acceptance is tracked in `docs/p3_acceptance.md`.
 - P4 acceptance is tracked in `docs/p4_acceptance.md`.
+- P5 acceptance is tracked in `docs/p5_acceptance.md`.
 
 ## Ladder
 
