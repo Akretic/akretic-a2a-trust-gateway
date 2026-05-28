@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+.ruff_cache/
+.env
+.env.local
+.akretic/
+.DS_Store
+*.log
+dist/
+build/

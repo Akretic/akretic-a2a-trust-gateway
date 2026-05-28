@@ -1,0 +1,4 @@
+[features]
+goals = true
+
+# Keep sandbox and approval settings under user control in the Codex app/CLI.

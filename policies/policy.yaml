@@ -1,0 +1,17 @@
+version: 1
+name: gate0-lite-demo-policy
+summary: Deterministic policy for Akretic challenge prototype.
+
+sensitive_side_effects:
+  - draft_exception
+  - export_external
+
+admin_actions:
+  - verify_evidence
+  - generate_report
+
+approval_roles:
+  draft_exception: security_reviewer
+  export_external: security_reviewer
+
+default_outcome: deny

@@ -1,0 +1,99 @@
+{
+  "documents": [
+    {
+      "source_id": "vendornova_profile",
+      "path": "vendornova_profile.md",
+      "title": "VendorNova profile",
+      "classification": "public",
+      "source_type": "synthetic_internal",
+      "allowed_groups": [
+        "procurement_user",
+        "security_reviewer",
+        "legal_reviewer"
+      ],
+      "document_type": "vendor_profile",
+      "external_release_allowed": true,
+      "sensitivity_tags": []
+    },
+    {
+      "source_id": "vendornova_security_questionnaire",
+      "path": "vendornova_security_questionnaire.md",
+      "title": "VendorNova security questionnaire",
+      "classification": "internal",
+      "source_type": "synthetic_internal",
+      "allowed_groups": [
+        "security_reviewer"
+      ],
+      "document_type": "security_questionnaire",
+      "external_release_allowed": false,
+      "sensitivity_tags": [
+        "security"
+      ]
+    },
+    {
+      "source_id": "procurement_policy",
+      "path": "procurement_policy.md",
+      "title": "Procurement policy excerpt",
+      "classification": "internal",
+      "source_type": "synthetic_internal",
+      "allowed_groups": [
+        "procurement_user",
+        "security_reviewer"
+      ],
+      "document_type": "policy",
+      "external_release_allowed": false,
+      "sensitivity_tags": [
+        "procurement"
+      ]
+    },
+    {
+      "source_id": "infosec_vendor_policy",
+      "path": "infosec_vendor_policy.md",
+      "title": "InfoSec vendor policy excerpt",
+      "classification": "restricted",
+      "source_type": "synthetic_internal",
+      "allowed_groups": [
+        "security_reviewer"
+      ],
+      "document_type": "policy",
+      "external_release_allowed": false,
+      "sensitivity_tags": [
+        "security",
+        "restricted"
+      ]
+    },
+    {
+      "source_id": "contract_review_checklist",
+      "path": "contract_review_checklist.md",
+      "title": "Contract review checklist",
+      "classification": "restricted",
+      "source_type": "synthetic_internal",
+      "allowed_groups": [
+        "legal_reviewer",
+        "security_reviewer"
+      ],
+      "document_type": "contract_checklist",
+      "external_release_allowed": false,
+      "sensitivity_tags": [
+        "legal",
+        "restricted"
+      ]
+    },
+    {
+      "source_id": "executive_acquisition_memo",
+      "path": "executive_acquisition_memo.md",
+      "title": "Executive acquisition memo",
+      "classification": "executive-only",
+      "source_type": "synthetic_internal",
+      "allowed_groups": [
+        "executive_admin"
+      ],
+      "document_type": "executive_memo",
+      "external_release_allowed": false,
+      "sensitivity_tags": [
+        "executive",
+        "denial-test"
+      ]
+    }
+  ]
+}
