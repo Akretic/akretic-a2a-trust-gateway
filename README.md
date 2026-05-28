@@ -56,6 +56,7 @@ bash scripts/run_local.sh
 - `GOOGLE_TOOLS.md` — required and stretch Google Cloud tools.
 - `DAILY_BUILD_TEMPO.md` — day-by-day shipping cadence.
 - `ACCEPTANCE_CRITERIA.md` — P0 tests and proof artifacts.
+- `docs/deployment.md` — Cloud Run deployment boundaries and commands.
 
 ## Current implementation status
 

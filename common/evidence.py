@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -25,6 +26,37 @@ def ledger_path(run_id: str, path: str | Path | None = None) -> Path:
     return ledger_dir(path) / f"{run_id}.jsonl"
 
 
+def _gcs_bucket_name(path: str | Path | None = None) -> str | None:
+    if path is not None:
+        return None
+    return os.getenv("EVIDENCE_GCS_BUCKET") or None
+
+
+def _gcs_blob_name(run_id: str) -> str:
+    prefix = os.getenv("EVIDENCE_GCS_PREFIX", "evidence").strip("/")
+    return f"{prefix}/{run_id}.jsonl" if prefix else f"{run_id}.jsonl"
+
+
+def _read_gcs_text(run_id: str, bucket_name: str) -> str:
+    from google.api_core.exceptions import NotFound
+    from google.cloud import storage
+
+    client = storage.Client()
+    blob = client.bucket(bucket_name).blob(_gcs_blob_name(run_id))
+    try:
+        return blob.download_as_text(encoding="utf-8")
+    except NotFound:
+        return ""
+
+
+def _write_gcs_text(run_id: str, bucket_name: str, text: str) -> None:
+    from google.cloud import storage
+
+    client = storage.Client()
+    blob = client.bucket(bucket_name).blob(_gcs_blob_name(run_id))
+    blob.upload_from_string(text, content_type="application/jsonl")
+
+
 def canonical_json(data: dict[str, Any]) -> str:
     return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
@@ -35,6 +67,11 @@ def compute_event_hash(event: dict[str, Any]) -> str:
 
 
 def _last_hash(run_id: str, path: str | Path | None = None) -> str:
+    bucket_name = _gcs_bucket_name(path)
+    if bucket_name:
+        events = read_events(run_id)
+        return events[-1]["event_hash"] if events else GENESIS_HASH
+
     target = ledger_path(run_id, path)
     if not target.exists():
         return GENESIS_HASH
@@ -75,13 +112,24 @@ def append_event(
         "metadata": metadata or {},
     }
     event["event_hash"] = compute_event_hash(event)
-    target = ledger_path(run_id, path)
-    with target.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(event, sort_keys=True) + "\n")
+    bucket_name = _gcs_bucket_name(path)
+    line = json.dumps(event, sort_keys=True) + "\n"
+    if bucket_name:
+        existing = _read_gcs_text(run_id, bucket_name)
+        _write_gcs_text(run_id, bucket_name, existing + line)
+    else:
+        target = ledger_path(run_id, path)
+        with target.open("a", encoding="utf-8") as handle:
+            handle.write(line)
     return event
 
 
 def read_events(run_id: str, path: str | Path | None = None) -> list[dict[str, Any]]:
+    bucket_name = _gcs_bucket_name(path)
+    if bucket_name:
+        text = _read_gcs_text(run_id, bucket_name)
+        return [json.loads(line) for line in text.splitlines() if line.strip()]
+
     target = ledger_path(run_id, path)
     if not target.exists():
         return []

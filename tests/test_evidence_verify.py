@@ -42,3 +42,45 @@ def test_evidence_hash_chain_valid_and_tamper_detected(tmp_path):
     tampered = verify_chain(run_id, path=tmp_path)
     assert tampered["valid"] is False
     assert tampered["reason"] == "event_hash mismatch"
+
+
+def test_evidence_hash_chain_can_use_shared_gcs_backend(monkeypatch):
+    import common.evidence as evidence
+
+    actor = derive_actor("procurement_user")
+    run_id = "test-gcs-evidence"
+    objects: dict[str, str] = {}
+
+    monkeypatch.setenv("EVIDENCE_GCS_BUCKET", "test-shared-evidence")
+    monkeypatch.setattr(
+        evidence,
+        "_read_gcs_text",
+        lambda run_id, bucket_name: objects.get(f"{bucket_name}/{run_id}", ""),
+    )
+    monkeypatch.setattr(
+        evidence,
+        "_write_gcs_text",
+        lambda run_id, bucket_name, text: objects.__setitem__(f"{bucket_name}/{run_id}", text),
+    )
+
+    append_event(
+        run_id=run_id,
+        actor=actor,
+        agent_id="policy_agent",
+        action="retrieve_internal",
+        resource_id="vendornova_profile",
+        outcome="allow",
+        reason="test allow",
+    )
+    append_event(
+        run_id=run_id,
+        actor=actor,
+        agent_id="knowledge_agent",
+        action="retrieve_internal",
+        resource_id="vendornova_profile",
+        outcome="result",
+        reason="test result",
+    )
+
+    assert verify_chain(run_id)["valid"] is True
+    assert len(objects["test-shared-evidence/test-gcs-evidence"].splitlines()) == 2
