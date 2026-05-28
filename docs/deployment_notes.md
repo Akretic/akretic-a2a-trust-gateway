@@ -2,6 +2,58 @@
 
 Date: 2026-05-28
 
+## P4 Judge Hardening Update
+
+Date: 2026-05-28
+
+### Scope
+
+- Added a public judge-readiness checklist focused on the 90-second proof path and trust boundary.
+- Added a public judge-readiness verifier for the current Cloud Run URL.
+- Linked P4 acceptance and judge-readiness docs from the README.
+- No visible UI, runtime config, container image, IAM, env var, deployed verifier behavior, or service exposure changes were made.
+- No redeploy was performed for P4, and screenshots were deferred to P5 because this pass did not change visible UI.
+
+### Commands Run
+
+```powershell
+.\scripts\verify_judge_readiness.ps1
+.\.venv\Scripts\python.exe -m pytest -q
+.\scripts\deploy_cloudrun.ps1 -PreflightOnly
+.\scripts\verify_cloudrun_config.ps1
+.\scripts\verify_cloudrun_p0.ps1 -RequirePublic
+```
+
+### Verification Snapshot
+
+- Judge-readiness verifier:
+  - Public URL: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app/`
+  - Public home, VendorNova review, approval decision, and sample evidence report all returned HTTP 200.
+  - Run ID: `run_391260ba56cb4e41a237bafcd9ebfa3d`
+  - Approval ID: `apr_26906e8b14594e7b81f5330e7822c910`
+  - Vertex mode, denied-source proof, approval gate, A2A proof, evidence verification, and sample report validity were visible.
+- Local test matrix: `29 passed`.
+- Deploy preflight:
+  - Account: `sean.w@akretic.com`
+  - Project: `akretic-a2a-trust-gateway`
+  - Region: `us-central1`
+  - Billing: enabled
+- Cloud Run config verifier:
+  - `akretic-demo-ui`: public HTTP 200, revision `akretic-demo-ui-00012-ht7`
+  - `akretic-root-orchestrator`: private unauthenticated HTTP 404, revision `akretic-root-orchestrator-00010-c5s`
+  - `akretic-policy-agent`: private unauthenticated HTTP 404, revision `akretic-policy-agent-00010-xxq`
+  - `akretic-knowledge-agent`: private unauthenticated HTTP 404, revision `akretic-knowledge-agent-00010-lpv`
+  - `akretic-research-agent`: private unauthenticated HTTP 404, revision `akretic-research-agent-00010-55l`
+  - `akretic-approval-evidence`: private unauthenticated HTTP 404, revision `akretic-approval-evidence-00010-85n`
+- Proof-path verifier:
+  - Run ID: `run_962bbb8f986d4d369aa2f56fdf5a83f0`
+  - Approval ID: `apr_45f4b87fbb2c4dab80ee45dc3e0591f2`
+  - `report_path`: `null`
+  - `report_kept`: `false`
+  - Model mode: `vertex`
+  - Model: `gemini-2.5-flash`
+  - Evidence report valid: `true`
+
 ## P3 Cloud Run Deployment Hardening Update
 
 Date: 2026-05-28
