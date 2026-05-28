@@ -4,6 +4,9 @@ P3 is accepted when the existing Cloud Run deployment is safer to repeat,
 verify, troubleshoot, and roll back without changing the P0/P1/P2 trust
 semantics.
 
+Status: complete as of the 2026-05-28 P3 mainline verification and tag
+`p3-accepted-2026-05-28`.
+
 ## Acceptance Checks
 
 - `scripts/deploy_cloudrun.ps1 -PreflightOnly` passes before any deploy-capable command path.
