@@ -6,6 +6,7 @@
 - Program: Google for Startups AI Agents Challenge
 - Track: Track 3
 - Public demo URL: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
+- Private GitHub repository: `https://github.com/Akretic/akretic-a2a-trust-gateway`
 - Google Cloud project: `akretic-a2a-trust-gateway`
 - Region: `us-central1`
 - Runtime: Cloud Run
@@ -47,8 +48,8 @@
 
 ## Manual Steps
 
-1. Create or provide the GitHub repository URL.
-2. Add the remote and push `main`.
+1. GitHub repository created and `main` pushed.
+2. P0 work branches pushed for traceability.
 3. Record or upload the 1-2 minute demo video from the public Cloud Run URL.
    The optional raw silent walkthrough can be generated with
    `.\.venv\Scripts\python.exe .\scripts\record_demo_video.py`.

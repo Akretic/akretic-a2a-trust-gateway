@@ -23,7 +23,7 @@ and write tamper-evident evidence.
 
 ## Repository URL
 
-`CLIENT_INPUT_REQUIRED`
+`https://github.com/Akretic/akretic-a2a-trust-gateway`
 
 ## Video URL
 
@@ -71,4 +71,3 @@ hardening.
 
 `google-cloud`, `cloud-run`, `vertex-ai`, `gemini`, `agents`, `a2a`,
 `enterprise-ai`, `governance`, `vendor-risk`, `fastapi`
-
