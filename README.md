@@ -18,6 +18,11 @@ The demo must prove these controls in one short path:
 5. Evidence ledger records allow, deny, approval, A2A call, and result events in a hash chain.
 6. `/verify/{run_id}` proves the chain is intact and detects tampering.
 
+P0 is cleared. The active post-P0 lane is P1 demo-path polish. Coding agents
+must read `PROJECT_SOURCE_OF_TRUTH.md` and then `docs/priority_ladder.md` before
+selecting work so P6/P7 stretch or productization work does not displace the
+active lane.
+
 ## Fast start
 
 ```bash
@@ -62,6 +67,7 @@ bash scripts/run_local.sh
 
 - `AGENTS.md` — repo-level instructions Codex must read before work.
 - `PROJECT_SOURCE_OF_TRUTH.md` — locked scope and product invariants.
+- `docs/priority_ladder.md` — P0-P7 priority ladder; P0 is cleared and P1 is active.
 - `CODEX_TASKS.md` — bounded `/goal` prompts and ticket sequence.
 - `GOOGLE_TOOLS.md` — required and stretch Google Cloud tools.
 - `DAILY_BUILD_TEMPO.md` — day-by-day shipping cadence.

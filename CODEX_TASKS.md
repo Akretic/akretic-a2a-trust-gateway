@@ -2,6 +2,11 @@
 
 Use `/plan` for ambiguous work, then `/goal` for execution. Keep every goal bounded and testable.
 
+Before selecting work, read `PROJECT_SOURCE_OF_TRUTH.md`, then
+`docs/priority_ladder.md`. P0 is cleared; P1 demo-path polish is the active
+lane. P6 Google stretch and P7 post-challenge productization are non-blocking
+and must not displace P1-P5 work.
+
 ## Goal mode operating rule
 
 A good goal includes:

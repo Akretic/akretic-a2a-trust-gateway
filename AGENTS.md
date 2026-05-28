@@ -7,6 +7,13 @@ This file is the operating contract for Codex agents working in this repository.
 Build a narrow P0 challenge prototype: Akretic A2A Trust Gateway for B2B vendor-risk review.
 The system must show that enterprise agents can collaborate over A2A while authorization, retrieval filtering, approvals, and evidence stay outside the model.
 
+## Required reading order
+
+Before selecting work, read `PROJECT_SOURCE_OF_TRUTH.md`, then
+`docs/priority_ladder.md`. The source of truth defines product boundaries; the
+priority ladder defines the current post-P0 lane and prevents stretch work from
+displacing active priorities.
+
 ## Non-negotiable architecture
 
 - Demo UI: FastAPI/server-rendered HTML or minimal SPA.
@@ -19,7 +26,7 @@ The system must show that enterprise agents can collaborate over A2A while autho
 
 ## Development rules
 
-1. Build only the assigned P0 feature. Do not expand scope.
+1. Build only the assigned priority-ladder lane or explicitly assigned feature. Do not expand scope.
 2. Do not rename the product or alter the core workflow without updating `PROJECT_SOURCE_OF_TRUTH.md`.
 3. Do not add a new framework unless the current task explicitly requires it.
 4. Every externally visible route or tool call must show where identity comes from.
