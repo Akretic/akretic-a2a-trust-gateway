@@ -7,6 +7,13 @@ Before selecting work, read `PROJECT_SOURCE_OF_TRUTH.md`, then
 lane. P6 Google stretch and P7 post-challenge productization are non-blocking
 and must not displace P1-P5 work.
 
+## Current active lane
+
+P1 demo-path polish is the active lane. The P0 tickets below are regression and
+reference material only unless tests fail or the user explicitly assigns P0
+regression work. Do not rebuild cleared P0 work just because the historical
+ticket sequence is still documented here.
+
 ## Goal mode operating rule
 
 A good goal includes:

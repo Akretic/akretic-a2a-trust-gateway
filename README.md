@@ -54,7 +54,7 @@ curl -s http://127.0.0.1:8101/.well-known/agent-card.json
 curl -s -X POST http://127.0.0.1:8101/authorize_intent \
   -H "content-type: application/json" \
   -H "x-akretic-persona: procurement_user" \
-  -d '{"action":"retrieve_internal","resource":{"resource_id":"vendornova_profile","classification":"public","source_type":"synthetic","allowed_groups":["procurement"]}}'
+  -d '{"action":"retrieve_internal","resource":{"resource_id":"vendornova_profile","classification":"public","source_type":"synthetic","allowed_groups":["procurement_user"]}}'
 ```
 
 Run the local service stack:

@@ -60,4 +60,4 @@ bash scripts/run_local.sh
 
 ## Default task prompt
 
-Build only the P0 feature assigned. Preserve the Akretic A2A Trust Gateway architecture. For any route or tool call, include derived identity, Gate0-lite decision where applicable, evidence event write, and tests. If the feature touches retrieval, restricted chunks must be filtered before model context. If it touches side effects, return `approval_required` before execution. Do not add product scope.
+Build only the assigned priority-ladder feature. Preserve the Akretic A2A Trust Gateway architecture. For any route or tool call, include derived identity, Gate0-lite decision where applicable, evidence event write, and tests. If the feature touches retrieval, restricted chunks must be filtered before model context. If it touches side effects, return `approval_required` before execution. Do not add product scope.
