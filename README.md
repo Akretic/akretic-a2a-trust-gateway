@@ -65,7 +65,7 @@ This packet includes:
 - demo identity adapter that ignores request-body privilege claims;
 - metadata-filtered synthetic corpus retrieval;
 - hash-chained JSONL evidence ledger;
-- approval state machine skeleton;
+- approval request and reviewer decision path for export-style side effects;
 - FastAPI service shells for the agents and core services;
 - Agent Card JSON for each remote agent;
 - root-to-Policy and root-to-Knowledge HTTP A2A calls with evidence logging;

@@ -21,6 +21,11 @@
       "description": "Create approval request."
     },
     {
+      "id": "decide_approval",
+      "name": "decide_approval",
+      "description": "Approve or reject a pending approval request."
+    },
+    {
       "id": "record_event",
       "name": "record_event",
       "description": "Append evidence event."

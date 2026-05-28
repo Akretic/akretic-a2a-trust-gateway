@@ -46,13 +46,18 @@ def request_approval(payload: dict[str, Any], x_akretic_persona: str | None = He
         resource_id=approval.resource_id,
         outcome="approval_required",
         reason="approval request created",
+        correlation_id=payload.get("correlation_id"),
         metadata={"approval_id": approval.approval_id, "draft_payload_hash": approval.draft_payload_hash},
     )
     return approval.to_dict()
 
 
-@app.post("/approvals/{approval_id}/decide")
-def decide_approval(approval_id: str, payload: dict[str, Any], x_akretic_persona: str | None = Header(default=None)) -> dict[str, Any]:
+def _decide_approval(
+    *,
+    approval_id: str,
+    payload: dict[str, Any],
+    x_akretic_persona: str | None,
+) -> dict[str, Any]:
     reviewer = derive_actor_from_request(demo_persona=x_akretic_persona or payload.get("persona", "security_reviewer"), body_claims=payload.get("actor"))
     try:
         approval = APPROVALS.decide(
@@ -71,9 +76,32 @@ def decide_approval(approval_id: str, payload: dict[str, Any], x_akretic_persona
         resource_id=approval.resource_id,
         outcome=approval.status,
         reason=approval.decision_reason or "reviewer decision",
+        correlation_id=payload.get("correlation_id"),
         metadata={"approval_id": approval.approval_id},
     )
     return approval.to_dict()
+
+
+@app.post("/decide_approval")
+def decide_approval_skill(payload: dict[str, Any], x_akretic_persona: str | None = Header(default=None)) -> dict[str, Any]:
+    return _decide_approval(
+        approval_id=payload.get("approval_id", ""),
+        payload=payload,
+        x_akretic_persona=x_akretic_persona,
+    )
+
+
+@app.post("/approvals/{approval_id}/decide")
+def decide_approval_path(
+    approval_id: str,
+    payload: dict[str, Any],
+    x_akretic_persona: str | None = Header(default=None),
+) -> dict[str, Any]:
+    return _decide_approval(
+        approval_id=approval_id,
+        payload=payload,
+        x_akretic_persona=x_akretic_persona,
+    )
 
 
 @app.post("/record_event")

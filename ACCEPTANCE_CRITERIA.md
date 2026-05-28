@@ -9,7 +9,7 @@
 | `test_rag_filtering` | Restricted executive memo is excluded from prompt/context for demo users |
 | `test_a2a_cards` | Policy and Knowledge agents serve valid Agent Cards |
 | `test_a2a_remote_call_logged` | Root remote call logs caller, callee, skill, and correlation ID |
-| `test_approval_gate` | External-facing exception action pauses until approval |
+| `test_approval_gate` | External-facing exception action pauses until reviewer approve/reject is recorded |
 | `test_evidence_verify` | Verify endpoint detects valid and tampered event chains |
 | `test_claims_public_copy` | Public copy excludes banned overclaims |
 

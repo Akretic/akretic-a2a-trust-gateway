@@ -65,6 +65,7 @@ async def run_vendor_review_workflow(
     identity_headers = {"x-akretic-persona": persona}
     policy_url = _agent_url("POLICY_AGENT_URL", "http://127.0.0.1:8101")
     knowledge_url = _agent_url("KNOWLEDGE_AGENT_URL", "http://127.0.0.1:8102")
+    approval_url = _agent_url("APPROVAL_EVIDENCE_URL", "http://127.0.0.1:8104")
     query = payload.get("query", "VendorNova procurement security policy")
 
     retrieval_resource = Resource(
@@ -157,6 +158,33 @@ async def run_vendor_review_workflow(
         metadata={"decision_id": export_decision["decision_id"]},
     )
 
+    approval_request = None
+    export_result = {"status": "not_executed", "reason": "export was not attempted"}
+    if export_decision["outcome"] == "approval_required":
+        draft_payload = (
+            "Synthetic VendorNova exception draft for reviewer approval. "
+            f"Permitted source IDs: {', '.join(chunk['source_id'] for chunk in retrieval['chunks']) or 'none'}."
+        )
+        approval_request = await call_skill(
+            base_url=approval_url,
+            skill="request_approval",
+            payload={
+                "persona": persona,
+                "action": "export_external",
+                "resource": side_effect_resource.to_dict(),
+                "draft_payload": draft_payload,
+            },
+            run_id=run_id,
+            caller_agent_id="root_orchestrator",
+            actor=actor,
+            headers=identity_headers,
+        )
+        export_result = {
+            "status": "blocked_pending_approval",
+            "approval_id": approval_request["approval_id"],
+            "reason": "external export cannot complete until reviewer decision is recorded",
+        }
+
     permitted_source_ids = [chunk["source_id"] for chunk in retrieval["chunks"]]
     summary = (
         "VendorNova review assembled from permitted synthetic context only. "
@@ -170,6 +198,8 @@ async def run_vendor_review_workflow(
         "retrieval_decision": retrieval_decision,
         "retrieval": retrieval,
         "export_decision": export_decision,
+        "approval_request": approval_request,
+        "export_result": export_result,
         "summary": summary,
         "verification": verify_chain(run_id),
         "model_path_note": "ADK/Gemini integration should summarize only the permitted chunks returned here.",
