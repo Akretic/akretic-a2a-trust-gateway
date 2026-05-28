@@ -11,9 +11,9 @@ before selecting or expanding work.
 - P2 Gemini/Vertex integration hardening is complete.
 - P3 Cloud Run deployment hardening is complete.
 - P4 Judge hardening is complete.
-- P5 Submission package is the active lane.
-- P6 is blocked non-blocking Google stretch until P5 is stable.
-- P7 is blocked post-challenge productization until P5 is stable and the challenge path is complete.
+- P5 package baseline is complete; final acceptance is pending hosted demo video URL.
+- P6 is blocked non-blocking Google stretch until P5 final acceptance.
+- P7 is blocked post-challenge productization until P5 final acceptance and the challenge path is complete.
 - P1 acceptance is tracked in `docs/p1_acceptance.md`.
 - P2 acceptance is tracked in `docs/p2_acceptance.md`.
 - P3 acceptance is tracked in `docs/p3_acceptance.md`.
@@ -28,9 +28,9 @@ before selecting or expanding work.
 | P2 | Gemini/Vertex integration | Complete | Improve the approved Vertex AI Gemini path while preserving Gate0-lite as the policy decision point and keeping denied content out of model context. |
 | P3 | Cloud Run deployment | Complete | Harden deploy scripts, service configuration, IAM notes, verification scripts, and rollback/runbook material for the existing Cloud Run shape. |
 | P4 | Judge hardening | Complete | Make the public judging path more resilient and self-explanatory while keeping admin/evidence surfaces role-checked and claims bounded. |
-| P5 | Submission package | Active | Keep submission artifacts, screenshots, evidence samples, architecture images, and public-safe copy current with the running demo. |
-| P6 | Google stretch | Blocked; non-blocking stretch | Treat ADK alignment as part of the Google Cloud agent architecture path rather than overclaiming full ADK-native orchestration; explore Agent Runtime or Registry, Firestore, Vertex AI embeddings, and controlled Google Search grounding only after P5 is stable. |
-| P7 | Post-challenge productization | Blocked; post-challenge | Consider SSO, real enterprise connectors, broader policy administration, production monitoring, incident workflows, and customer environment hardening only after P5 is stable and the challenge path is complete. |
+| P5 | Submission package | Package baseline complete; final video URL pending | Keep submission artifacts current with the running demo. Final acceptance requires hosted video URL, rebuilt zip, and final verification. |
+| P6 | Google stretch | Blocked; non-blocking stretch | Treat ADK alignment as part of the Google Cloud agent architecture path rather than overclaiming full ADK-native orchestration; explore Agent Runtime or Registry, Firestore, Vertex AI embeddings, and controlled Google Search grounding only after P5 final acceptance. |
+| P7 | Post-challenge productization | Blocked; post-challenge | Consider SSO, real enterprise connectors, broader policy administration, production monitoring, incident workflows, and customer environment hardening only after P5 final acceptance and the challenge path is complete. |
 
 ## Selection Rules
 
