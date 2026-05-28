@@ -24,7 +24,7 @@ Cloud Run IAM and are invoked by the UI runtime service account.
 | Architecture diagram | Prepared | `docs/architecture.md` |
 | Sample evidence report | Prepared | `artifacts/sample-evidence-report-run_be30e4f10ef7483d9f6695fd64d5dfa3.json` |
 | Screenshots | Prepared from authenticated Cloud Run HTML capture | `output/playwright/demo-home.png`, `output/playwright/demo-review-result.png` |
-| Public-safe brief/PDF | Optional stretch | TBD |
+| Public-safe brief/PDF | Prepared | `docs/public_brief.md`, `output/pdf/akretic-a2a-trust-gateway-public-brief.pdf` |
 | Limitations and synthetic-data disclosure | Prepared | `docs/submission_answers_public.md`, `docs/public_claims_guardrails.md` |
 
 ## Demo Proof Points
@@ -43,3 +43,13 @@ Cloud Run IAM and are invoked by the UI runtime service account.
 ```powershell
 .\scripts\verify_cloudrun_p0.ps1 -RequirePublic
 ```
+
+## Manual Finalization Needed
+
+- Add the GitHub remote and push after a repository URL is available.
+- Record and upload the 1-2 minute demo video using `docs/demo_script.md`.
+- Paste or adapt `docs/submission_answers_public.md` into the submission form.
+- Attach the screenshots, sample evidence report, architecture doc, and public
+  brief/PDF as the submission platform allows.
+- Optional: add an `environment` project tag in Google Cloud if the Akretic
+  organization later requires it for project hygiene.
