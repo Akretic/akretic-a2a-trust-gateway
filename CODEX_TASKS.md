@@ -3,13 +3,14 @@
 Use `/plan` for ambiguous work, then `/goal` for execution. Keep every goal bounded and testable.
 
 Before selecting work, read `PROJECT_SOURCE_OF_TRUTH.md`, then
-`docs/priority_ladder.md`. P0, P1, P2, P3, and P4 are cleared; P5 Submission
-package is the active lane. P6 Google stretch and P7 post-challenge
-productization are non-blocking and must not displace P5 work.
+`docs/priority_ladder.md`. P0, P1, P2, P3, and P4 are cleared. P5 package
+baseline is complete; final P5 acceptance is pending hosted demo video URL. P6
+ADK alignment exploration may begin in isolated branches, and P7 post-challenge
+productization must not displace the challenge path.
 
 ## Current active lane
 
-P5 Submission package is the active lane. The P0 tickets below are
+P6 ADK alignment exploration may begin in isolated branches. The P0 tickets below are
 regression and reference material only unless tests fail or the user explicitly
 assigns P0 regression work. Do not rebuild cleared P0/P1 work just because the
 historical ticket sequence is still documented here.

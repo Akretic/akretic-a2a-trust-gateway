@@ -11,8 +11,9 @@ before selecting or expanding work.
 - P2 Gemini/Vertex integration hardening is complete.
 - P3 Cloud Run deployment hardening is complete.
 - P4 Judge hardening is complete.
-- P5 package baseline is complete; final acceptance is pending hosted demo video URL.
-- P6 is blocked non-blocking Google stretch until P5 final acceptance.
+- P5 package baseline complete.
+- Final P5 acceptance pending hosted demo video URL.
+- P6 exploration may begin in isolated branches.
 - P7 is blocked post-challenge productization until P5 final acceptance and the challenge path is complete.
 - P1 acceptance is tracked in `docs/p1_acceptance.md`.
 - P2 acceptance is tracked in `docs/p2_acceptance.md`.
@@ -29,13 +30,14 @@ before selecting or expanding work.
 | P3 | Cloud Run deployment | Complete | Harden deploy scripts, service configuration, IAM notes, verification scripts, and rollback/runbook material for the existing Cloud Run shape. |
 | P4 | Judge hardening | Complete | Make the public judging path more resilient and self-explanatory while keeping admin/evidence surfaces role-checked and claims bounded. |
 | P5 | Submission package | Package baseline complete; final video URL pending | Keep submission artifacts current with the running demo. Final acceptance requires hosted video URL, rebuilt zip, and final verification. |
-| P6 | Google stretch | Blocked; non-blocking stretch | Treat ADK alignment as part of the Google Cloud agent architecture path rather than overclaiming full ADK-native orchestration; explore Agent Runtime or Registry, Firestore, Vertex AI embeddings, and controlled Google Search grounding only after P5 final acceptance. |
+| P6 | ADK alignment hardening | Exploration allowed in isolated branches | Strengthen the ADK story without replacing the working proof path. Prefer an ADK-compatible root wrapper that delegates to the verified orchestrator, docs mapping current root behavior to ADK concepts, and tests proving Gate0-lite, RAG DMZ-lite, approval, and evidence are not bypassed. Do not prioritize Firestore, embeddings, search grounding, Agent Runtime, or Registry. |
 | P7 | Post-challenge productization | Blocked; post-challenge | Consider SSO, real enterprise connectors, broader policy administration, production monitoring, incident workflows, and customer environment hardening only after P5 final acceptance and the challenge path is complete. |
 
 ## Selection Rules
 
-1. Do not pick P6 or P7 work if any P5 acceptance gap is open.
-2. Do not let Gemini, future ADK-aligned orchestration, embeddings, or search grounding decide authorization.
-3. Do not introduce customer data, private third-party data, real secrets, or production certification claims.
-4. Do not expand the workflow beyond VendorNova unless the source of truth is updated first.
-5. Prefer narrow branches named after the active priority, for example `p5/submission-package`.
+1. P6 work must stay in isolated branches and must not jeopardize the P5 submission baseline.
+2. Do not pick P7 work if any P5 acceptance gap is open.
+3. Do not let Gemini, future ADK-aligned orchestration, embeddings, or search grounding decide authorization.
+4. Do not introduce customer data, private third-party data, real secrets, or production certification claims.
+5. Do not expand the workflow beyond VendorNova unless the source of truth is updated first.
+6. Prefer narrow branches named after the active priority, for example `p6/adk-alignment`.
