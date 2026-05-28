@@ -44,6 +44,15 @@ def test_root_calls_policy_and_knowledge_agents_over_a2a(monkeypatch, tmp_path):
     assert ("akretic-policy-agent", "authorize_intent") in calls
     assert ("akretic-knowledge-agent", "retrieve_permitted_context") in calls
     assert ("akretic-approval-evidence-agent", "request_approval") in calls
+    assert {call["agent"] for call in result["a2a_calls"]}.issuperset(
+        {
+            "akretic-policy-agent",
+            "akretic-knowledge-agent",
+            "akretic-approval-evidence-agent",
+        }
+    )
+    assert all(call["correlation_id"].startswith("corr_") for call in result["a2a_calls"])
+    assert all(call["agent_card_resolved"] is True for call in result["a2a_calls"])
     assert result["approval_request"]["status"] == "pending"
     assert result["export_result"]["status"] == "blocked_pending_approval"
     assert all(event["correlation_id"].startswith("corr_") for event in a2a_events)

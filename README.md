@@ -68,6 +68,7 @@ bash scripts/run_local.sh
 - `AGENTS.md` — repo-level instructions Codex must read before work.
 - `PROJECT_SOURCE_OF_TRUTH.md` — locked scope and product invariants.
 - `docs/priority_ladder.md` — P0-P7 priority ladder; P0 is cleared and P1 is active.
+- `docs/p1_acceptance.md` — P1 demo-path polish acceptance checks.
 - `CODEX_TASKS.md` — bounded `/goal` prompts and ticket sequence.
 - `GOOGLE_TOOLS.md` — required and stretch Google Cloud tools.
 - `DAILY_BUILD_TEMPO.md` — day-by-day shipping cadence.
@@ -98,6 +99,37 @@ and private agent services remain behind Cloud Run IAM.
 The root Gemini path is isolated behind `common/gemini.py`. Set `AKRETIC_GEMINI_MODE=vertex`
 with `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, and `VERTEX_MODEL` for the Cloud Run demo.
 The `local` mode is explicitly labeled and reserved for tests.
+
+## 90-second judge walkthrough
+
+Target demo URL: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
+
+1. Open the public Cloud Run demo URL and confirm the page labels the build as a challenge prototype using synthetic data.
+2. Keep persona as `procurement_user`, keep the VendorNova query, and select `Start VendorNova Review`.
+3. On the review page, scan the proof row: Identity, Policy, RAG Filter, A2A, Approval, Evidence Verify.
+4. Confirm the page shows `run_id`, permitted source IDs, and `Denied before model context: executive_acquisition_memo.`
+5. Confirm the external/sensitive action is `approval_required` and the export result is blocked pending reviewer action.
+6. Scan A2A Proof for agent, skill, `correlation_id`, Agent Card resolution, and outcome.
+7. Record an approve or reject decision as `security_reviewer`.
+8. Confirm Evidence Verification reports a valid hash chain and event count.
+
+## What this proves
+
+- A root workflow can coordinate specialized agents over the A2A-style Agent Card and skill-call path.
+- Identity is derived from the demo request header, not upgraded by request-body claims.
+- Gate0-lite policy checks run before retrieval and before sensitive external action completion.
+- RAG DMZ-lite filters restricted synthetic chunks before model context is assembled.
+- The VendorNova executive memo is denied before model context while permitted sources are still summarized.
+- External/sensitive action completion is approval-gated.
+- Evidence events are hash-chained and can be verified for this synthetic run.
+
+## What this does not claim
+
+- This is not a production launch approval or compliance certification.
+- This is not a legal opinion, audit attestation, or Marketplace status claim.
+- This is not a guarantee that every possible data leak or policy bypass is impossible.
+- This does not replace enterprise SSO, full policy administration, monitoring, incident response, or customer-specific controls.
+- ADK-native orchestration is not overclaimed; the current proof path uses the Vertex/Gemini summarization adapter and thin A2A Agent Card skill-call wiring.
 
 ## Judging instructions
 

@@ -118,3 +118,74 @@ def test_demo_ui_approval_calls_private_service_with_auth_headers(monkeypatch):
             },
         },
     ]
+
+
+def test_demo_ui_review_result_shows_p1_proof_markers():
+    result = {
+        "run_id": "run-p1",
+        "summary": "VendorNova review assembled from permitted synthetic context only.",
+        "retrieval_decision": {"outcome": "allow", "correlation_id": "corr-policy-read"},
+        "retrieval": {
+            "chunks": [{"source_id": "procurement_policy"}],
+            "denied_sources": [{"source_id": "executive_acquisition_memo"}],
+            "correlation_id": "corr-rag",
+        },
+        "export_decision": {
+            "outcome": "approval_required",
+            "reason": "external export requires reviewer approval",
+            "correlation_id": "corr-policy-export",
+        },
+        "approval_request": {"approval_id": "approval-p1", "status": "pending"},
+        "export_result": {"status": "blocked_pending_approval"},
+        "verification": {"valid": True, "event_count": 12, "head_hash": "abc"},
+        "model_summary": {
+            "mode": "local",
+            "service_path": "local deterministic summary for tests only",
+        },
+        "a2a_calls": [
+            {
+                "agent": "akretic-policy-agent",
+                "skill": "authorize_intent",
+                "correlation_id": "corr-policy-read",
+                "outcome": "allow",
+                "agent_card_resolved": True,
+            },
+            {
+                "agent": "akretic-knowledge-agent",
+                "skill": "retrieve_permitted_context",
+                "correlation_id": "corr-rag",
+                "outcome": "result",
+                "agent_card_resolved": True,
+            },
+            {
+                "agent": "akretic-approval-evidence-agent",
+                "skill": "request_approval",
+                "correlation_id": "corr-approval",
+                "outcome": "approval_required",
+                "agent_card_resolved": True,
+            },
+        ],
+    }
+
+    html = demo_ui._render_review_result(result, persona="procurement_user")
+
+    assert "Judge walkthrough" in html
+    assert "Denied before model context: executive_acquisition_memo." in html
+    assert "approval_required: external/sensitive action is paused." in html
+    assert "Agent Card resolved" in html
+    assert "correlation_id" in html
+    assert "Evidence proof: valid hash chain." in html
+    assert "Challenge prototype" in html
+    assert "Synthetic data" in html
+
+
+def test_demo_ui_private_service_error_names_401_403():
+    request = demo_ui.httpx.Request("POST", "https://root.example/run_vendor_review")
+    response = demo_ui.httpx.Response(403, json={"detail": "forbidden"}, request=request)
+    exc = demo_ui.httpx.HTTPStatusError("forbidden", request=request, response=response)
+
+    error = demo_ui._remote_error("Root Orchestrator", exc)
+
+    assert error.title == "Private service returned 401/403"
+    assert "HTTP 403" in error.detail
+    assert "identity-token auth" in error.next_action

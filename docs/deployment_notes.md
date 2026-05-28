@@ -2,6 +2,76 @@
 
 Date: 2026-05-28
 
+## P1 Demo-Path Polish Deployment Update
+
+Date: 2026-05-28
+
+### Target Confirmed
+
+- Account: `sean.w@akretic.com`
+- Project: `akretic-a2a-trust-gateway`
+- Billing: enabled
+- Region: `us-central1`
+
+### Resources Updated
+
+No new resource classes were added. The P1 deploy updated the existing demo
+container image, existing `akretic-*` Cloud Run services, and existing least
+privilege IAM bindings managed by `scripts/deploy_cloudrun.ps1`.
+
+- Latest build: `b8a50161-2cd7-4ebb-9d26-2fcbc05486f7`
+- Latest image digest: `sha256:14a616819ec56308739245279aaddca270e99e9a7b0e3123d20424eb77976301`
+- Cloud Run revisions:
+  - `akretic-demo-ui` revision `akretic-demo-ui-00007-2d4`: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
+  - `akretic-root-orchestrator` revision `akretic-root-orchestrator-00007-9pf`: `https://akretic-root-orchestrator-oes3slkexq-uc.a.run.app`
+  - `akretic-policy-agent` revision `akretic-policy-agent-00007-4rq`: `https://akretic-policy-agent-oes3slkexq-uc.a.run.app`
+  - `akretic-knowledge-agent` revision `akretic-knowledge-agent-00007-rnx`: `https://akretic-knowledge-agent-oes3slkexq-uc.a.run.app`
+  - `akretic-research-agent` revision `akretic-research-agent-00007-dw6`: `https://akretic-research-agent-oes3slkexq-uc.a.run.app`
+  - `akretic-approval-evidence` revision `akretic-approval-evidence-00007-pv6`: `https://akretic-approval-evidence-oes3slkexq-uc.a.run.app`
+
+### Commands Run
+
+```powershell
+gcloud config get-value account
+gcloud config get-value project
+gcloud billing projects describe akretic-a2a-trust-gateway --format=json
+.\.venv\Scripts\python.exe -m pytest -q
+.\scripts\deploy_cloudrun.ps1
+.\scripts\verify_cloudrun_p0.ps1 -RequirePublic
+```
+
+An ADC mint check was completed before deployment; the token value is not
+recorded in repository docs.
+
+`scripts/deploy_cloudrun.ps1` was run twice during P1: once for the full polish
+deploy and once after a UI summary-rendering fix. The script re-ran its documented
+API-enable, Artifact Registry, Cloud Storage, Cloud Build, Cloud Run, and
+least-privilege IAM update steps for the demo resources.
+
+### Verification
+
+- Local test matrix: `19 passed`.
+- Public Cloud Run smoke after final deploy:
+  - Run ID: `run_d7dd27bd36314714860355539146ebbc`
+  - Approval ID: `apr_ee42821c030b4c99afd8d0d5e8a6b7da`
+  - Public unauthenticated GET `/`: HTTP 200.
+  - Public unauthenticated UI `/run`: HTTP 200.
+  - Public unauthenticated UI `/approval/decide`: HTTP 200.
+  - Evidence report endpoint: HTTP 200.
+  - Evidence report valid: `true`.
+- Browser/public UI checks:
+  - Judge walkthrough visible.
+  - `Denied before model context: executive_acquisition_memo.` visible.
+  - `approval_required` visible and separate from completed actions.
+  - A2A proof shows agent, skill, and `correlation_id`.
+  - Evidence verification shows valid hash chain and event count.
+- Refreshed screenshots:
+  - `output/playwright/demo-home.png`
+  - `output/playwright/demo-review-result.png`
+  - `output/playwright/screenshot-metadata.json`
+- Refreshed no-video P1 bundle:
+  - `dist/akretic-a2a-trust-gateway-p1-submission.zip`
+
 ## Target
 
 - Account: `sean.w@akretic.com`

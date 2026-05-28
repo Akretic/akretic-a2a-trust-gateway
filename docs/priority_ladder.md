@@ -10,6 +10,7 @@ before selecting or expanding work.
 - P1 demo-path polish is the active lane.
 - P6 is blocked non-blocking Google stretch until P1-P5 are stable.
 - P7 is blocked post-challenge productization until P1-P5 are stable and the challenge path is complete.
+- P1 acceptance is tracked in `docs/p1_acceptance.md`.
 
 ## Ladder
 

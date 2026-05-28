@@ -4,7 +4,8 @@ import os
 from typing import Any
 from uuid import uuid4
 
-from fastapi import FastAPI, Header
+import httpx
+from fastapi import FastAPI, Header, HTTPException
 
 from common.a2a_client import call_skill
 from common.evidence import append_event, verify_chain
@@ -40,6 +41,58 @@ def _record_policy_decision(*, actor: Actor, decision: dict[str, Any]) -> dict[s
     )
 
 
+def _a2a_proof(
+    *,
+    agent: str,
+    skill: str,
+    result: dict[str, Any],
+    outcome: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "agent": agent,
+        "skill": skill,
+        "correlation_id": result.get("correlation_id", "UNKNOWN"),
+        "outcome": outcome or result.get("outcome") or result.get("status") or "result",
+        "agent_card_resolved": True,
+    }
+
+
+async def _call_a2a(
+    *,
+    agent_name: str,
+    base_url: str,
+    skill: str,
+    payload: dict[str, Any],
+    run_id: str,
+    actor: Actor,
+    headers: dict[str, str],
+) -> dict[str, Any]:
+    correlation_id = payload.get("correlation_id") or f"corr_{uuid4().hex}"
+    payload = {**payload, "correlation_id": correlation_id}
+    try:
+        result = await call_skill(
+            base_url=base_url,
+            skill=skill,
+            payload=payload,
+            run_id=run_id,
+            caller_agent_id="root_orchestrator",
+            actor=actor,
+            headers=headers,
+        )
+        if "correlation_id" not in result:
+            result = {**result, "correlation_id": correlation_id}
+        return result
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code
+        raise RuntimeError(
+            f"{agent_name} returned HTTP {status_code} while calling {skill}"
+        ) from exc
+    except (httpx.ConnectError, httpx.TimeoutException) as exc:
+        raise RuntimeError(f"{agent_name} unreachable while calling {skill}") from exc
+    except httpx.HTTPError as exc:
+        raise RuntimeError(f"{agent_name} HTTP failure while calling {skill}") from exc
+
+
 async def run_vendor_review_workflow(
     payload: dict[str, Any],
     x_akretic_persona: str | None = None,
@@ -68,6 +121,7 @@ async def run_vendor_review_workflow(
     knowledge_url = _agent_url("KNOWLEDGE_AGENT_URL", "http://127.0.0.1:8102")
     approval_url = _agent_url("APPROVAL_EVIDENCE_URL", "http://127.0.0.1:8104")
     query = payload.get("query", "VendorNova procurement security policy")
+    a2a_calls: list[dict[str, Any]] = []
 
     retrieval_resource = Resource(
         resource_id="vendornova_review_context",
@@ -76,7 +130,8 @@ async def run_vendor_review_workflow(
         allowed_groups=actor.groups,
         external_release_allowed=False,
     )
-    retrieval_decision = await call_skill(
+    retrieval_decision = await _call_a2a(
+        agent_name="Policy Agent",
         base_url=policy_url,
         skill="authorize_intent",
         payload={
@@ -86,14 +141,21 @@ async def run_vendor_review_workflow(
             "context": {"query": query},
         },
         run_id=run_id,
-        caller_agent_id="root_orchestrator",
         actor=actor,
         headers=identity_headers,
+    )
+    a2a_calls.append(
+        _a2a_proof(
+            agent="akretic-policy-agent",
+            skill="authorize_intent",
+            result=retrieval_decision,
+        )
     )
     _record_policy_decision(actor=actor, decision=retrieval_decision)
 
     if retrieval_decision["outcome"] == "allow":
-        retrieval = await call_skill(
+        retrieval = await _call_a2a(
+            agent_name="Knowledge Agent",
             base_url=knowledge_url,
             skill="retrieve_permitted_context",
             payload={
@@ -103,9 +165,16 @@ async def run_vendor_review_workflow(
                 "write_evidence": True,
             },
             run_id=run_id,
-            caller_agent_id="root_orchestrator",
             actor=actor,
             headers=identity_headers,
+        )
+        a2a_calls.append(
+            _a2a_proof(
+                agent="akretic-knowledge-agent",
+                skill="retrieve_permitted_context",
+                result=retrieval,
+                outcome="result",
+            )
         )
     else:
         retrieval = {
@@ -132,7 +201,8 @@ async def run_vendor_review_workflow(
         external_release_allowed=False,
         sensitivity_tags=("external-facing",),
     )
-    export_decision = await call_skill(
+    export_decision = await _call_a2a(
+        agent_name="Policy Agent",
         base_url=policy_url,
         skill="authorize_intent",
         payload={
@@ -142,9 +212,15 @@ async def run_vendor_review_workflow(
             "context": {"query": query},
         },
         run_id=run_id,
-        caller_agent_id="root_orchestrator",
         actor=actor,
         headers=identity_headers,
+    )
+    a2a_calls.append(
+        _a2a_proof(
+            agent="akretic-policy-agent",
+            skill="authorize_intent",
+            result=export_decision,
+        )
     )
     _record_policy_decision(actor=actor, decision=export_decision)
     append_event(
@@ -166,7 +242,8 @@ async def run_vendor_review_workflow(
             "Synthetic VendorNova exception draft for reviewer approval. "
             f"Permitted source IDs: {', '.join(chunk['source_id'] for chunk in retrieval['chunks']) or 'none'}."
         )
-        approval_request = await call_skill(
+        approval_request = await _call_a2a(
+            agent_name="Approval/Evidence Agent",
             base_url=approval_url,
             skill="request_approval",
             payload={
@@ -176,9 +253,16 @@ async def run_vendor_review_workflow(
                 "draft_payload": draft_payload,
             },
             run_id=run_id,
-            caller_agent_id="root_orchestrator",
             actor=actor,
             headers=identity_headers,
+        )
+        a2a_calls.append(
+            _a2a_proof(
+                agent="akretic-approval-evidence-agent",
+                skill="request_approval",
+                result=approval_request,
+                outcome="approval_required",
+            )
         )
         export_result = {
             "status": "blocked_pending_approval",
@@ -186,13 +270,16 @@ async def run_vendor_review_workflow(
             "reason": "external export cannot complete until reviewer decision is recorded",
         }
 
-    model_summary = summarize_vendor_review(
-        query=query,
-        actor=actor,
-        retrieval=retrieval,
-        export_decision=export_decision,
-        mode=payload.get("model_mode"),
-    )
+    try:
+        model_summary = summarize_vendor_review(
+            query=query,
+            actor=actor,
+            retrieval=retrieval,
+            export_decision=export_decision,
+            mode=payload.get("model_mode"),
+        )
+    except Exception as exc:
+        raise RuntimeError(f"Gemini unavailable or misconfigured: {exc}") from exc
     append_event(
         run_id=run_id,
         actor=actor,
@@ -218,6 +305,7 @@ async def run_vendor_review_workflow(
         "export_decision": export_decision,
         "approval_request": approval_request,
         "export_result": export_result,
+        "a2a_calls": a2a_calls,
         "model_summary": model_summary,
         "summary": model_summary["text"],
         "verification": verify_chain(run_id),
@@ -232,4 +320,7 @@ async def run_vendor_review(
     payload: dict[str, Any],
     x_akretic_persona: str | None = Header(default=None),
 ) -> dict[str, Any]:
-    return await run_vendor_review_workflow(payload, x_akretic_persona=x_akretic_persona)
+    try:
+        return await run_vendor_review_workflow(payload, x_akretic_persona=x_akretic_persona)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
