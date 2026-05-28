@@ -107,14 +107,15 @@ def evaluate(
         )
 
     if action in set(policy.get("admin_actions", [])):
-        if "admin" in actor.groups or actor.role == "admin":
+        allowed_roles = set(policy.get("admin_action_roles", {}).get(action, ["admin"]))
+        if actor.role in allowed_roles or set(actor.groups).intersection(allowed_roles):
             return PolicyDecision.create(
                 run_id=run_id,
                 actor=actor,
                 action=action,
                 resource=resource,
                 outcome=ALLOW,
-                reason="admin action permitted for demo admin persona",
+                reason="evidence action permitted for demo reviewer/admin persona",
                 correlation_id=correlation_id,
             )
         return PolicyDecision.create(
@@ -123,7 +124,7 @@ def evaluate(
             action=action,
             resource=resource,
             outcome=DENY,
-            reason="admin action requires admin persona",
+            reason="evidence action requires demo reviewer/admin persona",
             correlation_id=correlation_id,
         )
 

@@ -7,9 +7,10 @@ from typing import Any
 from fastapi import FastAPI, Header, HTTPException
 
 from common.approval import ApprovalStore
-from common.evidence import append_event, read_events, verify_chain
+from common.evidence import append_event, build_evidence_report, verify_chain
 from common.identity import derive_actor_from_request
 from common.models import Resource
+from common.policy import ALLOW, evaluate
 
 app = FastAPI(title="Akretic Approval/Evidence Agent")
 CARD_PATH = Path(__file__).resolve().parent / "agent-card.json"
@@ -25,6 +26,31 @@ def healthz() -> dict[str, str]:
 @app.get("/.well-known/agent-card.json")
 def agent_card() -> dict[str, Any]:
     return json.loads(CARD_PATH.read_text(encoding="utf-8"))
+
+
+def _authorize_evidence_action(*, run_id: str, action: str, persona: str | None):
+    actor = derive_actor_from_request(demo_persona=persona)
+    resource = Resource(
+        resource_id=run_id,
+        classification="internal",
+        source_type="evidence_ledger",
+        allowed_groups=("admin", "security_reviewer"),
+    )
+    decision = evaluate(actor=actor, action=action, resource=resource, run_id=run_id)
+    append_event(
+        run_id=run_id,
+        actor=actor,
+        agent_id="approval_evidence_agent",
+        action=action,
+        resource_id=run_id,
+        outcome=decision.outcome,
+        reason=decision.reason,
+        correlation_id=decision.correlation_id,
+        metadata={"decision_id": decision.decision_id},
+    )
+    if decision.outcome != ALLOW:
+        raise HTTPException(status_code=403, detail=decision.reason)
+    return actor
 
 
 @app.post("/request_approval")
@@ -121,16 +147,26 @@ def record_event(payload: dict[str, Any], x_akretic_persona: str | None = Header
 
 
 @app.get("/verify/{run_id}")
-def verify(run_id: str, x_akretic_persona: str | None = Header(default="admin")) -> dict[str, Any]:
-    actor = derive_actor_from_request(demo_persona=x_akretic_persona or "admin")
-    if actor.role not in {"admin", "security_reviewer"} and "admin" not in actor.groups:
-        raise HTTPException(status_code=403, detail="verify requires admin or reviewer demo persona")
+def verify(run_id: str, x_akretic_persona: str | None = Header(default=None)) -> dict[str, Any]:
+    _authorize_evidence_action(run_id=run_id, action="verify_evidence", persona=x_akretic_persona)
+    return verify_chain(run_id)
+
+
+@app.post("/verify_chain")
+def verify_chain_skill(payload: dict[str, Any], x_akretic_persona: str | None = Header(default=None)) -> dict[str, Any]:
+    run_id = payload.get("run_id", "local-run")
+    _authorize_evidence_action(run_id=run_id, action="verify_evidence", persona=x_akretic_persona)
     return verify_chain(run_id)
 
 
 @app.get("/evidence/{run_id}/report")
-def report(run_id: str, x_akretic_persona: str | None = Header(default="admin")) -> dict[str, Any]:
-    actor = derive_actor_from_request(demo_persona=x_akretic_persona or "admin")
-    if actor.role not in {"admin", "security_reviewer"} and "admin" not in actor.groups:
-        raise HTTPException(status_code=403, detail="report requires admin or reviewer demo persona")
-    return {"run_id": run_id, "verification": verify_chain(run_id), "events": read_events(run_id)}
+def report(run_id: str, x_akretic_persona: str | None = Header(default=None)) -> dict[str, Any]:
+    _authorize_evidence_action(run_id=run_id, action="generate_report", persona=x_akretic_persona)
+    return build_evidence_report(run_id)
+
+
+@app.post("/generate_report")
+def generate_report_skill(payload: dict[str, Any], x_akretic_persona: str | None = Header(default=None)) -> dict[str, Any]:
+    run_id = payload.get("run_id", "local-run")
+    _authorize_evidence_action(run_id=run_id, action="generate_report", persona=x_akretic_persona)
+    return build_evidence_report(run_id)

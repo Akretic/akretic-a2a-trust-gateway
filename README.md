@@ -66,6 +66,7 @@ This packet includes:
 - metadata-filtered synthetic corpus retrieval;
 - hash-chained JSONL evidence ledger;
 - approval request and reviewer decision path for export-style side effects;
+- structured evidence report with A2A, retrieval, approval, reviewer decision, and verify sections;
 - FastAPI service shells for the agents and core services;
 - Agent Card JSON for each remote agent;
 - root-to-Policy and root-to-Knowledge HTTP A2A calls with evidence logging;

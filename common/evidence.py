@@ -117,3 +117,49 @@ def verify_chain(run_id: str, path: str | Path | None = None) -> dict[str, Any]:
         "event_count": len(events),
         "head_hash": previous,
     }
+
+
+def build_evidence_report(run_id: str, path: str | Path | None = None) -> dict[str, Any]:
+    events = read_events(run_id, path)
+    verification = verify_chain(run_id, path)
+    a2a_calls = [event for event in events if event["action"] == "a2a_call"]
+    retrieval_events = [event for event in events if event["action"] == "retrieve_internal"]
+    approval_events = [
+        event
+        for event in events
+        if event["action"] in {"export_external", "request_approval", "approve_action"}
+        or event["outcome"] == "approval_required"
+    ]
+
+    return {
+        "run_id": run_id,
+        "verification": verification,
+        "summary": {
+            "event_count": len(events),
+            "a2a_call_count": len(a2a_calls),
+            "retrieval_allow_source_ids": [
+                event["resource_id"] for event in retrieval_events if event["outcome"] == "allow"
+            ],
+            "retrieval_deny_source_ids": [
+                event["resource_id"] for event in retrieval_events if event["outcome"] == "deny"
+            ],
+            "approval_required_actions": [
+                event["action"] for event in approval_events if event["outcome"] == "approval_required"
+            ],
+            "reviewer_decisions": [
+                {
+                    "resource_id": event["resource_id"],
+                    "outcome": event["outcome"],
+                    "actor_id": event["actor_id"],
+                }
+                for event in approval_events
+                if event["action"] == "approve_action"
+            ],
+            "result_event_count": len([event for event in events if event["outcome"] == "result"]),
+        },
+        "a2a_calls": a2a_calls,
+        "policy_decisions": [event for event in events if event["agent_id"] == "policy_agent"],
+        "retrieval_events": retrieval_events,
+        "approval_events": approval_events,
+        "events": events,
+    }
