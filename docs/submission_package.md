@@ -9,20 +9,20 @@
 
 ## Current Status
 
-The P0 proof path is deployed and verified with authenticated Cloud Run access.
-Public unauthenticated access is still blocked by the Akretic organization policy
-for `allUsers` IAM bindings. See `docs/deployment_notes.md`.
+The P0 proof path is deployed and verified with public unauthenticated Cloud Run
+access to the demo UI. Private agent/root/evidence services remain protected by
+Cloud Run IAM and are invoked by the UI runtime service account.
 
 ## Prepared Deliverables
 
 | Deliverable | Status | Artifact |
 |---|---|---|
-| Public Cloud Run demo URL | Blocked by org policy | `https://akretic-demo-ui-oes3slkexq-uc.a.run.app` |
+| Public Cloud Run demo URL | Ready | `https://akretic-demo-ui-oes3slkexq-uc.a.run.app` |
 | README with install, test, and deploy instructions | Prepared | `README.md`, `docs/deployment.md` |
 | 1-2 minute demo video script | Prepared | `docs/demo_script.md` |
 | Devpost/submission answers | Prepared | `docs/submission_answers_public.md` |
 | Architecture diagram | Prepared | `docs/architecture.md` |
-| Sample evidence report | Prepared | `artifacts/sample-evidence-report-run_9e24c7f1d4d0452989c0e39c0e48a4c1.json` |
+| Sample evidence report | Prepared | `artifacts/sample-evidence-report-run_be30e4f10ef7483d9f6695fd64d5dfa3.json` |
 | Screenshots | Prepared from authenticated Cloud Run HTML capture | `output/playwright/demo-home.png`, `output/playwright/demo-review-result.png` |
 | Public-safe brief/PDF | Optional stretch | TBD |
 | Limitations and synthetic-data disclosure | Prepared | `docs/submission_answers_public.md`, `docs/public_claims_guardrails.md` |
@@ -38,20 +38,8 @@ for `allUsers` IAM bindings. See `docs/deployment_notes.md`.
 - Reviewer decision is recorded by `security_reviewer`.
 - Evidence report verifies the hash chain and includes material decisions.
 
-## Manual Action Required
-
-Allow this binding on the demo UI service:
+## Final Verification
 
 ```powershell
-gcloud run services add-iam-policy-binding akretic-demo-ui `
-  --project akretic-a2a-trust-gateway `
-  --region us-central1 `
-  --member allUsers `
-  --role roles/run.invoker
-```
-
-The current error is:
-
-```text
-FAILED_PRECONDITION: One or more users named in the policy do not belong to a permitted customer, perhaps due to an organization policy.
+.\scripts\verify_cloudrun_p0.ps1 -RequirePublic
 ```

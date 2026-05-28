@@ -12,6 +12,5 @@
 
 ## Current Recording Note
 
-Use the authenticated Cloud Run path for internal recording until the organization policy
-allows public `allUsers` invoker on `akretic-demo-ui`. The intended judging URL is:
+Use the public Cloud Run URL for recording and judging:
 `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`.

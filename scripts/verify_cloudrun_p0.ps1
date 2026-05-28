@@ -40,18 +40,11 @@ if ($RequirePublic -and $publicStatus -ne 200) {
   throw "Public demo URL returned HTTP $publicStatus"
 }
 
-$token = (& gcloud auth print-identity-token).Trim()
-if (-not $token) {
-  throw "Unable to mint gcloud identity token for authenticated Cloud Run smoke"
-}
-$headers = @{ Authorization = "Bearer $token" }
-
 $body = "persona=procurement_user&query=$([uri]::EscapeDataString($Query))"
 $runResponse = Invoke-WebRequest `
   -UseBasicParsing `
   -Uri "$DemoUrl/run" `
   -Method Post `
-  -Headers $headers `
   -ContentType "application/x-www-form-urlencoded" `
   -Body $body `
   -TimeoutSec 180
@@ -65,10 +58,14 @@ $decisionResponse = Invoke-WebRequest `
   -UseBasicParsing `
   -Uri "$DemoUrl/approval/decide" `
   -Method Post `
-  -Headers $headers `
   -ContentType "application/x-www-form-urlencoded" `
   -Body $decisionBody `
   -TimeoutSec 180
+
+$token = (& gcloud auth print-identity-token).Trim()
+if (-not $token) {
+  throw "Unable to mint gcloud identity token for private evidence report smoke"
+}
 
 $reportResponse = Invoke-WebRequest `
   -UseBasicParsing `

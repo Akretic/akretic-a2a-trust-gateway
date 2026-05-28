@@ -9,8 +9,8 @@ Date: 2026-05-28
 - Project number: `472908523998`
 - Region: `us-central1`
 - Image: `us-central1-docker.pkg.dev/akretic-a2a-trust-gateway/akretic/akretic-p0:p0-latest`
-- Latest build: `ff289fcd-1606-4b49-b0d7-b8efcf45031c`
-- Latest image digest: `sha256:e0f28e860e0c3e38d340282bca32e13f4fa81e93640e49df9b575233f323325a`
+- Latest build: `20aadc2f-ed83-4417-a9c1-e4f3a68162eb`
+- Latest image digest: `sha256:9e71b299158b0814b3a7b8fab3fad76df14394399f5f8a439159b7365d5ae80d`
 
 ## Resources Created Or Updated
 
@@ -20,15 +20,18 @@ Date: 2026-05-28
 - Cloud Build source bucket: `gs://akretic-a2a-trust-gateway_cloudbuild/`
 - Cloud Build execution service account: `472908523998-compute@developer.gserviceaccount.com`
 - Cloud Run services:
-  - `akretic-demo-ui` revision `akretic-demo-ui-00004-8gc`: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
-  - `akretic-root-orchestrator` revision `akretic-root-orchestrator-00004-4p5`: `https://akretic-root-orchestrator-oes3slkexq-uc.a.run.app`
-  - `akretic-policy-agent` revision `akretic-policy-agent-00004-rwp`: `https://akretic-policy-agent-oes3slkexq-uc.a.run.app`
-  - `akretic-knowledge-agent` revision `akretic-knowledge-agent-00004-dmm`: `https://akretic-knowledge-agent-oes3slkexq-uc.a.run.app`
-  - `akretic-research-agent` revision `akretic-research-agent-00004-4wf`: `https://akretic-research-agent-oes3slkexq-uc.a.run.app`
-  - `akretic-approval-evidence` revision `akretic-approval-evidence-00004-nln`: `https://akretic-approval-evidence-oes3slkexq-uc.a.run.app`
+  - `akretic-demo-ui` revision `akretic-demo-ui-00005-qc5`: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
+  - `akretic-root-orchestrator` revision `akretic-root-orchestrator-00005-dp7`: `https://akretic-root-orchestrator-oes3slkexq-uc.a.run.app`
+  - `akretic-policy-agent` revision `akretic-policy-agent-00005-98p`: `https://akretic-policy-agent-oes3slkexq-uc.a.run.app`
+  - `akretic-knowledge-agent` revision `akretic-knowledge-agent-00005-ddb`: `https://akretic-knowledge-agent-oes3slkexq-uc.a.run.app`
+  - `akretic-research-agent` revision `akretic-research-agent-00005-khj`: `https://akretic-research-agent-oes3slkexq-uc.a.run.app`
+  - `akretic-approval-evidence` revision `akretic-approval-evidence-00005-r24`: `https://akretic-approval-evidence-oes3slkexq-uc.a.run.app`
 
 ## IAM Changes
 
+- `akretic-demo-ui`
+  - Public access uses Cloud Run `run.googleapis.com/invoker-iam-disabled=true`.
+  - No `allUsers` IAM binding is required.
 - `akretic-p0-runtime@...`
   - `roles/aiplatform.user` on the project.
   - `roles/storage.objectAdmin` on `gs://akretic-a2a-trust-gateway-evidence`.
@@ -45,9 +48,7 @@ No owner/editor grants were added by the deploy work.
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
 .\scripts\deploy_cloudrun.ps1
-gcloud run services add-iam-policy-binding akretic-demo-ui --project akretic-a2a-trust-gateway --region us-central1 --member allUsers --role roles/run.invoker
-gcloud auth print-identity-token
-.\scripts\verify_cloudrun_p0.ps1
+.\scripts\verify_cloudrun_p0.ps1 -RequirePublic
 ```
 
 The deploy script also ran the documented `gcloud services enable`, Artifact Registry,
@@ -57,14 +58,14 @@ Cloud Storage, Cloud Build, and Cloud Run deploy/update commands for the P0 reso
 
 - Local test matrix: `17 passed`.
 - Cloud Build latest build: `SUCCESS`.
-- Authenticated Cloud Run smoke:
-  - Run ID: `run_9e24c7f1d4d0452989c0e39c0e48a4c1`
-  - Approval ID: `apr_cde153b3c70c4d5d842c7110a3b239c7`
-  - Public unauthenticated GET `/`: HTTP 403 until org policy is fixed.
-  - UI `/run`: HTTP 200.
-  - UI `/approval/decide`: HTTP 200.
+- Public Cloud Run smoke:
+  - Run ID: `run_be30e4f10ef7483d9f6695fd64d5dfa3`
+  - Approval ID: `apr_91f08a47a6f646bcb3409a7d9014438e`
+  - Public unauthenticated GET `/`: HTTP 200.
+  - Public unauthenticated UI `/run`: HTTP 200.
+  - Public unauthenticated UI `/approval/decide`: HTTP 200.
   - Evidence report endpoint: HTTP 200.
-- Sample evidence report: `artifacts/sample-evidence-report-run_9e24c7f1d4d0452989c0e39c0e48a4c1.json`
+- Sample evidence report: `artifacts/sample-evidence-report-run_be30e4f10ef7483d9f6695fd64d5dfa3.json`
 - Sample screenshots:
   - `output/playwright/demo-home.png`
   - `output/playwright/demo-review-result.png`
@@ -77,25 +78,12 @@ Cloud Storage, Cloud Build, and Cloud Run deploy/update commands for the P0 reso
   - Denied source IDs: `vendornova_security_questionnaire`, `infosec_vendor_policy`, `contract_review_checklist`, `executive_acquisition_memo`
   - Reviewer decision: `approved` by `user-security-001`
 
-## Current Blocker
+## Public Access Resolution
 
-The demo UI is deployed but is not public yet. The required public invoker binding fails:
-
-```text
-FAILED_PRECONDITION: One or more users named in the policy do not belong to a permitted customer, perhaps due to an organization policy.
-```
-
-Current `akretic-demo-ui` IAM policy has no `allUsers` binding. The private root service
-has only the runtime service account as `roles/run.invoker`.
-
-Manual options:
-
-1. Add a domain-restricted-sharing exception for this project/service so
-   `allUsers` can be granted `roles/run.invoker` on `akretic-demo-ui`.
-2. Move the demo project under a folder/org policy that allows public Cloud Run
-   invoker bindings for demo workloads.
-3. Use a separate public-allowed GCP project and update `.env.example`,
-   `docs/deployment.md`, and this service map.
+The Akretic organization policy blocks `allUsers` IAM bindings. The demo UI is
+public through the Cloud Run no-invoker IAM check mode instead. Private agent,
+root, and approval/evidence services keep the invoker IAM check enabled and only
+grant `roles/run.invoker` to the runtime service account.
 
 The project also emits a non-blocking warning that it lacks an `environment` tag.
 Use `Development` or `Test` if the organization requires project environment tags.

@@ -67,7 +67,7 @@ bash scripts/run_local.sh
 - `DAILY_BUILD_TEMPO.md` — day-by-day shipping cadence.
 - `ACCEPTANCE_CRITERIA.md` — P0 tests and proof artifacts.
 - `docs/deployment.md` — Cloud Run deployment boundaries and commands.
-- `docs/deployment_notes.md` — current Cloud Run resources, smoke proof, and deployment blockers.
+- `docs/deployment_notes.md` — current Cloud Run resources and smoke proof.
 
 ## Current implementation status
 
@@ -86,9 +86,8 @@ This packet includes:
 - baseline P0 tests;
 - Cloud Run deployment scaffolding and authenticated Cloud Run smoke proof.
 
-Current Cloud Run note: the demo services deploy and the authenticated P0 path passes,
-but public unauthenticated access to `akretic-demo-ui` is blocked by the Akretic
-organization policy for `allUsers` IAM bindings. See `docs/deployment_notes.md`.
+Current Cloud Run note: the demo services deploy, the public UI path passes,
+and private agent services remain behind Cloud Run IAM.
 
 The root Gemini path is isolated behind `common/gemini.py`. Set `AKRETIC_GEMINI_MODE=vertex`
 with `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, and `VERTEX_MODEL` for the Cloud Run demo.
@@ -109,12 +108,10 @@ The intended judging flow:
 6. Use the sample evidence report in `artifacts/` or the private evidence report
    endpoint to inspect the A2A, policy, retrieval, approval, and verification events.
 
-Current deployment blocker: the service is deployed, but the Akretic organization
-policy currently blocks unauthenticated `allUsers` Cloud Run invoker access. Once
-that policy exception is applied for `akretic-demo-ui`, rerun:
+The public UI uses Cloud Run's no-invoker IAM check mode so it can remain public
+for judging without an `allUsers` IAM binding. Verify the public proof path with:
 
 ```powershell
-.\scripts\deploy_cloudrun.ps1
 .\scripts\verify_cloudrun_p0.ps1 -RequirePublic
 ```
 

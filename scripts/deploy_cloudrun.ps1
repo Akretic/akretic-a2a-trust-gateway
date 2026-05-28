@@ -111,7 +111,7 @@ function Deploy-Service {
     [bool]$Public,
     [string]$ExtraEnv = ""
   )
-  $authFlag = if ($Public) { "--allow-unauthenticated" } else { "--no-allow-unauthenticated" }
+  $authFlag = if ($Public) { "--no-invoker-iam-check" } else { "--invoker-iam-check" }
   $envVars = @(
     "AKRETIC_SERVICE_MODULE=$Module",
     "AKRETIC_ENV=demo",
@@ -147,17 +147,6 @@ function Get-ServiceUrl {
     throw "Failed to read Cloud Run service URL for $Name"
   }
   return $url.Trim()
-}
-
-function Ensure-PublicInvoker {
-  param([string]$Name)
-  Run-Step "Grant public invoker on $Name" @(
-    "gcloud", "run", "services", "add-iam-policy-binding", $Name,
-    "--project", $ProjectId,
-    "--region", $Region,
-    "--member", "allUsers",
-    "--role", "roles/run.invoker"
-  )
 }
 
 $RuntimeSaEmail = "$RuntimeServiceAccount@$ProjectId.iam.gserviceaccount.com"
@@ -235,7 +224,6 @@ foreach ($service in @(
 }
 
 Deploy-Service -Name "akretic-demo-ui" -Module "demo_ui.main:app" -Public $true -ExtraEnv "$AgentEnv,ROOT_ORCHESTRATOR_URL=$RootUrl"
-Ensure-PublicInvoker -Name "akretic-demo-ui"
 $DemoUrl = Get-ServiceUrl "akretic-demo-ui"
 
 Write-Host "`nDeployment complete."

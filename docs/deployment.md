@@ -29,7 +29,7 @@ Verify after deployment:
 .\scripts\verify_cloudrun_p0.ps1
 ```
 
-After the public `allUsers` invoker policy is allowed, require the public URL gate:
+Require the public URL gate:
 
 ```powershell
 .\scripts\verify_cloudrun_p0.ps1 -RequirePublic
@@ -51,17 +51,15 @@ The script:
    - `roles/run.invoker` on private P0 Cloud Run services;
 7. builds one shared container image;
 8. deploys private agent/root services behind Cloud Run IAM;
-9. deploys only the demo UI as public and fails if the `allUsers` invoker binding is blocked.
+9. deploys only the demo UI as public by disabling the Cloud Run Invoker IAM check.
 
 ## Runtime Boundaries
 
-The demo UI is intended to be public for judging. Agent, root, and approval/evidence
-services are private Cloud Run services. The public UI calls private services with the
-runtime service account.
-
-As of the 2026-05-28 deployment attempt, the Akretic organization policy blocks the
-required public `allUsers` invoker binding. See `docs/deployment_notes.md` for the
-current blocker and manual remediation options.
+The demo UI is public for judging. It uses Cloud Run's no-invoker IAM check mode
+instead of an `allUsers` IAM binding because the Akretic organization policy blocks
+domain-unrestricted IAM principals. Agent, root, and approval/evidence services are
+private Cloud Run services. The public UI calls private services with the runtime
+service account.
 
 Evidence and verify/report APIs are not exposed directly to unauthenticated public traffic.
 They still enforce demo persona role checks in application code, but Cloud Run IAM is the
