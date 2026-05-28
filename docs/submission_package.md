@@ -19,6 +19,7 @@ Cloud Run IAM and are invoked by the UI runtime service account.
 |---|---|---|
 | Public Cloud Run demo URL | Ready | `https://akretic-demo-ui-oes3slkexq-uc.a.run.app` |
 | README with install, test, and deploy instructions | Prepared | `README.md`, `docs/deployment.md` |
+| Submission checklist | Prepared | `docs/submission_checklist.md` |
 | 1-2 minute demo video script | Prepared | `docs/demo_script.md` |
 | Devpost/submission answers | Prepared | `docs/submission_answers_public.md` |
 | Architecture diagram | Prepared | `docs/architecture.md` |
