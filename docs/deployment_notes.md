@@ -85,10 +85,7 @@ public through the Cloud Run no-invoker IAM check mode instead. Private agent,
 root, and approval/evidence services keep the invoker IAM check enabled and only
 grant `roles/run.invoker` to the runtime service account.
 
-The project also emits a non-blocking warning that it lacks an `environment` tag.
-Existing org tag keys and project tag bindings were checked on 2026-05-28 and
-none existed. Creating the minimal org tag key `environment` for value
-`development` was attempted with `sean.w@akretic.com`, but Google Cloud denied
-`resourcemanager.tagKeys.create` on `organizations/287336668994`. A human with
-Tag Admin rights should create or bind `environment=development` if the Akretic
-organization requires project environment tags.
+The project environment warning is cleared. The Akretic organization now has
+tag key `287336668994/environment`, tag value
+`287336668994/environment/Development`, and a binding on project
+`//cloudresourcemanager.googleapis.com/projects/472908523998`.
