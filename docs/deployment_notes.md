@@ -6,6 +6,32 @@ Date: 2026-05-28
 
 Date: 2026-05-28
 
+### Final Acceptance Polish
+
+Date: 2026-05-28
+
+- Scope: public UI label-only polish for P1 acceptance; no runtime behavior changes.
+- Build: `628803d2-1547-41be-a272-e51fd1b4719e`
+- Image digest: `sha256:1819db7fb779b7420cdef0e67601afb7c0c7b835f87b0c0461c96f1a70d77cdf`
+- Cloud Run service updated: `akretic-demo-ui` revision `akretic-demo-ui-00009-hmf`.
+- Private agent service revisions were not redeployed for this final label polish.
+- Commands run:
+
+```powershell
+gcloud config get-value account
+gcloud config get-value project
+gcloud billing projects describe akretic-a2a-trust-gateway --format=json
+.\.venv\Scripts\python.exe -m pytest -q
+gcloud builds submit . --project akretic-a2a-trust-gateway --config infra/cloudrun/cloudbuild.yaml --substitutions _IMAGE=us-central1-docker.pkg.dev/akretic-a2a-trust-gateway/akretic/akretic-p0:p0-latest
+gcloud run deploy akretic-demo-ui --project akretic-a2a-trust-gateway --region us-central1 --image us-central1-docker.pkg.dev/akretic-a2a-trust-gateway/akretic/akretic-p0:p0-latest --service-account akretic-p0-runtime@akretic-a2a-trust-gateway.iam.gserviceaccount.com --no-invoker-iam-check --set-env-vars <demo-ui-env-vars>
+.\scripts\verify_cloudrun_p0.ps1 -RequirePublic
+```
+
+- Verification:
+  - `pytest -q`: `19 passed`.
+  - `scripts/verify_cloudrun_p0.ps1 -RequirePublic`: passed.
+  - Live UI check: no public `P1` label, Policy tile says `external action is approval_required`, evidence metric says `valid hash chain`.
+
 ### Target Confirmed
 
 - Account: `sean.w@akretic.com`

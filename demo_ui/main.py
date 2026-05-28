@@ -330,7 +330,7 @@ def _failure_response(error: DemoUiError, *, title: str = "Demo path unavailable
         </section>
         <p class="footer-nav"><a href="/">Back</a></p>
         """,
-        status="P1 failure handling",
+        status="Failure handling",
     )
     return HTMLResponse(content=content, status_code=error.status_code)
 
@@ -371,10 +371,11 @@ def _proof_chain_row(result: dict[str, Any], *, persona: str) -> str:
     if result.get("approval_request"):
         approval_status = f"approval_required / {result['approval_request'].get('status', 'pending')}"
     evidence_state = "ok" if verification.get("valid") else "bad"
+    policy_outcome = result.get("export_decision", {}).get("outcome", "UNKNOWN")
     return (
         '<section class="proof-row" aria-label="Proof chain status">'
         + _proof_step("Identity", f"{persona} from header")
-        + _proof_step("Policy", result.get("export_decision", {}).get("outcome", "UNKNOWN"), "warn")
+        + _proof_step("Policy", f"external action is {policy_outcome}", "warn")
         + _proof_step("RAG Filter", f"{denied_count} denied before context")
         + _proof_step("A2A", f"{a2a_count} calls with correlation IDs")
         + _proof_step("Approval", approval_status, "warn")
@@ -582,6 +583,7 @@ def _render_review_result(result: dict[str, Any], *, persona: str) -> str:
     denied_source_ids = [source["source_id"] for source in result["retrieval"]["denied_sources"]]
     verification = result["verification"]
     verification_class = "valid" if verification.get("valid") else "invalid"
+    verification_label = "valid hash chain" if verification.get("valid") else "invalid hash chain"
     return _page(
         "VendorNova Review",
         f"""
@@ -595,7 +597,7 @@ def _render_review_result(result: dict[str, Any], *, persona: str) -> str:
           <div class="metric"><span>Run ID</span><strong>{html.escape(result['run_id'])}</strong></div>
           <div class="metric"><span>Persona</span><strong>{html.escape(persona)}</strong></div>
           <div class="metric"><span>External action</span><strong class="decision">{html.escape(result['export_decision']['outcome'])}</strong></div>
-          <div class="metric"><span>Evidence chain</span><strong class="{verification_class}">{html.escape(str(verification.get('valid')).lower())}</strong></div>
+          <div class="metric"><span>Evidence verify</span><strong class="{verification_class}">{html.escape(verification_label)}</strong></div>
         </section>
         {_model_path_callout(result)}
         {_denied_context_callout(denied_source_ids)}
@@ -634,7 +636,7 @@ def _render_review_result(result: dict[str, Any], *, persona: str) -> str:
         </section>
         <p class="footer-nav"><a href="/">Back</a></p>
         """,
-        status="P1 judge walkthrough",
+        status="Judge walkthrough",
     )
 
 
@@ -761,7 +763,7 @@ def home() -> str:
         </section>
         """ + _judge_walkthrough_panel() + """
         """,
-        status="P1 judge walkthrough",
+        status="Judge walkthrough",
     )
 
 

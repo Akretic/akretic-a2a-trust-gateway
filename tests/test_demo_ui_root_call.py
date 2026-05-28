@@ -171,12 +171,16 @@ def test_demo_ui_review_result_shows_p1_proof_markers():
 
     assert "Judge walkthrough" in html
     assert "Denied before model context: executive_acquisition_memo." in html
+    assert "external action is approval_required" in html
     assert "approval_required: external/sensitive action is paused." in html
     assert "Agent Card resolved" in html
     assert "correlation_id" in html
+    assert "valid hash chain" in html
     assert "Evidence proof: valid hash chain." in html
     assert "Challenge prototype" in html
     assert "Synthetic data" in html
+    assert "P1 judge walkthrough" not in html
+    assert "Evidence chain</span><strong class=\"valid\">true" not in html
 
 
 def test_demo_ui_private_service_error_names_401_403():
