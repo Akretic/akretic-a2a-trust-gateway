@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
 
-from agents.root_orchestrator.main import run_vendor_review
+from agents.root_orchestrator.main import run_vendor_review_workflow
 
 app = FastAPI(title="Akretic Demo UI")
 
@@ -41,8 +41,8 @@ def home() -> str:
 
 
 @app.post("/run", response_class=HTMLResponse)
-def run(persona: str = Form(...), query: str = Form(...)) -> str:
-    result = run_vendor_review({"persona": persona, "query": query}, x_akretic_persona=persona)
+async def run(persona: str = Form(...), query: str = Form(...)) -> str:
+    result = await run_vendor_review_workflow({"persona": persona, "query": query}, x_akretic_persona=persona)
     return f"""
     <html>
       <body style="font-family: Arial, sans-serif; margin: 40px; max-width: 980px;">

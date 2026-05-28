@@ -27,6 +27,15 @@ pip install -r requirements.txt
 pytest -q
 ```
 
+On Windows, if `python` points to Python 3.14, create the virtualenv with Python 3.12
+or 3.13 instead because the pinned FastAPI/Pydantic stack targets Python 3.11-3.13:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
 Run one service locally:
 
 ```bash
@@ -59,6 +68,7 @@ This packet includes:
 - approval state machine skeleton;
 - FastAPI service shells for the agents and core services;
 - Agent Card JSON for each remote agent;
+- root-to-Policy and root-to-Knowledge HTTP A2A calls with evidence logging;
 - baseline P0 tests;
 - Cloud Run deployment scaffolding.
 

@@ -32,6 +32,7 @@ def retrieve(payload: dict[str, Any], x_akretic_persona: str | None = Header(def
         actor=actor,
         run_id=payload.get("run_id", "local-run"),
         max_chunks=int(payload.get("max_chunks", 5)),
+        correlation_id=payload.get("correlation_id"),
         write_evidence=bool(payload.get("write_evidence", True)),
     )
 

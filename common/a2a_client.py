@@ -25,12 +25,13 @@ async def call_skill(
     caller_agent_id: str,
     actor: Actor,
     evidence_path: str | None = None,
+    headers: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     correlation_id = payload.get("correlation_id") or f"corr_{uuid4().hex}"
     payload = {**payload, "run_id": run_id, "correlation_id": correlation_id}
     async with httpx.AsyncClient(timeout=20.0) as client:
         card = await fetch_agent_card(base_url)
-        response = await client.post(f"{base_url.rstrip('/')}/{skill}", json=payload)
+        response = await client.post(f"{base_url.rstrip('/')}/{skill}", json=payload, headers=headers)
         response.raise_for_status()
         result = response.json()
     append_event(
@@ -43,6 +44,12 @@ async def call_skill(
         reason=f"called remote A2A skill {skill}",
         correlation_id=correlation_id,
         path=evidence_path,
-        metadata={"callee": card.get("name"), "skill": skill, "base_url": base_url},
+        metadata={
+            "caller": caller_agent_id,
+            "callee": card.get("name"),
+            "skill": skill,
+            "base_url": base_url,
+            "identity_source": "x-akretic-persona header",
+        },
     )
     return result

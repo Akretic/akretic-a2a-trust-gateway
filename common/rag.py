@@ -42,13 +42,14 @@ def retrieve_permitted_context(
     actor: Actor,
     run_id: str,
     max_chunks: int = 5,
+    correlation_id: str | None = None,
     corpus_dir: str | Path | None = None,
     metadata_path: str | Path | None = None,
     evidence_path: str | Path | None = None,
     write_evidence: bool = False,
 ) -> dict[str, Any]:
     """Retrieve only chunks permitted before model context assembly."""
-    correlation_id = f"corr_{uuid4().hex}"
+    correlation_id = correlation_id or f"corr_{uuid4().hex}"
     permitted_chunks: list[dict[str, Any]] = []
     denied_sources: list[dict[str, Any]] = []
 
