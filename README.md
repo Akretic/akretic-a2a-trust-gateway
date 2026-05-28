@@ -57,6 +57,7 @@ bash scripts/run_local.sh
 - `DAILY_BUILD_TEMPO.md` — day-by-day shipping cadence.
 - `ACCEPTANCE_CRITERIA.md` — P0 tests and proof artifacts.
 - `docs/deployment.md` — Cloud Run deployment boundaries and commands.
+- `docs/deployment_notes.md` — current Cloud Run resources, smoke proof, and deployment blockers.
 
 ## Current implementation status
 
@@ -73,7 +74,11 @@ This packet includes:
 - root-to-Policy and root-to-Knowledge HTTP A2A calls with evidence logging;
 - root summarization adapter for Vertex AI Gemini, with a labeled local test mode;
 - baseline P0 tests;
-- Cloud Run deployment scaffolding.
+- Cloud Run deployment scaffolding and authenticated Cloud Run smoke proof.
+
+Current Cloud Run note: the demo services deploy and the authenticated P0 path passes,
+but public unauthenticated access to `akretic-demo-ui` is blocked by the Akretic
+organization policy for `allUsers` IAM bindings. See `docs/deployment_notes.md`.
 
 The root Gemini path is isolated behind `common/gemini.py`. Set `AKRETIC_GEMINI_MODE=vertex`
 with `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, and `VERTEX_MODEL` for the Cloud Run demo.

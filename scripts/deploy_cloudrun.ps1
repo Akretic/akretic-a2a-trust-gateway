@@ -16,7 +16,12 @@ function Run-Step {
   )
   Write-Host "`n==> $Description"
   Write-Host ($Command -join " ")
-  & $Command[0] $Command[1..($Command.Length - 1)]
+  $exe = $Command[0]
+  $args = $Command[1..($Command.Length - 1)]
+  & $exe @args
+  if ($LASTEXITCODE -ne 0) {
+    throw "Command failed with exit code ${LASTEXITCODE}: $($Command -join ' ')"
+  }
 }
 
 function Ensure-ServiceAccount {
@@ -54,6 +59,49 @@ function Ensure-Bucket {
       "--uniform-bucket-level-access"
     )
   }
+}
+
+function Ensure-CloudBuildSourceBucket {
+  $CloudBuildSourceBucket = "${ProjectId}_cloudbuild"
+  $existing = & gcloud storage buckets describe "gs://$CloudBuildSourceBucket" --format "value(name)" 2>$null
+  if (-not $existing) {
+    Run-Step "Create Cloud Build source bucket" @(
+      "gcloud", "storage", "buckets", "create", "gs://$CloudBuildSourceBucket",
+      "--project", $ProjectId,
+      "--location", "US",
+      "--uniform-bucket-level-access"
+    )
+  }
+}
+
+function Get-CloudBuildServiceAccount {
+  $email = (& gcloud builds get-default-service-account --project $ProjectId).Trim()
+  if ($LASTEXITCODE -ne 0 -or -not $email) {
+    throw "Failed to read Cloud Build default service account for $ProjectId"
+  }
+  return $email
+}
+
+function Ensure-CloudBuildPermissions {
+  param([string]$BuildServiceAccount)
+  $CloudBuildSourceBucket = "${ProjectId}_cloudbuild"
+  Run-Step "Grant Cloud Build source read access" @(
+    "gcloud", "storage", "buckets", "add-iam-policy-binding", "gs://$CloudBuildSourceBucket",
+    "--member", "serviceAccount:$BuildServiceAccount",
+    "--role", "roles/storage.objectViewer"
+  )
+  Run-Step "Grant Cloud Build Artifact Registry write access" @(
+    "gcloud", "artifacts", "repositories", "add-iam-policy-binding", $Repository,
+    "--project", $ProjectId,
+    "--location", $Region,
+    "--member", "serviceAccount:$BuildServiceAccount",
+    "--role", "roles/artifactregistry.writer"
+  )
+  Run-Step "Grant Cloud Build log write access" @(
+    "gcloud", "projects", "add-iam-policy-binding", $ProjectId,
+    "--member", "serviceAccount:$BuildServiceAccount",
+    "--role", "roles/logging.logWriter"
+  )
 }
 
 function Deploy-Service {
@@ -94,7 +142,22 @@ function Deploy-Service {
 
 function Get-ServiceUrl {
   param([string]$Name)
-  return (& gcloud run services describe $Name --project $ProjectId --region $Region --format "value(status.url)").Trim()
+  $url = (& gcloud run services describe $Name --project $ProjectId --region $Region --format "value(status.url)")
+  if ($LASTEXITCODE -ne 0) {
+    throw "Failed to read Cloud Run service URL for $Name"
+  }
+  return $url.Trim()
+}
+
+function Ensure-PublicInvoker {
+  param([string]$Name)
+  Run-Step "Grant public invoker on $Name" @(
+    "gcloud", "run", "services", "add-iam-policy-binding", $Name,
+    "--project", $ProjectId,
+    "--region", $Region,
+    "--member", "allUsers",
+    "--role", "roles/run.invoker"
+  )
 }
 
 $RuntimeSaEmail = "$RuntimeServiceAccount@$ProjectId.iam.gserviceaccount.com"
@@ -118,6 +181,9 @@ Run-Step "Enable required APIs" @(
 Ensure-ServiceAccount -Email $RuntimeSaEmail
 Ensure-ArtifactRepo
 Ensure-Bucket
+Ensure-CloudBuildSourceBucket
+$BuildServiceAccount = Get-CloudBuildServiceAccount
+Ensure-CloudBuildPermissions -BuildServiceAccount $BuildServiceAccount
 
 Run-Step "Grant Vertex AI user to runtime service account" @(
   "gcloud", "projects", "add-iam-policy-binding", $ProjectId,
@@ -152,9 +218,6 @@ $AgentEnv = "POLICY_AGENT_URL=$PolicyUrl,KNOWLEDGE_AGENT_URL=$KnowledgeUrl,RESEA
 Deploy-Service -Name "akretic-root-orchestrator" -Module "agents.root_orchestrator.main:app" -Public $false -ExtraEnv $AgentEnv
 $RootUrl = Get-ServiceUrl "akretic-root-orchestrator"
 
-Deploy-Service -Name "akretic-demo-ui" -Module "demo_ui.main:app" -Public $true -ExtraEnv "$AgentEnv,ROOT_ORCHESTRATOR_URL=$RootUrl"
-$DemoUrl = Get-ServiceUrl "akretic-demo-ui"
-
 foreach ($service in @(
   "akretic-policy-agent",
   "akretic-knowledge-agent",
@@ -170,6 +233,10 @@ foreach ($service in @(
     "--role", "roles/run.invoker"
   )
 }
+
+Deploy-Service -Name "akretic-demo-ui" -Module "demo_ui.main:app" -Public $true -ExtraEnv "$AgentEnv,ROOT_ORCHESTRATOR_URL=$RootUrl"
+Ensure-PublicInvoker -Name "akretic-demo-ui"
+$DemoUrl = Get-ServiceUrl "akretic-demo-ui"
 
 Write-Host "`nDeployment complete."
 Write-Host "Demo UI: $DemoUrl"

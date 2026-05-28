@@ -13,6 +13,7 @@
 | `test_evidence_verify` | Verify endpoint detects valid and tampered event chains |
 | `test_evidence_report` | Evidence report includes A2A calls, retrieval allow/deny, approval, reviewer decision, and verification |
 | `test_gemini_context` | Gemini prompt builder excludes denied document contents and records the model path |
+| `test_demo_ui_root_call` | Demo UI calls the deployed root service when configured and uses Cloud Run auth headers for private approval/evidence calls |
 | `test_claims_public_copy` | Public copy excludes banned overclaims |
 
 ## Evidence required for final demo

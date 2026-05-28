@@ -23,6 +23,10 @@ def _auth_headers(base_url: str, headers: dict[str, str] | None = None) -> dict[
     return merged
 
 
+def cloud_run_auth_headers(base_url: str, headers: dict[str, str] | None = None) -> dict[str, str]:
+    return _auth_headers(base_url, headers)
+
+
 async def fetch_agent_card(base_url: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(

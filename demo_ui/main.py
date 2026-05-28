@@ -9,6 +9,7 @@ from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
 
 from agents.root_orchestrator.main import run_vendor_review_workflow
+from common.a2a_client import cloud_run_auth_headers
 
 app = FastAPI(title="Akretic Demo UI")
 
@@ -19,6 +20,49 @@ def _approval_url() -> str:
 
 def _json_pre(value: object) -> str:
     return html.escape(json.dumps(value, indent=2, sort_keys=True))
+
+
+async def run_review_from_ui(persona: str, query: str) -> dict:
+    root_url = os.getenv("ROOT_ORCHESTRATOR_URL")
+    if not root_url:
+        return await run_vendor_review_workflow({"persona": persona, "query": query}, x_akretic_persona=persona)
+
+    headers = cloud_run_auth_headers(root_url, {"x-akretic-persona": persona})
+    async with httpx.AsyncClient(timeout=45.0) as client:
+        response = await client.post(
+            f"{root_url.rstrip('/')}/run_vendor_review",
+            json={"persona": persona, "query": query},
+            headers=headers,
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+async def decide_approval_from_ui(
+    *,
+    run_id: str,
+    approval_id: str,
+    reviewer_persona: str,
+    status: str,
+    reason: str,
+) -> tuple[object, object]:
+    approval_url = _approval_url().rstrip("/")
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        response = await client.post(
+            f"{approval_url}/decide_approval",
+            json={"approval_id": approval_id, "status": status, "reason": reason},
+            headers=cloud_run_auth_headers(approval_url, {"x-akretic-persona": reviewer_persona}),
+        )
+        if response.status_code >= 400:
+            decision: object = {"status_code": response.status_code, "error": response.text}
+        else:
+            decision = response.json()
+        verification_response = await client.get(
+            f"{approval_url}/verify/{run_id}",
+            headers=cloud_run_auth_headers(approval_url, {"x-akretic-persona": "security_reviewer"}),
+        )
+        verification = verification_response.json()
+    return decision, verification
 
 
 @app.get("/healthz")
@@ -55,7 +99,7 @@ def home() -> str:
 
 @app.post("/run", response_class=HTMLResponse)
 async def run(persona: str = Form(...), query: str = Form(...)) -> str:
-    result = await run_vendor_review_workflow({"persona": persona, "query": query}, x_akretic_persona=persona)
+    result = await run_review_from_ui(persona, query)
     approval = result.get("approval_request")
     approval_html = ""
     if approval:
@@ -111,22 +155,13 @@ async def decide_approval(
     status: str = Form(...),
     reason: str = Form(...),
 ) -> str:
-    headers = {"x-akretic-persona": reviewer_persona}
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        response = await client.post(
-            f"{_approval_url().rstrip('/')}/decide_approval",
-            json={"approval_id": approval_id, "status": status, "reason": reason},
-            headers=headers,
-        )
-        if response.status_code >= 400:
-            decision: object = {"status_code": response.status_code, "error": response.text}
-        else:
-            decision = response.json()
-        verification_response = await client.get(
-            f"{_approval_url().rstrip('/')}/verify/{run_id}",
-            headers={"x-akretic-persona": "security_reviewer"},
-        )
-        verification = verification_response.json()
+    decision, verification = await decide_approval_from_ui(
+        run_id=run_id,
+        approval_id=approval_id,
+        reviewer_persona=reviewer_persona,
+        status=status,
+        reason=reason,
+    )
 
     return f"""
     <html>
