@@ -25,6 +25,9 @@
 - Screenshots:
   - `output/playwright/demo-home.png`
   - `output/playwright/demo-review-result.png`
+- Optional raw walkthrough capture:
+  - `output/playwright/video/akretic-p0-demo-raw.webm`
+  - `output/playwright/video/akretic-p0-demo-raw.metadata.json`
 
 ## Verified P0 Proof
 
@@ -41,7 +44,9 @@
 
 1. Create or provide the GitHub repository URL.
 2. Add the remote and push `main`.
-3. Record the 1-2 minute demo video from the public Cloud Run URL.
+3. Record or upload the 1-2 minute demo video from the public Cloud Run URL.
+   The optional raw silent walkthrough can be generated with
+   `.\.venv\Scripts\python.exe .\scripts\record_demo_video.py`.
 4. Paste `docs/submission_answers_public.md` into the submission form.
 5. Upload or link the screenshots, evidence report, architecture material, and public brief/PDF.
 6. Optional: add the Google Cloud `environment` project tag if Akretic org policy requires it.
@@ -51,4 +56,3 @@
 ```powershell
 .\scripts\verify_cloudrun_p0.ps1 -RequirePublic
 ```
-

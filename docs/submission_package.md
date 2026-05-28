@@ -21,6 +21,7 @@ Cloud Run IAM and are invoked by the UI runtime service account.
 | README with install, test, and deploy instructions | Prepared | `README.md`, `docs/deployment.md` |
 | Submission checklist | Prepared | `docs/submission_checklist.md` |
 | 1-2 minute demo video script | Prepared | `docs/demo_script.md` |
+| Raw silent demo walkthrough | Prepared locally | `output/playwright/video/akretic-p0-demo-raw.webm` |
 | Devpost/submission answers | Prepared | `docs/submission_answers_public.md` |
 | Architecture diagram | Prepared | `docs/architecture.md` |
 | Sample evidence report | Prepared | `artifacts/sample-evidence-report-run_be30e4f10ef7483d9f6695fd64d5dfa3.json` |

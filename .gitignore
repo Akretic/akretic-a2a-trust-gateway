@@ -11,3 +11,4 @@ __pycache__/
 *.log
 dist/
 build/
+output/playwright/video/
