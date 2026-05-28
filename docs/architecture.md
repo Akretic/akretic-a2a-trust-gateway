@@ -25,6 +25,10 @@ flowchart LR
   root -->|"summary + decision evidence"| ledger
 ```
 
+Renderable source for generated assets: `docs/architecture.mmd`.
+Submission images: `output/architecture/akretic-a2a-architecture.svg` and
+`output/architecture/akretic-a2a-architecture.png`.
+
 ## Invariant
 
 Identity, retrieval, tool calls, egress, approvals, and evidence are controlled outside the model.

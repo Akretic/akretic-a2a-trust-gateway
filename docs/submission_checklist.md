@@ -17,8 +17,13 @@
 - README: `README.md`
 - Deployment notes: `docs/deployment_notes.md`
 - Architecture: `docs/architecture.md`
+- Architecture Mermaid source: `docs/architecture.mmd`
+- Architecture images:
+  - `output/architecture/akretic-a2a-architecture.svg`
+  - `output/architecture/akretic-a2a-architecture.png`
 - Demo script: `docs/demo_script.md`
 - Public-safe submission answers: `docs/submission_answers_public.md`
+- Paste-ready form packet: `docs/submission_form_packet.md`
 - Public brief: `docs/public_brief.md`
 - Public brief PDF: `output/pdf/akretic-a2a-trust-gateway-public-brief.pdf`
 - Sample evidence report: `artifacts/sample-evidence-report-run_be30e4f10ef7483d9f6695fd64d5dfa3.json`
@@ -48,7 +53,7 @@
    The optional raw silent walkthrough can be generated with
    `.\.venv\Scripts\python.exe .\scripts\record_demo_video.py`.
 4. Paste `docs/submission_answers_public.md` into the submission form.
-5. Upload or link the screenshots, evidence report, architecture material, and public brief/PDF.
+5. Upload or link the screenshots, evidence report, architecture image, and public brief/PDF.
 6. Optional: add the Google Cloud `environment` project tag if Akretic org policy requires it.
 
 ## Final Smoke Command

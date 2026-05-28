@@ -23,7 +23,8 @@ Cloud Run IAM and are invoked by the UI runtime service account.
 | 1-2 minute demo video script | Prepared | `docs/demo_script.md` |
 | Raw silent demo walkthrough | Prepared locally | `output/playwright/video/akretic-p0-demo-raw.webm` |
 | Devpost/submission answers | Prepared | `docs/submission_answers_public.md` |
-| Architecture diagram | Prepared | `docs/architecture.md` |
+| Paste-ready form packet | Prepared | `docs/submission_form_packet.md` |
+| Architecture diagram | Prepared | `docs/architecture.md`, `output/architecture/akretic-a2a-architecture.png` |
 | Sample evidence report | Prepared | `artifacts/sample-evidence-report-run_be30e4f10ef7483d9f6695fd64d5dfa3.json` |
 | Screenshots | Prepared from authenticated Cloud Run HTML capture | `output/playwright/demo-home.png`, `output/playwright/demo-review-result.png` |
 | Public-safe brief/PDF | Prepared | `docs/public_brief.md`, `output/pdf/akretic-a2a-trust-gateway-public-brief.pdf` |
