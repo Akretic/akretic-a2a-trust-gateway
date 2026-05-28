@@ -183,6 +183,28 @@ def test_demo_ui_review_result_shows_p1_proof_markers():
     assert "Evidence chain</span><strong class=\"valid\">true" not in html
 
 
+def test_demo_ui_model_path_callout_shows_vertex_runtime_details():
+    html = demo_ui._model_path_callout(
+        {
+            "model_summary": {
+                "mode": "vertex",
+                "model": "gemini-2.5-flash",
+                "project_id": "akretic-a2a-trust-gateway",
+                "location": "us-central1",
+                "prompt_hash": "abc123def4567890",
+                "service_path": "Vertex AI Gemini via google-genai",
+            }
+        }
+    )
+
+    assert "Mode: vertex" in html
+    assert "Model: gemini-2.5-flash" in html
+    assert "Project: akretic-a2a-trust-gateway" in html
+    assert "Location: us-central1" in html
+    assert "Vertex AI Gemini via google-genai" in html
+    assert "Gate0-lite remains the policy decision point" in html
+
+
 def test_demo_ui_private_service_error_names_401_403():
     request = demo_ui.httpx.Request("POST", "https://root.example/run_vendor_review")
     response = demo_ui.httpx.Response(403, json={"detail": "forbidden"}, request=request)

@@ -35,6 +35,17 @@ function Assert-Match {
   return $match.Groups[1].Value.Trim()
 }
 
+function Assert-ContainsText {
+  param(
+    [string]$Text,
+    [string]$Expected,
+    [string]$Name
+  )
+  if (-not $Text.Contains($Expected)) {
+    throw "$Name missing expected text: $Expected"
+  }
+}
+
 $publicStatus = Get-HttpStatus "$DemoUrl/"
 if ($RequirePublic -and $publicStatus -ne 200) {
   throw "Public demo URL returned HTTP $publicStatus"
@@ -50,6 +61,16 @@ $runResponse = Invoke-WebRequest `
   -TimeoutSec 180
 
 $runHtml = $runResponse.Content
+if ($runHtml.Contains("LOCAL_DETERMINISTIC_SUMMARY_FOR_TESTS_ONLY") -or $runHtml.Contains("Mode: local")) {
+  throw "Cloud Run demo unexpectedly used local Gemini mode"
+}
+if ($runHtml.Contains("Project Helios") -or $runHtml.Contains("confidential acquisition timing")) {
+  throw "Denied document content appeared in the public demo response"
+}
+Assert-ContainsText $runHtml "Mode: vertex" "Gemini mode"
+Assert-ContainsText $runHtml "Model: gemini-2.5-flash" "Gemini model"
+Assert-ContainsText $runHtml "Project: $ProjectId" "Gemini project"
+Assert-ContainsText $runHtml "Location: $Region" "Gemini location"
 $runId = Assert-Match $runHtml '<span>Run ID</span><strong>([^<]+)</strong>' "run_id"
 $approvalId = Assert-Match $runHtml 'name="approval_id" value="([^"]+)"' "approval_id"
 
@@ -73,6 +94,33 @@ $reportResponse = Invoke-WebRequest `
   -Headers (@{ Authorization = "Bearer $token"; "x-akretic-persona" = "security_reviewer" }) `
   -TimeoutSec 60
 
+$report = $reportResponse.Content | ConvertFrom-Json
+if ($reportResponse.Content.Contains("Project Helios") -or $reportResponse.Content.Contains("confidential acquisition timing")) {
+  throw "Denied document content appeared in the evidence report"
+}
+$latestModel = $report.summary.latest_model
+if ($null -eq $latestModel) {
+  throw "Evidence report is missing latest_model summary"
+}
+if ($latestModel.mode -ne "vertex") {
+  throw "Evidence report model mode was '$($latestModel.mode)', expected 'vertex'"
+}
+if ($latestModel.model -ne "gemini-2.5-flash") {
+  throw "Evidence report model was '$($latestModel.model)', expected 'gemini-2.5-flash'"
+}
+if ($latestModel.project_id -ne $ProjectId) {
+  throw "Evidence report project was '$($latestModel.project_id)', expected '$ProjectId'"
+}
+if ($latestModel.location -ne $Region) {
+  throw "Evidence report location was '$($latestModel.location)', expected '$Region'"
+}
+if ($latestModel.service_path -ne "Vertex AI Gemini via google-genai") {
+  throw "Evidence report service_path was '$($latestModel.service_path)', expected Vertex AI Gemini path"
+}
+if ($latestModel.denied_source_ids -notcontains "executive_acquisition_memo") {
+  throw "Evidence report did not include executive_acquisition_memo as a denied source ID"
+}
+
 $outDir = Join-Path (Get-Location) "artifacts"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 $reportPath = Join-Path $outDir "sample-evidence-report-$runId.json"
@@ -91,5 +139,14 @@ Set-Content -Path $reportPath -Value $reportResponse.Content -Encoding UTF8
   has_denied_sources = $runHtml.Contains("Denied Sources")
   has_approval = $runHtml.Contains("Approval Request")
   has_verification = $runHtml.Contains("Evidence Verification")
-  report_valid = $reportResponse.Content.Contains('"valid":true')
+  has_vertex_mode = $runHtml.Contains("Mode: vertex")
+  has_vertex_model = $runHtml.Contains("Model: gemini-2.5-flash")
+  has_vertex_project = $runHtml.Contains("Project: $ProjectId")
+  has_vertex_location = $runHtml.Contains("Location: $Region")
+  report_model_mode = $latestModel.mode
+  report_model = $latestModel.model
+  report_model_project = $latestModel.project_id
+  report_model_location = $latestModel.location
+  report_model_service_path = $latestModel.service_path
+  report_valid = [bool]$report.verification.valid
 } | ConvertTo-Json

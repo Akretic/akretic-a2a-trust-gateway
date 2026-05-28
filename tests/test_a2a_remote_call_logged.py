@@ -26,6 +26,7 @@ def test_root_calls_policy_and_knowledge_agents_over_a2a(monkeypatch, tmp_path):
                             "run_id": run_id,
                             "persona": "procurement_user",
                             "query": "VendorNova procurement security policy",
+                            "model_mode": "local",
                         },
                         x_akretic_persona="procurement_user",
                     )

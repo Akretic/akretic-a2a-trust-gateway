@@ -28,6 +28,7 @@ def test_evidence_report_contains_p0_proof_sections(monkeypatch, tmp_path):
                             "run_id": run_id,
                             "persona": "procurement_user",
                             "query": "VendorNova procurement security policy",
+                            "model_mode": "local",
                         },
                         x_akretic_persona="procurement_user",
                     )
@@ -63,6 +64,15 @@ def test_evidence_report_contains_p0_proof_sections(monkeypatch, tmp_path):
     assert "executive_acquisition_memo" in summary["retrieval_deny_source_ids"]
     assert "procurement_policy" in summary["retrieval_allow_source_ids"]
     assert "export_external" in summary["approval_required_actions"]
+    assert summary["model_event_count"] == 1
+    assert summary["model_modes"] == ["local"]
+    assert summary["latest_model"]["mode"] == "local"
+    assert summary["latest_model"]["model"] == "local-deterministic-test-summary"
+    assert summary["latest_model"]["service_path"] == "local deterministic summary for tests only"
+    assert summary["latest_model"]["prompt_hash"]
+    assert "denied_source_text_guard" in summary["latest_model"]["guardrails"]
+    assert "executive_acquisition_memo" in summary["latest_model"]["denied_source_ids"]
+    assert len(report["model_events"]) == 1
     assert summary["reviewer_decisions"] == [
         {
             "resource_id": "vendornova_exception_export",

@@ -9,7 +9,7 @@ from fastapi import FastAPI, Header, HTTPException
 
 from common.a2a_client import call_skill
 from common.evidence import append_event, verify_chain
-from common.gemini import summarize_vendor_review
+from common.gemini import GeminiError, summarize_vendor_review
 from common.identity import derive_actor_from_request
 from common.models import Actor
 from common.models import Resource
@@ -97,10 +97,10 @@ async def run_vendor_review_workflow(
     payload: dict[str, Any],
     x_akretic_persona: str | None = None,
 ) -> dict[str, Any]:
-    """Local deterministic orchestration path.
+    """VendorNova orchestration path.
 
-    Codex ticket T09 should replace/augment the final summarization with ADK/Gemini through Vertex AI.
-    Do not let Gemini authorize. This endpoint keeps the P0 proof chain testable without external services.
+    Gemini summarizes only after identity, policy, retrieval filtering, and approval gating.
+    It never authorizes, expands context, or completes sensitive actions.
     """
     run_id = payload.get("run_id") or f"run_{uuid4().hex}"
     persona = x_akretic_persona or payload.get("persona") or os.getenv("AKRETIC_DEMO_PERSONA", "procurement_user")
@@ -278,7 +278,7 @@ async def run_vendor_review_workflow(
             export_decision=export_decision,
             mode=payload.get("model_mode"),
         )
-    except Exception as exc:
+    except GeminiError as exc:
         raise RuntimeError(f"Gemini unavailable or misconfigured: {exc}") from exc
     append_event(
         run_id=run_id,
@@ -292,6 +292,10 @@ async def run_vendor_review_workflow(
             "mode": model_summary["mode"],
             "model": model_summary["model"],
             "service_path": model_summary["service_path"],
+            "project_id": model_summary.get("project_id"),
+            "location": model_summary.get("location"),
+            "prompt_hash": model_summary.get("prompt_hash"),
+            "guardrails": model_summary.get("guardrails", []),
             "permitted_source_ids": model_summary["prompt"]["permitted_source_ids"],
             "denied_source_ids": model_summary["prompt"]["denied_source_ids"],
         },

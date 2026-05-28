@@ -2,6 +2,81 @@
 
 Date: 2026-05-28
 
+## P2 Gemini/Vertex Hardening Deployment Update
+
+Date: 2026-05-28
+
+### Target Confirmed
+
+- Account: `sean.w@akretic.com`
+- Project: `akretic-a2a-trust-gateway`
+- Billing: enabled
+- Region: `us-central1`
+- Model mode: `AKRETIC_GEMINI_MODE=vertex`
+- Vertex project: `GOOGLE_CLOUD_PROJECT=akretic-a2a-trust-gateway`
+- Vertex location: `GOOGLE_CLOUD_LOCATION=us-central1`
+- Vertex model: `VERTEX_MODEL=gemini-2.5-flash`
+
+### Resources Updated
+
+No new resource classes were added. The P2 deploy updated the existing shared
+container image and existing `akretic-*` Cloud Run services. IAM updates were
+the existing deploy-script bindings for Cloud Build, Artifact Registry, Vertex
+AI user on the runtime service account, evidence bucket object admin, and Cloud
+Run invoker on private demo services.
+
+- Final accepted build: `0f2cd287-6b29-47bb-8eff-f0bd1dbcd5cc`
+- Final image digest: `sha256:cf185d4c75cd39cb38e4a9e2d6e0fd44f05f453d915a5f5d9e38a6d50868bfc2`
+- Cloud Run revisions:
+  - `akretic-demo-ui` revision `akretic-demo-ui-00012-ht7`: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
+  - `akretic-root-orchestrator` revision `akretic-root-orchestrator-00010-c5s`: `https://akretic-root-orchestrator-oes3slkexq-uc.a.run.app`
+  - `akretic-policy-agent` revision `akretic-policy-agent-00010-xxq`: `https://akretic-policy-agent-oes3slkexq-uc.a.run.app`
+  - `akretic-knowledge-agent` revision `akretic-knowledge-agent-00010-lpv`: `https://akretic-knowledge-agent-oes3slkexq-uc.a.run.app`
+  - `akretic-research-agent` revision `akretic-research-agent-00010-55l`: `https://akretic-research-agent-oes3slkexq-uc.a.run.app`
+  - `akretic-approval-evidence` revision `akretic-approval-evidence-00010-85n`: `https://akretic-approval-evidence-oes3slkexq-uc.a.run.app`
+
+### Commands Run
+
+```powershell
+gcloud config get-value account
+gcloud config get-value project
+gcloud billing projects describe akretic-a2a-trust-gateway --format=json
+.\.venv\Scripts\python.exe -m pytest -q
+.\scripts\deploy_cloudrun.ps1
+.\scripts\verify_cloudrun_p0.ps1 -RequirePublic
+gcloud run services describe akretic-root-orchestrator --project akretic-a2a-trust-gateway --region us-central1 --format=json
+gcloud run services list --project akretic-a2a-trust-gateway --region us-central1 --filter="metadata.name~akretic-" --format="table(metadata.name,status.latestReadyRevisionName,status.url)"
+```
+
+`scripts/deploy_cloudrun.ps1` was run during P2 hardening and again after the
+public sample evidence report was moved into the demo UI build context. The
+final accepted deployment is the build and revision set listed above.
+
+### Verification
+
+- Local test matrix: `29 passed`.
+- Public Cloud Run verifier: `scripts/verify_cloudrun_p0.ps1 -RequirePublic` passed.
+- Verifier run:
+  - Run ID: `run_889bac8a968e4141b9fbf430ceadc74f`
+  - Approval ID: `apr_9df1e374ae9941368a4bdb17b967194f`
+  - Public unauthenticated GET `/`: HTTP 200.
+  - Public unauthenticated UI `/run`: HTTP 200.
+  - Public unauthenticated UI `/approval/decide`: HTTP 200.
+  - Private evidence report endpoint: HTTP 200 with identity token.
+  - Evidence report valid: `true`.
+  - UI model proof: `Mode: vertex`, `Model: gemini-2.5-flash`, project `akretic-a2a-trust-gateway`, location `us-central1`.
+  - Evidence model proof: `mode=vertex`, `model=gemini-2.5-flash`, `service_path=Vertex AI Gemini via google-genai`.
+- Root Cloud Run env verification:
+  - `AKRETIC_GEMINI_MODE=vertex`
+  - `GOOGLE_CLOUD_PROJECT=akretic-a2a-trust-gateway`
+  - `GOOGLE_CLOUD_LOCATION=us-central1`
+  - `VERTEX_MODEL=gemini-2.5-flash`
+- Public sample evidence report endpoint:
+  - `/sample-evidence-report`: HTTP 200.
+  - Sample run ID: `run_7768be07c8d74ec5a3a709344c3f4a54`.
+  - Sample evidence report valid: `true`.
+  - Sample model mode: `vertex`.
+
 ## P1 Demo-Path Polish Deployment Update
 
 Date: 2026-05-28

@@ -16,9 +16,8 @@ from common.a2a_client import cloud_run_auth_headers
 
 app = FastAPI(title="Akretic Demo UI")
 SAMPLE_REPORT_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "artifacts"
-    / "sample-evidence-report-run_be30e4f10ef7483d9f6695fd64d5dfa3.json"
+    Path(__file__).resolve().parent
+    / "sample-evidence-report-p2.json"
 )
 
 BASE_CSS = """
@@ -432,17 +431,24 @@ def _model_path_callout(result: dict[str, Any]) -> str:
     model_summary = result.get("model_summary", {})
     mode = model_summary.get("mode", "UNKNOWN")
     service_path = model_summary.get("service_path", "UNKNOWN")
+    model = model_summary.get("model", "UNKNOWN")
+    project_id = model_summary.get("project_id", "not applicable")
+    location = model_summary.get("location", "not applicable")
+    prompt_hash = str(model_summary.get("prompt_hash", "UNKNOWN"))[:16]
     if mode == "local":
         return f"""
         <div class="callout warn">
           <strong>Gemini local mode active.</strong>
-          {html.escape(service_path)}. This is labeled for tests and local demos, not overclaimed as Vertex execution.
+          Mode: local. Model: {html.escape(str(model))}. {html.escape(service_path)}.
+          This is labeled for tests and local demos, not overclaimed as Vertex execution.
         </div>
         """
     if mode == "vertex":
         return f"""
         <div class="callout info">
           <strong>Vertex/Gemini summarization path.</strong>
+          Mode: vertex. Model: {html.escape(str(model))}. Project: {html.escape(str(project_id))}.
+          Location: {html.escape(str(location))}. Prompt hash: <span class="code-chip">{html.escape(prompt_hash)}</span>.
           {html.escape(service_path)}. Gate0-lite remains the policy decision point.
         </div>
         """

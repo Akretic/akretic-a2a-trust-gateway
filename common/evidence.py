@@ -172,12 +172,31 @@ def build_evidence_report(run_id: str, path: str | Path | None = None) -> dict[s
     verification = verify_chain(run_id, path)
     a2a_calls = [event for event in events if event["action"] == "a2a_call"]
     retrieval_events = [event for event in events if event["action"] == "retrieve_internal"]
+    model_events = [event for event in events if event["action"] == "summarize_review"]
     approval_events = [
         event
         for event in events
         if event["action"] in {"export_external", "request_approval", "approve_action"}
         or event["outcome"] == "approval_required"
     ]
+    latest_model = {}
+    if model_events:
+        latest_metadata = model_events[-1].get("metadata", {})
+        latest_model = {
+            key: latest_metadata.get(key)
+            for key in (
+                "mode",
+                "model",
+                "service_path",
+                "project_id",
+                "location",
+                "prompt_hash",
+                "guardrails",
+                "permitted_source_ids",
+                "denied_source_ids",
+            )
+            if latest_metadata.get(key) is not None
+        }
 
     return {
         "run_id": run_id,
@@ -194,6 +213,15 @@ def build_evidence_report(run_id: str, path: str | Path | None = None) -> dict[s
             "approval_required_actions": [
                 event["action"] for event in approval_events if event["outcome"] == "approval_required"
             ],
+            "model_event_count": len(model_events),
+            "model_modes": sorted(
+                {
+                    event.get("metadata", {}).get("mode")
+                    for event in model_events
+                    if event.get("metadata", {}).get("mode")
+                }
+            ),
+            "latest_model": latest_model,
             "reviewer_decisions": [
                 {
                     "resource_id": event["resource_id"],
@@ -208,6 +236,7 @@ def build_evidence_report(run_id: str, path: str | Path | None = None) -> dict[s
         "a2a_calls": a2a_calls,
         "policy_decisions": [event for event in events if event["agent_id"] == "policy_agent"],
         "retrieval_events": retrieval_events,
+        "model_events": model_events,
         "approval_events": approval_events,
         "events": events,
     }

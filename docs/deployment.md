@@ -80,3 +80,23 @@ EVIDENCE_GCS_PREFIX=p0-evidence
 ```
 
 No customer data or real secrets are required for P0.
+
+## Vertex/Gemini Verification
+
+P2 requires the public demo path to run in Vertex mode:
+
+- `AKRETIC_GEMINI_MODE=vertex`
+- `GOOGLE_CLOUD_PROJECT=akretic-a2a-trust-gateway`
+- `GOOGLE_CLOUD_LOCATION=us-central1`
+- `VERTEX_MODEL=gemini-2.5-flash`
+
+The UI must show the model mode, model name, project, and location for each
+review run. The evidence report summary must record the same model path plus a
+prompt hash, permitted source IDs, and denied source IDs. Denied source IDs are
+allowed as proof; denied source text is not allowed in the prompt, UI, output,
+or evidence report.
+
+Expected failure classes are credential/auth, service-account permission, quota,
+model/project/location configuration, disabled API, billing/org policy, and bad
+local configuration. Do not switch to AI Studio or broaden IAM to resolve these;
+stop and record the exact blocker.

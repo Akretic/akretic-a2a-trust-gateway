@@ -18,7 +18,7 @@ The demo must prove these controls in one short path:
 5. Evidence ledger records allow, deny, approval, A2A call, and result events in a hash chain.
 6. `/verify/{run_id}` proves the chain is intact and detects tampering.
 
-P0 and P1 are cleared. The active post-P0 lane is P2 Gemini/Vertex hardening. Coding agents
+P0, P1, and P2 are cleared. The active post-P0 lane is P3 Cloud Run deployment hardening. Coding agents
 must read `PROJECT_SOURCE_OF_TRUTH.md` and then `docs/priority_ladder.md` before
 selecting work so P6/P7 stretch or productization work does not displace the
 active lane.
@@ -67,9 +67,9 @@ bash scripts/run_local.sh
 
 - `AGENTS.md` — repo-level instructions Codex must read before work.
 - `PROJECT_SOURCE_OF_TRUTH.md` — locked scope and product invariants.
-- `docs/priority_ladder.md` — P0-P7 priority ladder; P0/P1 are cleared and P2 is active.
+- `docs/priority_ladder.md` — P0-P7 priority ladder; P0/P1/P2 are cleared and P3 is active.
 - `docs/p1_acceptance.md` — completed P1 demo-path polish acceptance checks.
-- `docs/p2_acceptance.md` — active P2 Gemini/Vertex hardening acceptance checks.
+- `docs/p2_acceptance.md` — completed P2 Gemini/Vertex hardening acceptance checks.
 - `CODEX_TASKS.md` — bounded `/goal` prompts and ticket sequence.
 - `GOOGLE_TOOLS.md` — required and stretch Google Cloud tools.
 - `DAILY_BUILD_TEMPO.md` — day-by-day shipping cadence.
@@ -108,11 +108,33 @@ Target demo URL: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
 1. Open the public Cloud Run demo URL and confirm the page labels the build as a challenge prototype using synthetic data.
 2. Keep persona as `procurement_user`, keep the VendorNova query, and select `Start VendorNova Review`.
 3. On the review page, scan the proof row: Identity, Policy, RAG Filter, A2A, Approval, Evidence Verify.
-4. Confirm the page shows `run_id`, permitted source IDs, and `Denied before model context: executive_acquisition_memo.`
-5. Confirm the external/sensitive action is `approval_required` and the export result is blocked pending reviewer action.
-6. Scan A2A Proof for agent, skill, `correlation_id`, Agent Card resolution, and outcome.
-7. Record an approve or reject decision as `security_reviewer`.
-8. Confirm Evidence Verification reports a valid hash chain and event count.
+4. Confirm the model panel says `Mode: vertex`, `Model: gemini-2.5-flash`, project `akretic-a2a-trust-gateway`, and location `us-central1`.
+5. Confirm the page shows `run_id`, permitted source IDs, and `Denied before model context: executive_acquisition_memo.`
+6. Confirm the external/sensitive action is `approval_required` and the export result is blocked pending reviewer action.
+7. Scan A2A Proof for agent, skill, `correlation_id`, Agent Card resolution, and outcome.
+8. Record an approve or reject decision as `security_reviewer`.
+9. Confirm Evidence Verification reports a valid hash chain and event count.
+
+## Gemini/Vertex behavior
+
+In Cloud Run, the root orchestrator uses Vertex AI Gemini through the thin adapter
+in `common/gemini.py` with:
+
+```text
+AKRETIC_GEMINI_MODE=vertex
+GOOGLE_CLOUD_PROJECT=akretic-a2a-trust-gateway
+GOOGLE_CLOUD_LOCATION=us-central1
+VERTEX_MODEL=gemini-2.5-flash
+```
+
+Gemini summarizes only permitted synthetic context after identity derivation,
+Gate0-lite policy decisions, RAG DMZ-lite filtering, and approval gating have
+already run. Gemini does not decide identity, tenant, role, group membership,
+authorization, retrieval access, approval state, external export completion, or
+evidence validity. Denied source IDs can appear as proof, but denied source text
+is filtered before prompt assembly and must not appear in model input, UI output,
+logs, or evidence reports. Local mode is explicitly labeled and reserved for
+tests or local development.
 
 ## What this proves
 
