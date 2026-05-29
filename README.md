@@ -70,11 +70,13 @@ bash scripts/run_local.sh
 - `AGENTS.md` — repo-level instructions Codex must read before work.
 - `PROJECT_SOURCE_OF_TRUTH.md` — locked scope and product invariants.
 - `docs/priority_ladder.md` — P0-P7 priority ladder; P5 is complete and P6 ADK alignment exploration may continue in isolated branches.
+- `docs/adk_alignment.md` — P6 ADK concept mapping and wrapper boundary.
 - `docs/p1_acceptance.md` — completed P1 demo-path polish acceptance checks.
 - `docs/p2_acceptance.md` — completed P2 Gemini/Vertex hardening acceptance checks.
 - `docs/p3_acceptance.md` — completed P3 Cloud Run deployment hardening acceptance checks.
 - `docs/p4_acceptance.md` — completed P4 judge hardening acceptance checks.
 - `docs/p5_acceptance.md` — completed P5 submission package acceptance checks.
+- `docs/p6_acceptance.md` — P6 ADK alignment merge bar.
 - `docs/devpost_answers.md` — paste-ready public submission answers.
 - `docs/demo_video_script.md` and `docs/video_shot_list.md` — hosted demo video planning material.
 - `docs/judge_readiness.md` — public judge-path checklist and trust-boundary verifier.
@@ -162,6 +164,17 @@ tests or local development.
 - This is not a guarantee that every possible data leak or policy bypass is impossible.
 - This does not replace enterprise SSO, full policy administration, monitoring, incident response, or customer-specific controls.
 - The current proof path uses Vertex/Gemini summarization and thin A2A Agent Card skill-call wiring, with ADK alignment documented as part of the Google Cloud agent architecture path rather than overclaiming full ADK-native orchestration.
+
+## P6 ADK alignment posture
+
+The current proof path runs on Cloud Run with Vertex/Gemini summarization and
+thin A2A Agent Card skill-call wiring. P6 adds ADK alignment documentation and
+an ADK-compatible wrapper around the verified orchestrator path. Authorization,
+retrieval filtering, approvals, and evidence remain outside Gemini and are not
+delegated to the model.
+
+This does not claim full ADK-native orchestration, Agent Runtime, Agent Registry,
+or a replacement public demo path. See `docs/adk_alignment.md`.
 
 ## Judging instructions
 

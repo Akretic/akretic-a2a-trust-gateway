@@ -49,10 +49,14 @@ Identity, retrieval, tool calls, egress, approvals, and evidence are controlled 
 Gemini may summarize permitted context. Gemini does not decide authorization,
 approval, identity, source access, or evidence validity.
 
-## P0 implementation note
+## P6 ADK alignment note
 
-The current proof path uses Vertex/Gemini summarization and thin A2A Agent Card
-skill-call wiring, with ADK alignment documented as part of the Google Cloud
-agent architecture path rather than overclaiming full ADK-native orchestration.
-Managed Agent Runtime alignment remains stretch work after the Cloud Run proof
-path is public and stable.
+The current proof path runs on Cloud Run with Vertex/Gemini summarization and
+thin A2A Agent Card skill-call wiring. P6 adds ADK alignment documentation and
+an ADK-compatible wrapper around the verified orchestrator path. Authorization,
+retrieval filtering, approvals, and evidence remain outside Gemini and are not
+delegated to the model.
+
+The P6 wrapper delegates to the existing root orchestrator and does not add
+Agent Runtime, Agent Registry, Firestore, embeddings, Google Search grounding,
+new public routes, or a replacement runtime path. See `docs/adk_alignment.md`.
