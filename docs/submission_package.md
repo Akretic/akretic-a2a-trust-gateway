@@ -16,6 +16,12 @@ The proof path is deployed and verified with public unauthenticated Cloud Run
 access to the demo UI. Private agent/root/evidence services remain protected by
 Cloud Run IAM and are invoked by the UI runtime service account.
 
+Final challenge-readiness remediation is complete for the declared prototype
+scope. The latest AuditOps report is A/90 with quality gate passed, 0 active
+caps, 0 findings, and 0 P0/P1 tasks. The remediation added repeatable JUnit,
+package-build, and public-surface SARIF evidence without changing the verified
+trust semantics.
+
 ## Prepared Deliverables
 
 | Deliverable | Status | Artifact |
@@ -35,6 +41,7 @@ Cloud Run IAM and are invoked by the UI runtime service account.
 | Screenshots | Refreshed in P5 | `artifacts/screenshots/demo-home.png`, `artifacts/screenshots/demo-review-result.png`, `artifacts/screenshots/evidence-report.png` |
 | Public-safe brief/PDF | Refreshed in P5 | `docs/public_brief.md`, `dist/akretic-a2a-trust-gateway-public-brief.pdf` |
 | Final zip | Built in P5 | `dist/akretic-a2a-trust-gateway-submission.zip` |
+| Final readiness remediation | Complete | `docs/challenge_readiness_remediation.md`, `.auditops/latest-audit-report.md` |
 | Limitations and synthetic-data disclosure | Prepared | `docs/submission_answers_public.md`, `docs/public_claims_guardrails.md` |
 
 ## Demo Proof Points

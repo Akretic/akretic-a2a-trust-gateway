@@ -18,11 +18,11 @@ The demo must prove these controls in one short path:
 5. Evidence ledger records allow, deny, approval, A2A call, and result events in a hash chain.
 6. `/verify/{run_id}` proves the chain is intact and detects tampering.
 
-P0, P1, P2, P3, P4, and P5 are cleared. The hosted demo video URL is recorded,
-the final submission package is rebuilt, and P6 ADK alignment exploration may
-continue in isolated branches. Coding agents
+P0, P1, P2, P3, P4, P5, and P6 are cleared. The hosted demo video URL is recorded,
+the final submission package is rebuilt, and the challenge-readiness remediation
+audit has restored submission-ready status for the declared prototype scope. Coding agents
 must read `PROJECT_SOURCE_OF_TRUTH.md` and then `docs/priority_ladder.md` before
-selecting work so P6 exploration does not jeopardize the P5 accepted package
+selecting work so remediation follow-up does not jeopardize the accepted package
 and P7 productization work does not displace the challenge path.
 
 ## Fast start
@@ -69,8 +69,9 @@ bash scripts/run_local.sh
 
 - `AGENTS.md` — repo-level instructions Codex must read before work.
 - `PROJECT_SOURCE_OF_TRUTH.md` — locked scope and product invariants.
-- `docs/priority_ladder.md` — P0-P7 priority ladder; P5 is complete and P6 ADK alignment exploration may continue in isolated branches.
+- `docs/priority_ladder.md` — P0-P7 priority ladder; P0-P6 and final challenge-readiness remediation are complete.
 - `docs/adk_alignment.md` — P6 ADK concept mapping and wrapper boundary.
+- `docs/challenge_readiness_remediation.md` — final remediation summary and AuditOps evidence map.
 - `docs/p1_acceptance.md` — completed P1 demo-path polish acceptance checks.
 - `docs/p2_acceptance.md` — completed P2 Gemini/Vertex hardening acceptance checks.
 - `docs/p3_acceptance.md` — completed P3 Cloud Run deployment hardening acceptance checks.

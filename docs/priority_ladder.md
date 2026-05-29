@@ -15,6 +15,8 @@ before selecting or expanding work.
 - Hosted demo video URL is recorded.
 - Unlisted Akretic landing page is live at `https://akretic.com/a2a-trust-gateway-demo`.
 - P6 ADK alignment hardening is complete.
+- Final challenge-readiness remediation is complete: latest AuditOps report is
+  A/90 with quality gate passed, 0 active caps, 0 findings, and 0 P0/P1 tasks.
 - P7 remains post-challenge productization and must not displace the challenge path.
 - P1 acceptance is tracked in `docs/p1_acceptance.md`.
 - P2 acceptance is tracked in `docs/p2_acceptance.md`.
@@ -38,9 +40,9 @@ before selecting or expanding work.
 
 ## Selection Rules
 
-1. P6 work must stay in isolated branches and must not jeopardize the P5 accepted package.
+1. Post-P6 work must stay in isolated branches and must not jeopardize the accepted challenge package.
 2. Do not pick P7 work until post-challenge productization is explicitly assigned.
 3. Do not let Gemini, future ADK-aligned orchestration, embeddings, or search grounding decide authorization.
 4. Do not introduce customer data, private third-party data, real secrets, or production certification claims.
 5. Do not expand the workflow beyond VendorNova unless the source of truth is updated first.
-6. Prefer narrow branches named after the active priority, for example `p6/adk-alignment`.
+6. Prefer narrow branches named after the active priority or remediation lane, for example `final/challenge-readiness-remediation`.

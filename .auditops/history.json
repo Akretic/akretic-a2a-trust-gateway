@@ -1,0 +1,37 @@
+[
+  {
+    "generatedAt": "2026-05-29T10:27:47-05:00",
+    "score": 73,
+    "raw": 73,
+    "confidence": 60,
+    "decision": "Needs targeted fixes for declared purpose"
+  },
+  {
+    "generatedAt": "2026-05-29T10:27:57-05:00",
+    "score": 73,
+    "raw": 73,
+    "confidence": 60,
+    "decision": "Needs targeted fixes for declared purpose"
+  },
+  {
+    "generatedAt": "2026-05-29T10:33:44-05:00",
+    "score": 90,
+    "raw": 90,
+    "confidence": 92,
+    "decision": "Healthy for declared purpose"
+  },
+  {
+    "generatedAt": "2026-05-29T10:35:40-05:00",
+    "score": 90,
+    "raw": 90,
+    "confidence": 92,
+    "decision": "Healthy for declared purpose"
+  },
+  {
+    "generatedAt": "2026-05-29T10:37:30-05:00",
+    "score": 90,
+    "raw": 90,
+    "confidence": 92,
+    "decision": "Healthy for declared purpose"
+  }
+]

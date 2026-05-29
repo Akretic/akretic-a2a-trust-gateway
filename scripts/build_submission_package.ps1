@@ -46,6 +46,7 @@ $docs = @(
   "docs/public_brief.md",
   "docs/submission_checklist.md",
   "docs/submission_package.md",
+  "docs/challenge_readiness_remediation.md",
   "docs/judge_readiness.md",
   "docs/architecture.md",
   "docs/architecture.mmd",

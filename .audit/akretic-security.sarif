@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "akretic-local-security-scan",
+          "version": "1.0.0",
+          "informationUri": "https://akretic.com/a2a-trust-gateway-demo",
+          "rules": [
+            {
+              "id": "akretic-denied-text-public-surface",
+              "name": "Denied text public surface",
+              "shortDescription": {
+                "text": "Denied executive memo text must not appear in public/submission artifacts."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "akretic-public-overclaim",
+              "name": "Bounded public claims",
+              "shortDescription": {
+                "text": "Public copy must not claim production readiness, certification, or guarantees."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "akretic-secret-private-key",
+              "name": "Private key marker",
+              "shortDescription": {
+                "text": "Private key marker must not be committed to source."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "akretic-secret-google-api-key",
+              "name": "Google API key",
+              "shortDescription": {
+                "text": "Google API key must not be committed to source."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "akretic-secret-aws-access-key",
+              "name": "AWS access key",
+              "shortDescription": {
+                "text": "AWS access key must not be committed to source."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "akretic-secret-github-token",
+              "name": "GitHub token",
+              "shortDescription": {
+                "text": "GitHub token must not be committed to source."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "akretic-secret-slack-token",
+              "name": "Slack token",
+              "shortDescription": {
+                "text": "Slack token must not be committed to source."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "endTimeUtc": "2026-05-29T15:37:44.291939+00:00"
+        }
+      ],
+      "results": []
+    }
+  ]
+}

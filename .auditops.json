@@ -1,0 +1,50 @@
+{
+  "projectName": "Akretic A2A Trust Gateway",
+  "preset": "release-readiness",
+  "declaredContext": {
+    "projectType": "ai-agent",
+    "projectStage": "internal-team",
+    "distribution": "internal",
+    "projectMaturity": "internal-team",
+    "projectScale": "medium",
+    "auditIntent": "fit-for-purpose",
+    "note": "Google challenge prototype with a public demo path; not a production-service certification."
+  },
+  "expectations": {
+    "expectsGit": true,
+    "expectsCI": true,
+    "expectsDeploy": false,
+    "expectsPublicDocs": true,
+    "expectsSecurityScans": true,
+    "expectsTests": true,
+    "expectsBuild": true
+  },
+  "commands": {
+    "test": [
+      ".\\.venv\\Scripts\\python.exe",
+      "-m",
+      "pytest",
+      "-q",
+      "--junitxml=.audit/junit.xml"
+    ],
+    "build": [
+      ".\\.venv\\Scripts\\python.exe",
+      "scripts/ci_local.py",
+      "--skip-tests"
+    ]
+  },
+  "artifacts": {
+    "sarif": [
+      ".audit/*.sarif"
+    ],
+    "junit": [
+      ".audit/junit.xml"
+    ]
+  },
+  "qualityGate": {
+    "minFinalScore": 85,
+    "minConfidence": 70,
+    "maxCritical": 0,
+    "maxHigh": 0
+  }
+}

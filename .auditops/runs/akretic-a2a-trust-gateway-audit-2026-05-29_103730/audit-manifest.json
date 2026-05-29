@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "7.0",
+  "generatedAt": "2026-05-29T10:37:44-05:00",
+  "auditId": "a79f39d6-e053-46a2-8ef9-234af22ba093",
+  "runId": "akretic-a2a-trust-gateway-audit-2026-05-29_103730",
+  "project": {
+    "name": "Akretic A2A Trust Gateway",
+    "path": "C:\\dev\\akretic-a2a-trust-gateway",
+    "preset": "release-readiness",
+    "profiles": [
+      {
+        "id": "python",
+        "name": "Python",
+        "confidence": "high",
+        "evidence": [
+          "pyproject.toml",
+          "requirements.txt"
+        ]
+      }
+    ],
+    "configPath": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops.json"
+  },
+  "auditops_runtime": {
+    "path": "cli_fallback",
+    "plugin_root": "C:\\Users\\Sean\\.codex\\plugins\\cache\\auditops-local-tools\\auditops-studio\\7.1.50",
+    "installed_cache_path": "C:\\Users\\Sean\\.codex\\plugins\\cache\\auditops-local-tools\\auditops-studio\\7.1.50",
+    "codex_config_path": "C:\\Users\\Sean\\.codex\\config.toml",
+    "codex_binary_path": "C:\\Users\\Sean\\AppData\\Roaming\\npm\\codex.CMD",
+    "auditops_version": "7.1.50",
+    "tool_contract_version": "auditops-mcp-2026-05-21"
+  },
+  "artifacts": {
+    "json": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_103730\\audit-report.json",
+    "html": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_103730\\audit-report.html",
+    "markdown": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_103730\\audit-report.md"
+  }
+}
