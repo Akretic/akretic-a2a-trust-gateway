@@ -12,7 +12,8 @@ before selecting or expanding work.
 - P3 Cloud Run deployment hardening is complete.
 - P4 Judge hardening is complete.
 - P5 package baseline complete.
-- Final P5 acceptance pending hosted demo video URL.
+- Hosted demo video URL is recorded.
+- Final P5 acceptance pending final verification and acceptance tag.
 - P6 exploration may begin in isolated branches.
 - P7 is blocked post-challenge productization until P5 final acceptance and the challenge path is complete.
 - P1 acceptance is tracked in `docs/p1_acceptance.md`.
@@ -29,7 +30,7 @@ before selecting or expanding work.
 | P2 | Gemini/Vertex integration | Complete | Improve the approved Vertex AI Gemini path while preserving Gate0-lite as the policy decision point and keeping denied content out of model context. |
 | P3 | Cloud Run deployment | Complete | Harden deploy scripts, service configuration, IAM notes, verification scripts, and rollback/runbook material for the existing Cloud Run shape. |
 | P4 | Judge hardening | Complete | Make the public judging path more resilient and self-explanatory while keeping admin/evidence surfaces role-checked and claims bounded. |
-| P5 | Submission package | Package baseline complete; final video URL pending | Keep submission artifacts current with the running demo. Final acceptance requires hosted video URL, rebuilt zip, and final verification. |
+| P5 | Submission package | Hosted video URL recorded; final verification pending | Keep submission artifacts current with the running demo. Final acceptance requires rebuilt zip, final verification, and acceptance tag. |
 | P6 | ADK alignment hardening | Exploration allowed in isolated branches | Strengthen the ADK story without replacing the working proof path. Prefer an ADK-compatible root wrapper that delegates to the verified orchestrator, docs mapping current root behavior to ADK concepts, and tests proving Gate0-lite, RAG DMZ-lite, approval, and evidence are not bypassed. Do not prioritize Firestore, embeddings, search grounding, Agent Runtime, or Registry. |
 | P7 | Post-challenge productization | Blocked; post-challenge | Consider SSO, real enterprise connectors, broader policy administration, production monitoring, incident workflows, and customer environment hardening only after P5 final acceptance and the challenge path is complete. |
 

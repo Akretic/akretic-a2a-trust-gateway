@@ -4,8 +4,9 @@ Use `/plan` for ambiguous work, then `/goal` for execution. Keep every goal boun
 
 Before selecting work, read `PROJECT_SOURCE_OF_TRUTH.md`, then
 `docs/priority_ladder.md`. P0, P1, P2, P3, and P4 are cleared. P5 package
-baseline is complete; final P5 acceptance is pending hosted demo video URL. P6
-ADK alignment exploration may begin in isolated branches, and P7 post-challenge
+baseline is complete and the hosted demo video URL is recorded; final P5
+acceptance is pending final verification and acceptance tag. P6 ADK alignment
+exploration may begin in isolated branches, and P7 post-challenge
 productization must not displace the challenge path.
 
 ## Current active lane

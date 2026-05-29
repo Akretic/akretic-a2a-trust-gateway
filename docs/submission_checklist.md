@@ -26,7 +26,7 @@
   - `output/architecture/akretic-a2a-architecture.png`
 - Demo video script: `docs/demo_video_script.md`
 - Video shot list: `docs/video_shot_list.md`
-- Hosted video URL: `dist/video_url.txt` after upload
+- Hosted video URL: `dist/video_url.txt`
 - Public-safe submission answers: `docs/submission_answers_public.md`
 - Paste-ready form packet: `docs/submission_form_packet.md`
 - Devpost answers: `docs/devpost_answers.md`
@@ -56,11 +56,10 @@
 
 1. GitHub repository created and `main` pushed.
 2. P0-P5 work branches pushed for traceability.
-3. Record and upload the 1-2 minute demo video to an external host.
-4. Write the hosted video URL to `dist/video_url.txt`.
-5. Paste `docs/devpost_answers.md` into the submission form.
-6. Upload or link the screenshots, evidence report, architecture image, and public brief/PDF.
-7. Check the live submission form before final upload for current file-size, file-type, and video URL requirements.
+3. Demo video is hosted externally and recorded in `dist/video_url.txt`.
+4. Paste `docs/devpost_answers.md` into the submission form.
+5. Upload or link the screenshots, evidence report, architecture image, and public brief/PDF.
+6. Check the live submission form before final upload for current file-size, file-type, and video URL requirements.
 
 ## Final Verification Commands
 
