@@ -2,13 +2,15 @@
 
 P6 can be considered for merge only when the ADK alignment wrapper and docs
 strengthen the Google agent-platform story without changing P0-P5 trust
-semantics or the verified public Cloud Run proof path.
+semantics. Final remediation puts the public root entrypoint through the wrapper
+and keeps the verified proof path delegated to the same orchestrator.
 
 ## Acceptance Checks
 
 - Branch is `p6/adk-alignment` and remains isolated until review.
 - The verified root orchestrator path is not replaced.
-- Public Cloud Run demo behavior is unchanged.
+- Public Cloud Run demo behavior shows wrapper proof only after the wrapper is
+  actually in the runtime path.
 - `agents/root_orchestrator/adk_alignment.py` delegates to
   `run_vendor_review_workflow`.
 - ADK alignment docs map the current root workflow to agent/tool/model/approval
@@ -19,8 +21,9 @@ semantics or the verified public Cloud Run proof path.
 - Tests prove `approval_required` remains enforced before sensitive external
   action completion.
 - Tests prove evidence logging and verification remain in the path.
-- Tests prove A2A Agent Card / skill-call proof remains visible with agent,
-  skill, and `correlation_id`.
+- Tests prove A2A Agent Card / skill-call proof remains visible with Agent Card
+  URL, agent, skill/intent, caller/callee, `correlation_id`, outcome, and
+  evidence event/hash.
 - Denied source IDs may appear as proof, but denied source text does not enter
   Gemini prompt, output, UI, logs, evidence reports, or public samples.
 - No Agent Runtime, Agent Registry, Firestore, embeddings, Google Search

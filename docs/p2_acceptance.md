@@ -23,6 +23,6 @@ Status: complete as of the 2026-05-28 P2 Cloud Run verification recorded in
 
 ## Scope Boundary
 
-P2 is hardening, not platform expansion. The current proof path uses Vertex/Gemini summarization and thin A2A Agent Card skill-call wiring, with ADK alignment documented as part of the Google Cloud agent architecture path rather than overclaiming full ADK-native orchestration. Do not add Agent Runtime, embeddings, search grounding, or new workflows unless P2 acceptance is already green and the user explicitly assigns that stretch work.
+P2 was Gemini/Vertex hardening, not platform expansion. Later remediation added a Google ADK Workflow wrapper around the verified root path. The current proof path uses Vertex/Gemini summarization, A2A Agent Card skill-call wiring, and the ADK wrapper without adding Agent Runtime, embeddings, search grounding, or new workflows.
 
 Recommended branch: `p2/gemini-vertex-hardening`.

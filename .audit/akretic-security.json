@@ -1,0 +1,9 @@
+{
+  "status": "pass",
+  "finding_count": 0,
+  "s0_s1_count": 0,
+  "s2_unaccepted_count": 0,
+  "release_gate": "pass",
+  "sarif": ".audit/akretic-security.sarif",
+  "findings": []
+}

@@ -4,10 +4,37 @@
   "description": "Seeded public research agent for controlled VendorNova public-risk snippets.",
   "version": "0.1.0",
   "url": "http://127.0.0.1:8103",
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:8103",
+      "protocolBinding": "HTTP+JSON",
+      "protocolVersion": "0.3"
+    }
+  ],
+  "provider": {
+    "organization": "Akretic",
+    "url": "https://akretic.com"
+  },
+  "documentationUrl": "https://akretic.com/a2a-trust-gateway-demo",
   "capabilities": {
     "streaming": false,
     "pushNotifications": false
   },
+  "securitySchemes": {
+    "demo-header": {
+      "apiKeySecurityScheme": {
+        "description": "Derived demo identity header; request-body claims are not trusted.",
+        "location": "header",
+        "name": "x-akretic-persona"
+      }
+    }
+  },
+  "defaultInputModes": [
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "application/json"
+  ],
   "authentication": {
     "schemes": [
       "demo-header"
@@ -18,12 +45,32 @@
     {
       "id": "research_vendor_profile",
       "name": "research_vendor_profile",
-      "description": "Return seeded public vendor profile snippets."
+      "description": "Return seeded public vendor profile snippets.",
+      "tags": [
+        "research",
+        "seeded-public"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
     },
     {
       "id": "check_public_risk_signals",
       "name": "check_public_risk_signals",
-      "description": "Return seeded public risk signals."
+      "description": "Return seeded public risk signals.",
+      "tags": [
+        "research",
+        "seeded-public"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
     }
   ]
 }

@@ -142,27 +142,48 @@ def test_demo_ui_review_result_shows_p1_proof_markers():
             "mode": "local",
             "service_path": "local deterministic summary for tests only",
         },
+        "adk_runtime": {
+            "status": "active_wrapper_delegate",
+            "package": "google-adk==2.0.0",
+            "workflow_name": "akretic_root_vendor_review_workflow",
+            "delegated_to": "run_vendor_review_workflow",
+        },
         "a2a_calls": [
             {
+                "agent_card_url": "http://127.0.0.1:8101/.well-known/agent-card.json",
                 "agent": "akretic-policy-agent",
-                "skill": "authorize_intent",
+                "skill_intent": "authorize_intent",
+                "caller": "root_orchestrator",
+                "callee": "akretic-policy-agent",
                 "correlation_id": "corr-policy-read",
                 "outcome": "allow",
                 "agent_card_resolved": True,
+                "evidence_event_id": "evt_policy",
+                "evidence_event_hash": "a" * 64,
             },
             {
+                "agent_card_url": "http://127.0.0.1:8102/.well-known/agent-card.json",
                 "agent": "akretic-knowledge-agent",
-                "skill": "retrieve_permitted_context",
+                "skill_intent": "retrieve_permitted_context",
+                "caller": "root_orchestrator",
+                "callee": "akretic-knowledge-agent",
                 "correlation_id": "corr-rag",
                 "outcome": "result",
                 "agent_card_resolved": True,
+                "evidence_event_id": "evt_knowledge",
+                "evidence_event_hash": "b" * 64,
             },
             {
+                "agent_card_url": "http://127.0.0.1:8104/.well-known/agent-card.json",
                 "agent": "akretic-approval-evidence-agent",
-                "skill": "request_approval",
+                "skill_intent": "request_approval",
+                "caller": "root_orchestrator",
+                "callee": "akretic-approval-evidence-agent",
                 "correlation_id": "corr-approval",
                 "outcome": "approval_required",
                 "agent_card_resolved": True,
+                "evidence_event_id": "evt_approval",
+                "evidence_event_hash": "c" * 64,
             },
         ],
     }
@@ -174,6 +195,13 @@ def test_demo_ui_review_result_shows_p1_proof_markers():
     assert "external action is approval_required" in html
     assert "approval_required: external/sensitive action is paused." in html
     assert "Agent Card resolved" in html
+    assert "Agent Card URL" in html
+    assert "Skill / intent" in html
+    assert "Caller / callee" in html
+    assert "Evidence event" in html
+    assert "evt_approval / cccccccccccccccc" in html
+    assert "ADK root wrapper proof." in html
+    assert "akretic_root_vendor_review_workflow" in html
     assert "correlation_id" in html
     assert "valid hash chain" in html
     assert "Evidence proof: valid hash chain." in html

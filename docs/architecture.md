@@ -4,7 +4,7 @@
 flowchart LR
   user["Demo user"]
   ui["Demo UI<br/>Cloud Run public target"]
-  root["Root Orchestrator<br/>Cloud Run private"]
+  root["ADK Workflow wrapper -> Root Orchestrator<br/>Cloud Run private"]
   gate["Policy Agent<br/>Gate0-lite"]
   rag["Knowledge Agent<br/>RAG DMZ-lite"]
   research["Research Agent<br/>seeded public snippets"]
@@ -51,12 +51,11 @@ approval, identity, source access, or evidence validity.
 
 ## P6 ADK alignment note
 
-The current proof path runs on Cloud Run with Vertex/Gemini summarization and
-thin A2A Agent Card skill-call wiring. P6 adds ADK alignment documentation and
-an ADK-compatible wrapper around the verified orchestrator path. Authorization,
-retrieval filtering, approvals, and evidence remain outside Gemini and are not
-delegated to the model.
+The current proof path runs on Cloud Run with Vertex/Gemini summarization, A2A
+Agent Card skill-call wiring, and a Google ADK Workflow wrapper around the
+verified orchestrator path. Authorization, retrieval filtering, approvals, and
+evidence remain outside Gemini and are not delegated to the model.
 
-The P6 wrapper delegates to the existing root orchestrator and does not add
-Agent Runtime, Agent Registry, Firestore, embeddings, Google Search grounding,
-new public routes, or a replacement runtime path. See `docs/adk_alignment.md`.
+The wrapper delegates to the existing root orchestrator and does not add Agent
+Runtime, Agent Registry, Firestore, embeddings, Google Search grounding, new
+public routes, or a replacement runtime path. See `docs/adk_alignment.md`.

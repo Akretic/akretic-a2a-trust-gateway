@@ -54,10 +54,17 @@ def test_root_calls_policy_and_knowledge_agents_over_a2a(monkeypatch, tmp_path):
     )
     assert all(call["correlation_id"].startswith("corr_") for call in result["a2a_calls"])
     assert all(call["agent_card_resolved"] is True for call in result["a2a_calls"])
+    assert all(call["agent_card_url"].endswith("/.well-known/agent-card.json") for call in result["a2a_calls"])
+    assert all(call["caller"] == "root_orchestrator" for call in result["a2a_calls"])
+    assert all(call["callee"].startswith("akretic-") for call in result["a2a_calls"])
+    assert all(call["evidence_event_id"].startswith("evt_") for call in result["a2a_calls"])
+    assert all(len(call["evidence_event_hash"]) == 64 for call in result["a2a_calls"])
     assert result["approval_request"]["status"] == "pending"
     assert result["export_result"]["status"] == "blocked_pending_approval"
     assert all(event["correlation_id"].startswith("corr_") for event in a2a_events)
     assert all(event["metadata"]["caller"] == "root_orchestrator" for event in a2a_events)
+    assert all(event["metadata"]["agent_card_url"].endswith("/.well-known/agent-card.json") for event in a2a_events)
+    assert all(event["metadata"]["skill_intent"] == event["metadata"]["skill"] for event in a2a_events)
     assert all(
         event["metadata"]["identity_source"] == "x-akretic-persona header"
         for event in a2a_events

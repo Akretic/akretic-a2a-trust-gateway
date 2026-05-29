@@ -18,9 +18,11 @@ https://akretic-demo-ui-oes3slkexq-uc.a.run.app/
 5. Confirm permitted source IDs are listed.
 6. Confirm `executive_acquisition_memo` is shown only as a denied source ID before model context.
 7. Confirm the external action is `approval_required` and export status remains blocked pending approval.
-8. Confirm A2A proof shows agent, skill, and `correlation_id`.
-9. Record the reviewer decision as `security_reviewer`.
-10. Confirm evidence verification reports a valid hash chain.
+8. Confirm ADK wrapper proof shows the root Workflow delegates to the verified orchestrator.
+9. Confirm A2A proof shows Agent Card URL, agent, skill/intent, caller/callee,
+   `correlation_id`, outcome, and evidence event/hash.
+10. Record the reviewer decision as `security_reviewer`.
+11. Confirm evidence verification reports a valid hash chain.
 
 ## Trust Boundary
 
@@ -31,7 +33,8 @@ https://akretic-demo-ui-oes3slkexq-uc.a.run.app/
 - Denied source IDs may appear as proof, but denied source text must not enter model input, UI output, evidence reports, logs, or public samples.
 - `approval_required` pauses sensitive side effects until reviewer decision.
 - Evidence ledger verification proves the demo run's event chain.
-- A2A proof shows collaboration through the Agent Card / skill-call adapter.
+- The Google ADK Workflow wrapper delegates to the verified orchestrator path.
+- A2A proof shows collaboration through Agent Cards and skill-call evidence.
 
 ## Automated Check
 
@@ -48,6 +51,7 @@ Expected result:
 - Vertex mode is visible;
 - denied source ID proof is visible without denied text;
 - approval gate is visible;
+- ADK wrapper proof is visible;
 - A2A proof is visible;
 - evidence verification is visible;
 - sample evidence report is valid.

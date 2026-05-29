@@ -2,15 +2,15 @@
 
 ## Summary
 
-Akretic A2A Trust Gateway is a Track 3 challenge prototype for controlled
-enterprise agent collaboration. The P0 demo focuses on one B2B vendor-risk
-review workflow for a synthetic vendor, VendorNova.
+Akretic A2A Trust Gateway is a Track 3 challenge prototype for a trust
+gateway/control plane for A2A enterprise agents. The demo focuses on one B2B
+vendor-risk review workflow for a synthetic vendor, VendorNova.
 
 The prototype shows a root orchestrator using Vertex AI Gemini while
 authorization, retrieval filtering, approvals, and evidence stay outside the
-model. Specialized agents coordinate through A2A-style HTTP calls and Agent
-Cards, while Gate0-lite makes deterministic policy decisions before material
-actions occur.
+model. Specialized agents coordinate through A2A Agent Cards and skill calls,
+while Gate0-lite makes deterministic policy decisions before material actions
+occur.
 
 ## Problem
 
@@ -24,7 +24,7 @@ checkpoint, or evidence trail.
 
 The demo proves three controls in one short path:
 
-1. Agents coordinate over A2A-style endpoints.
+1. Agents coordinate over A2A Agent Cards and skills.
 2. Restricted synthetic documents are denied before Gemini context is built.
 3. External-facing side effects return `approval_required` and are recorded in a tamper-evident evidence report.
 
@@ -38,9 +38,9 @@ The demo proves three controls in one short path:
 
 ## Agent Architecture Posture
 
-The current proof path uses Vertex/Gemini summarization and thin A2A Agent Card
-skill-call wiring, with ADK alignment documented as part of the Google Cloud
-agent architecture path rather than overclaiming full ADK-native orchestration.
+The current proof path uses Vertex/Gemini summarization, A2A Agent Card
+skill-call wiring, and a Google ADK Workflow wrapper that delegates to the
+verified orchestrator path.
 The challenge submission does not create a Google Cloud Marketplace listing.
 
 ## Synthetic Data Disclosure

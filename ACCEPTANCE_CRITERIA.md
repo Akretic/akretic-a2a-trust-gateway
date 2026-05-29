@@ -7,14 +7,15 @@
 | `test_identity_spoofing` | Request body claiming admin groups is ignored; server/session/demo identity wins |
 | `test_policy_decisions` | Policy evaluator returns deterministic `allow`, `deny`, and `approval_required` outcomes |
 | `test_rag_filtering` | Restricted executive memo is excluded from prompt/context for demo users |
-| `test_a2a_cards` | Policy and Knowledge agents serve valid Agent Cards |
-| `test_a2a_remote_call_logged` | Root remote call logs caller, callee, skill, and correlation ID |
+| `test_a2a_cards` | Policy, Knowledge, Approval/Evidence, and Research agents serve A2A SDK-valid Agent Cards |
+| `test_a2a_remote_call_logged` | Root remote call logs Agent Card URL, caller, callee, skill/intent, correlation ID, and evidence event/hash |
 | `test_approval_gate` | External-facing exception action pauses until reviewer approve/reject is recorded |
 | `test_evidence_verify` | Verify endpoint detects valid and tampered event chains |
 | `test_evidence_report` | Evidence report includes A2A calls, retrieval allow/deny, approval, reviewer decision, and verification |
 | `test_gemini_context` | Gemini prompt builder excludes denied document contents and records the model path |
 | `test_demo_ui_root_call` | Demo UI calls the deployed root service when configured and uses Cloud Run auth headers for private approval/evidence calls |
 | `test_claims_public_copy` | Public copy excludes banned overclaims |
+| `test_adk_alignment` | Google ADK Workflow wrapper delegates to the verified orchestrator without bypassing controls |
 
 ## Evidence required for final demo
 
@@ -25,6 +26,8 @@
 - `approval_required` record for sensitive side effect.
 - Reviewer approval/rejection record.
 - Hash-chain verification result.
+- A2A table with Agent Card URL, agent, skill/intent, caller/callee, `correlation_id`, outcome, and evidence event/hash.
+- ADK wrapper proof showing delegation to the verified orchestrator.
 - Downloadable evidence report.
 
 ## Stop-ship conditions

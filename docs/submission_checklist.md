@@ -7,7 +7,7 @@
 - Track: Track 3
 - Public demo URL: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
 - Unlisted Akretic landing page: `https://akretic.com/a2a-trust-gateway-demo`
-- Repository URL submitted in the private Devpost field: `https://github.com/Akretic/akretic-a2a-trust-gateway`
+- Public repository URL: `https://github.com/Akretic/akretic-a2a-trust-gateway`
 - Google Cloud project: `akretic-a2a-trust-gateway`
 - Region: `us-central1`
 - Runtime: Cloud Run
@@ -34,6 +34,10 @@
 - Devpost answers: `docs/devpost_answers.md`
 - Public brief: `docs/public_brief.md`
 - Public brief PDF: `dist/akretic-a2a-trust-gateway-public-brief.pdf`
+- A2A intent map: `docs/a2a_intent_map.md`
+- ADK alignment proof: `docs/adk_alignment.md`
+- Third-party rights disclosure: `docs/third_party_rights.md`
+- Original-work eligibility note: `docs/eligibility_statement.md`
 - Sample evidence report: latest `artifacts/sample-evidence-report-<run_id>.json`
 - Screenshots:
   - `artifacts/screenshots/demo-home.png`
@@ -44,7 +48,11 @@
 
 ## Verified P0 Proof
 
-- Agents coordinate through A2A-style HTTP calls and Agent Cards.
+- Agents coordinate through A2A Agent Cards and skill calls.
+- A2A proof table shows Agent Card URL, agent, skill/intent, caller/callee,
+  `correlation_id`, outcome, and evidence event/hash.
+- Root entrypoint uses a Google ADK Workflow wrapper that delegates to the
+  verified orchestrator path.
 - Gate0-lite returns deterministic `allow`, `deny`, and `approval_required`.
 - RAG DMZ-lite filters restricted synthetic documents before Gemini context.
 - Vertex AI Gemini receives permitted context only.
@@ -56,7 +64,7 @@
 
 ## Manual Steps
 
-1. GitHub repository created and `main` pushed.
+1. GitHub repository is public/judge-accessible after the release scan gate.
 2. P0-P5 work branches pushed for traceability.
 3. Demo video is hosted externally and recorded in `dist/video_url.txt`.
 4. Paste `docs/devpost_answers.md` into the submission form.

@@ -4,10 +4,37 @@
   "description": "Approval state machine and hash-chain evidence agent.",
   "version": "0.1.0",
   "url": "http://127.0.0.1:8104",
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:8104",
+      "protocolBinding": "HTTP+JSON",
+      "protocolVersion": "0.3"
+    }
+  ],
+  "provider": {
+    "organization": "Akretic",
+    "url": "https://akretic.com"
+  },
+  "documentationUrl": "https://akretic.com/a2a-trust-gateway-demo",
   "capabilities": {
     "streaming": false,
     "pushNotifications": false
   },
+  "securitySchemes": {
+    "demo-header": {
+      "apiKeySecurityScheme": {
+        "description": "Derived demo identity header; request-body claims are not trusted.",
+        "location": "header",
+        "name": "x-akretic-persona"
+      }
+    }
+  },
+  "defaultInputModes": [
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "application/json"
+  ],
   "authentication": {
     "schemes": [
       "demo-header"
@@ -18,27 +45,77 @@
     {
       "id": "request_approval",
       "name": "request_approval",
-      "description": "Create approval request."
+      "description": "Create approval request.",
+      "tags": [
+        "approval",
+        "side-effect-gate"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
     },
     {
       "id": "decide_approval",
       "name": "decide_approval",
-      "description": "Approve or reject a pending approval request."
+      "description": "Approve or reject a pending approval request.",
+      "tags": [
+        "approval",
+        "reviewer-decision"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
     },
     {
       "id": "record_event",
       "name": "record_event",
-      "description": "Append evidence event."
+      "description": "Append evidence event.",
+      "tags": [
+        "evidence",
+        "ledger"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
     },
     {
       "id": "verify_chain",
       "name": "verify_chain",
-      "description": "Verify evidence hash chain."
+      "description": "Verify evidence hash chain.",
+      "tags": [
+        "evidence",
+        "verification"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
     },
     {
       "id": "generate_report",
       "name": "generate_report",
-      "description": "Generate evidence report."
+      "description": "Generate evidence report.",
+      "tags": [
+        "evidence",
+        "report"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
     }
   ]
 }

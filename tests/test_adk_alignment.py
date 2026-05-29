@@ -7,6 +7,7 @@ from agents.approval_evidence_agent.main import app as approval_app
 from agents.root_orchestrator import adk_alignment as adk_module
 from agents.root_orchestrator.adk_alignment import (
     AdkRootInvocation,
+    build_adk_root_workflow,
     describe_adk_alignment,
     run_adk_aligned_vendor_review,
 )
@@ -19,8 +20,9 @@ from tests.service_utils import run_service
 def test_adk_alignment_descriptor_stays_conservative():
     descriptor = describe_adk_alignment()
 
-    assert descriptor["status"] == "adk_compatible_wrapper_only"
-    assert descriptor["public_cloud_run_behavior_changed"] is False
+    assert descriptor["status"] == "adk_workflow_wrapper_delegates_to_verified_orchestrator"
+    assert descriptor["google_adk_package"].startswith("google-adk==")
+    assert descriptor["public_cloud_run_behavior_changed"] is True
     assert descriptor["agent_runtime_or_registry_required"] is False
     assert descriptor["delegated_to"].endswith("run_vendor_review_workflow")
     assert "Authorization, retrieval filtering, approvals, and evidence remain outside Gemini" in (
@@ -28,6 +30,14 @@ def test_adk_alignment_descriptor_stays_conservative():
     )
     assert "not full ADK-native orchestration" in descriptor["non_claims"]
     assert "Agent Runtime" in json.dumps(descriptor["non_claims"])
+
+
+def test_adk_workflow_wrapper_is_google_adk_workflow():
+    workflow = build_adk_root_workflow()
+
+    assert workflow.name == "akretic_root_vendor_review_workflow"
+    assert workflow.graph is not None
+    assert any(node.name == "adk_vendor_review_delegate" for node in workflow.graph.nodes)
 
 
 def test_adk_wrapper_delegates_to_verified_orchestrator(monkeypatch):
@@ -58,6 +68,7 @@ def test_adk_wrapper_delegates_to_verified_orchestrator(monkeypatch):
 
     assert result["summary"] == "delegated"
     assert result["adk_alignment"]["runtime_replaced"] is False
+    assert result["adk_runtime"]["status"] == "active_wrapper_delegate"
     assert calls == [
         {
             "payload": {
@@ -72,6 +83,9 @@ def test_adk_wrapper_delegates_to_verified_orchestrator(monkeypatch):
                     "groups": ["admin", "executive_admin"],
                     "tenant_id": "tenant-demo",
                 },
+                "orchestration_wrapper": "google-adk-workflow",
+                "adk_package": result["adk_runtime"]["package"],
+                "adk_workflow": "akretic_root_vendor_review_workflow",
             },
             "x_akretic_persona": "procurement_user",
         }
@@ -118,9 +132,10 @@ def test_adk_wrapper_preserves_verified_trust_controls(monkeypatch, tmp_path):
     result_material = json.dumps(result, sort_keys=True)
     evidence_material = json.dumps(events, sort_keys=True)
 
-    assert result["adk_alignment"]["status"] == "adk_compatible_wrapper_only"
-    assert result["adk_alignment"]["public_cloud_run_behavior_changed"] is False
+    assert result["adk_alignment"]["status"] == "adk_workflow_wrapper_delegates_to_verified_orchestrator"
+    assert result["adk_alignment"]["public_cloud_run_behavior_changed"] is True
     assert result["adk_alignment"]["runtime_replaced"] is False
+    assert result["adk_runtime"]["workflow_name"] == "akretic_root_vendor_review_workflow"
     assert result["actor"]["role"] == "procurement_user"
     assert "executive_admin" not in result["actor"]["groups"]
     assert result["verification"]["valid"] is True
@@ -147,3 +162,12 @@ def test_adk_wrapper_preserves_verified_trust_controls(monkeypatch, tmp_path):
     assert any(event["resource_id"] == "executive_acquisition_memo" for event in retrieval_events)
     assert all(call["agent_card_resolved"] is True for call in result["a2a_calls"])
     assert all(call["correlation_id"].startswith("corr_") for call in result["a2a_calls"])
+    assert all(call["agent_card_url"].endswith("/.well-known/agent-card.json") for call in result["a2a_calls"])
+    assert all(call["caller"] == "root_orchestrator" for call in result["a2a_calls"])
+    assert all(call["evidence_event_id"].startswith("evt_") for call in result["a2a_calls"])
+    assert all(len(call["evidence_event_hash"]) == 64 for call in result["a2a_calls"])
+    assert any(
+        event["metadata"].get("orchestration_wrapper") == "google-adk-workflow"
+        for event in events
+        if event["action"] == "start_vendor_review"
+    )

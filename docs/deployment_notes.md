@@ -313,7 +313,8 @@ least-privilege IAM update steps for the demo resources.
   - Judge walkthrough visible.
   - `Denied before model context: executive_acquisition_memo.` visible.
   - `approval_required` visible and separate from completed actions.
-  - A2A proof shows agent, skill, and `correlation_id`.
+  - A2A proof shows Agent Card URL, agent, skill/intent, caller/callee,
+    `correlation_id`, outcome, and evidence event/hash.
   - Evidence verification shows valid hash chain and event count.
 - Refreshed screenshots:
   - `output/playwright/demo-home.png`
@@ -338,6 +339,43 @@ least-privilege IAM update steps for the demo resources.
 - Artifact Registry repository: `akretic`
 - Evidence bucket: `gs://akretic-a2a-trust-gateway-evidence/p0-evidence/`
 - Cloud Build source bucket: `gs://akretic-a2a-trust-gateway_cloudbuild/`
+
+## Final Challenge-Readiness Remediation Deploy - 2026-05-29
+
+Reason: runtime dependencies, root orchestration path, public UI proof, Agent
+Cards, verifier behavior, and submission package contents changed.
+
+- Account: `sean.w@akretic.com`
+- Project: `akretic-a2a-trust-gateway`
+- Region: `us-central1`
+- Cloud Build: `74e8ffff-df52-41af-887c-b9e44cde3a75`
+- Image digest: `sha256:7e3629617eb1918d3c35f1e3df9d35900451cc8925553348187ce2988884c7f2`
+- Revisions serving 100 percent traffic:
+  - `akretic-demo-ui-00013-nsz`
+  - `akretic-root-orchestrator-00011-stq`
+  - `akretic-policy-agent-00011-8ph`
+  - `akretic-knowledge-agent-00011-f47`
+  - `akretic-research-agent-00011-7tz`
+  - `akretic-approval-evidence-00011-gsz`
+
+Verification:
+
+- `pytest -q --junitxml=.audit/junit.xml`: 33 passed.
+- `scripts/deploy_cloudrun.ps1 -PreflightOnly`: passed; billing enabled.
+- `scripts/verify_cloudrun_config.ps1`: passed; demo UI public, private services protected.
+- `scripts/verify_judge_readiness.ps1`: passed with run `run_35758e6f5c424e00b151e8bede81ea50`.
+- `scripts/verify_cloudrun_p0.ps1 -RequirePublic -KeepReport`: passed with run
+  `run_1f5fc39365694b798a9e04d3fcb99e97`; report kept at
+  `artifacts/sample-evidence-report-run_1f5fc39365694b798a9e04d3fcb99e97.json`.
+- `scripts/security_scan.py --include-generated --scan-git-history`: passed;
+  0 active S0/S1 findings and no accepted S2 findings required.
+- AuditOps: A/90, confidence 92, quality gate passed, 0 active caps,
+  0 findings, 0 P0/P1 tasks.
+
+Resources created/updated: no new resource classes. Existing APIs, Artifact
+Registry repo, Cloud Run services named `akretic-*`, runtime service account,
+Cloud Run invoker bindings, evidence bucket access, and service env vars were
+updated through the existing deploy script.
 - Cloud Build execution service account: `472908523998-compute@developer.gserviceaccount.com`
 - Cloud Run services:
   - `akretic-demo-ui` revision `akretic-demo-ui-00005-qc5`: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`

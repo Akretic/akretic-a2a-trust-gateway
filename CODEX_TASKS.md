@@ -5,9 +5,8 @@ Use `/plan` for ambiguous work, then `/goal` for execution. Keep every goal boun
 Before selecting work, read `PROJECT_SOURCE_OF_TRUTH.md`, then
 `docs/priority_ladder.md`. P0, P1, P2, P3, P4, P5, and P6 are cleared. The
 hosted demo video URL is recorded, the unlisted Akretic landing page is live,
-and final challenge-readiness remediation has restored submission-ready status
-for the declared prototype scope. P7 post-challenge productization must not
-displace the challenge path.
+and final challenge-readiness remediation is complete for Track 3 proof polish.
+P7 post-challenge productization must not displace the challenge path.
 
 ## Current active lane
 

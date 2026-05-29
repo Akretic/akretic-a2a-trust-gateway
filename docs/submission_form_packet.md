@@ -11,11 +11,12 @@ filtering, approvals, and evidence stay outside the model.
 
 ## Short Description
 
-Akretic A2A Trust Gateway is a Track 3 challenge prototype for controlled
-enterprise agent collaboration. In the P0 demo, a root orchestrator uses Vertex
-AI Gemini to summarize a synthetic VendorNova risk review while specialized
-A2A-style agents enforce policy, filter retrieval, pause sensitive side effects,
-and write tamper-evident evidence.
+Akretic A2A Trust Gateway is a Track 3 challenge prototype for a trust
+gateway/control plane for A2A enterprise agents. In the demo, a Google ADK
+Workflow-wrapped root orchestrator uses Vertex AI Gemini to summarize a
+synthetic VendorNova risk review while specialized A2A Agent Card skills enforce
+policy, filter retrieval, pause sensitive side effects, and write
+tamper-evident evidence.
 
 ## Demo URL
 
@@ -27,7 +28,7 @@ and write tamper-evident evidence.
 
 ## Video URL
 
-`CLIENT_INPUT_REQUIRED`
+`https://youtu.be/FAziZQFkIfw`
 
 ## What It Does
 

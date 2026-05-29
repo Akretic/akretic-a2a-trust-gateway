@@ -11,6 +11,7 @@
 | Build mode | Solo builder with AI coding agents; P0 proof chain over platform breadth |
 | Runtime | Cloud Run first |
 | Model path | Gemini through Vertex AI / Google Cloud approved path |
+| Orchestration proof | Google ADK Workflow wrapper delegates to the verified root orchestrator |
 | Data posture | Synthetic corpus only; no customer data; no private third-party data |
 | Public posture | Challenge prototype; not a production certification, security guarantee, or Marketplace listing |
 
@@ -19,7 +20,7 @@
 1. Identity is derived from session/token/demo adapter, not the request body.
 2. Gate0-lite produces deterministic `allow`, `deny`, or `approval_required` outcomes.
 3. RAG DMZ-lite excludes restricted chunks before Gemini receives context.
-4. A2A is functional, not decorative: at least Policy Agent and Knowledge Agent expose Agent Cards and are called in the main workflow.
+4. A2A is functional, not decorative: Policy, Knowledge, and Approval/Evidence Agents expose Agent Cards and are called in the main workflow.
 5. Sensitive side effects pause on `approval_required` until a reviewer decision is recorded.
 6. Evidence ledger records material decisions and results in a tamper-evident hash chain.
 7. Evidence verify/report endpoints require a role check in the demo.

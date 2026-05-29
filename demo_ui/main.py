@@ -465,11 +465,14 @@ def _a2a_rows(result: dict[str, Any]) -> list[dict[str, str]]:
     if calls:
         return [
             {
+                "agent_card_url": str(call.get("agent_card_url", "UNKNOWN")),
                 "agent": str(call.get("agent", "UNKNOWN")),
-                "skill": str(call.get("skill", "UNKNOWN")),
+                "skill": str(call.get("skill_intent") or call.get("skill", "UNKNOWN")),
+                "caller_callee": f"{call.get('caller', 'root_orchestrator')} -> {call.get('callee') or call.get('agent', 'UNKNOWN')}",
                 "correlation_id": str(call.get("correlation_id", "UNKNOWN")),
                 "outcome": str(call.get("outcome", "result")),
                 "card": "Agent Card resolved" if call.get("agent_card_resolved") else "Agent Card UNKNOWN",
+                "evidence_event": f"{call.get('evidence_event_id', 'UNKNOWN')} / {str(call.get('evidence_event_hash', 'UNKNOWN'))[:16]}",
             }
             for call in calls
         ]
@@ -477,31 +480,40 @@ def _a2a_rows(result: dict[str, Any]) -> list[dict[str, str]]:
     if result.get("retrieval_decision"):
         fallback.append(
             {
+                "agent_card_url": "UNKNOWN",
                 "agent": "akretic-policy-agent",
                 "skill": "authorize_intent",
+                "caller_callee": "root_orchestrator -> akretic-policy-agent",
                 "correlation_id": str(result["retrieval_decision"].get("correlation_id", "UNKNOWN")),
                 "outcome": str(result["retrieval_decision"].get("outcome", "UNKNOWN")),
                 "card": "Agent Card resolved",
+                "evidence_event": "UNKNOWN",
             }
         )
     if result.get("retrieval"):
         fallback.append(
             {
+                "agent_card_url": "UNKNOWN",
                 "agent": "akretic-knowledge-agent",
                 "skill": "retrieve_permitted_context",
+                "caller_callee": "root_orchestrator -> akretic-knowledge-agent",
                 "correlation_id": str(result["retrieval"].get("correlation_id", "UNKNOWN")),
                 "outcome": "result",
                 "card": "Agent Card resolved",
+                "evidence_event": "UNKNOWN",
             }
         )
     if result.get("export_decision"):
         fallback.append(
             {
+                "agent_card_url": "UNKNOWN",
                 "agent": "akretic-policy-agent",
                 "skill": "authorize_intent",
+                "caller_callee": "root_orchestrator -> akretic-policy-agent",
                 "correlation_id": str(result["export_decision"].get("correlation_id", "UNKNOWN")),
                 "outcome": str(result["export_decision"].get("outcome", "UNKNOWN")),
                 "card": "Agent Card resolved",
+                "evidence_event": "UNKNOWN",
             }
         )
     return fallback
@@ -513,16 +525,19 @@ def _a2a_table(result: dict[str, Any]) -> str:
         return "<p>No A2A calls returned for this run.</p>"
     body = "".join(
         "<tr>"
-        f"<td><strong>{html.escape(row['agent'])}</strong><br><span class=\"muted\">{html.escape(row['card'])}</span></td>"
+        f"<td><span class=\"code-chip\">{html.escape(row['agent_card_url'])}</span><br><span class=\"muted\">{html.escape(row['card'])}</span></td>"
+        f"<td><strong>{html.escape(row['agent'])}</strong></td>"
         f"<td>{html.escape(row['skill'])}</td>"
+        f"<td>{html.escape(row['caller_callee'])}</td>"
         f"<td><span class=\"code-chip\">{html.escape(row['correlation_id'])}</span></td>"
         f"<td>{html.escape(row['outcome'])}</td>"
+        f"<td><span class=\"code-chip\">{html.escape(row['evidence_event'])}</span></td>"
         "</tr>"
         for row in rows
     )
     return f"""
     <table class="a2a-table">
-      <thead><tr><th>Agent</th><th>Skill called</th><th>correlation_id</th><th>Outcome</th></tr></thead>
+      <thead><tr><th>Agent Card URL</th><th>Agent</th><th>Skill / intent</th><th>Caller / callee</th><th>correlation_id</th><th>Outcome</th><th>Evidence event</th></tr></thead>
       <tbody>{body}</tbody>
     </table>
     """
@@ -544,6 +559,26 @@ def _evidence_callout(verification: dict[str, Any]) -> str:
       <strong>Evidence verification failed.</strong>
       Event count: <span class="code-chip">{html.escape(str(event_count))}</span>.
       Reason: {html.escape(str(verification.get('reason', 'UNKNOWN')))}.
+    </div>
+    """
+
+
+def _adk_runtime_callout(result: dict[str, Any]) -> str:
+    runtime = result.get("adk_runtime") or {}
+    if not runtime:
+        return """
+        <div class="callout warn">
+          <strong>ADK wrapper proof unavailable.</strong>
+          The response did not include the root wrapper metadata.
+        </div>
+        """
+    return f"""
+    <div class="callout info">
+      <strong>ADK root wrapper proof.</strong>
+      {html.escape(str(runtime.get('package', 'google-adk')))} workflow
+      <span class="code-chip">{html.escape(str(runtime.get('workflow_name', 'UNKNOWN')))}</span>
+      delegates to <span class="code-chip">{html.escape(str(runtime.get('delegated_to', 'UNKNOWN')))}</span>.
+      It does not decide policy, retrieval access, approvals, or evidence validity.
     </div>
     """
 
@@ -606,6 +641,7 @@ def _render_review_result(result: dict[str, Any], *, persona: str) -> str:
           <div class="metric"><span>Evidence verify</span><strong class="{verification_class}">{html.escape(verification_label)}</strong></div>
         </section>
         {_model_path_callout(result)}
+        {_adk_runtime_callout(result)}
         {_denied_context_callout(denied_source_ids)}
         {_approval_callout(result)}
         <section class="grid">
@@ -747,7 +783,7 @@ def home() -> str:
         """
         <section class="hero">
         <h1>Akretic A2A Trust Gateway</h1>
-        <p>Challenge prototype: policy-mediated, approval-gated A2A vendor-risk review using synthetic data.</p>
+        <p>Trust gateway/control plane for procurement and security teams reviewing VendorNova with synthetic data. Restricted documents are blocked before Gemini, sensitive export returns approval_required, A2A calls are verified, and hash-chain evidence proves the run.</p>
         <form method="post" action="/run">
           <div class="form-grid">
             <div>

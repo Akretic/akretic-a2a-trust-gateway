@@ -19,7 +19,8 @@ the P0/P1/P2/P3 trust semantics.
 - UI or docs clearly explain why denied source IDs may appear while denied text does not.
 - Approval gate remains obvious in the public judge path.
 - Evidence verification remains obvious in the public judge path.
-- A2A proof remains visible with agent, skill, and `correlation_id`.
+- A2A proof remains visible with Agent Card URL, agent, skill/intent,
+  caller/callee, `correlation_id`, outcome, and evidence event/hash.
 - Public claims remain bounded and do not imply launch approval, legal/compliance status, Marketplace status, or universal safety.
 - `scripts/verify_judge_readiness.ps1` passes.
 - `pytest -q` passes.

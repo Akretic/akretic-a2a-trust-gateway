@@ -40,5 +40,33 @@
     "raw": 90,
     "confidence": 92,
     "decision": "Healthy for declared purpose"
+  },
+  {
+    "generatedAt": "2026-05-29T11:51:35-05:00",
+    "score": 90,
+    "raw": 90,
+    "confidence": 92,
+    "decision": "Healthy for declared purpose"
+  },
+  {
+    "generatedAt": "2026-05-29T11:52:34-05:00",
+    "score": 90,
+    "raw": 90,
+    "confidence": 92,
+    "decision": "Healthy for declared purpose"
+  },
+  {
+    "generatedAt": "2026-05-29T11:54:14-05:00",
+    "score": 90,
+    "raw": 90,
+    "confidence": 92,
+    "decision": "Healthy for declared purpose"
+  },
+  {
+    "generatedAt": "2026-05-29T11:55:42-05:00",
+    "score": 90,
+    "raw": 90,
+    "confidence": 92,
+    "decision": "Healthy for declared purpose"
   }
 ]

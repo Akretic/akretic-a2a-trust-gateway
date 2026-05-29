@@ -1,22 +1,78 @@
-# Akretic A2A Trust Gateway — Starter Packet
+# Akretic A2A Trust Gateway
 
-This repository is the starting implementation packet for the Akretic A2A Trust Gateway challenge prototype.
-It is intentionally narrow: one vendor-risk review workflow that proves policy-mediated multi-agent collaboration.
+## What it is
 
-## Product thesis
+Akretic A2A Trust Gateway is a Track 3 challenge prototype: a trust gateway/control
+plane for A2A enterprise agents. It demonstrates one VendorNova vendor-risk review
+where agents collaborate, but the model cannot decide what it may read, share,
+approve, or export.
 
-Enterprise agents should collaborate over A2A without letting the model decide what it may read, call, send, or approve.
+## Who buys it
 
-## P0 proof chain
+The target buyer is a procurement, security, legal, or AI platform team that wants
+agent workflows to use enterprise context without losing authorization, approval,
+and evidence boundaries.
 
-The demo must prove these controls in one short path:
+## Why now
 
-1. Root orchestrator creates a `run_id` for a VendorNova review.
-2. Policy Agent evaluates each material intent before retrieval, research, A2A exchange, approval, export, or verification.
-3. RAG DMZ-lite filters synthetic corpus chunks by derived user identity before model context is assembled.
-4. External-facing or sensitive side effects return `approval_required` and pause until reviewer action.
-5. Evidence ledger records allow, deny, approval, A2A call, and result events in a hash chain.
-6. `/verify/{run_id}` proves the chain is intact and detects tampering.
+Multi-agent workflows can move internal context across tools and agents faster
+than traditional access review can inspect. This prototype shows policy before
+model context, approval before sensitive side effects, and tamper-evident evidence
+for the run.
+
+## Live demo
+
+- Public Cloud Run demo: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
+- Hosted demo video: `https://youtu.be/FAziZQFkIfw`
+- Unlisted Akretic page: `https://akretic.com/a2a-trust-gateway-demo`
+- Repository: `https://github.com/Akretic/akretic-a2a-trust-gateway`
+
+## 90-second proof path
+
+1. Open the public Cloud Run URL and confirm the page labels the build as a
+   challenge prototype using synthetic data.
+2. Start the VendorNova review as `procurement_user`.
+3. Confirm Vertex/Gemini mode is visible, then scan the proof row:
+   Identity -> Policy -> RAG Filter -> A2A -> Approval -> Evidence Verify.
+4. Confirm permitted sources are listed and
+   `Denied before model context: executive_acquisition_memo.` is visible.
+5. Confirm the external action returns `approval_required` and remains blocked
+   until a reviewer records approve/reject.
+6. Confirm the A2A table shows Agent Card URL, agent, skill/intent,
+   caller/callee, `correlation_id`, outcome, and evidence event/hash.
+7. Confirm evidence verification reports a valid hash chain and event count.
+
+## Track 3 alignment
+
+The proof path runs on Google Cloud Run, uses Vertex AI Gemini for permitted
+context summarization, exposes A2A Agent Cards and skill-call evidence, and uses
+a Google ADK Workflow wrapper that delegates to the verified root orchestrator.
+Gate0-lite policy, RAG DMZ-lite filtering, approval state, and evidence
+verification remain outside Gemini.
+
+## A2A and ADK proof
+
+- Agent Cards validate against the `a2a-sdk` package and remain available at
+  `/agent-card.json` and `/.well-known/agent-card.json`.
+- A2A call evidence records caller, callee, skill/intent, Agent Card URL,
+  `correlation_id`, evidence event ID, and event hash.
+- The root endpoint enters a `google-adk` Workflow wrapper that delegates to
+  `run_vendor_review_workflow`; the wrapper does not authorize, retrieve,
+  approve, or verify evidence itself.
+- See `docs/a2a_intent_map.md` and `docs/adk_alignment.md`.
+
+## Evidence report
+
+The sample evidence report shows policy decisions, retrieval allow/deny events,
+A2A calls, approval state, reviewer decision, model path metadata, and hash-chain
+verification for a synthetic VendorNova run.
+
+## Limitations
+
+This is a challenge prototype. It is not a production launch approval, legal
+opinion, compliance certification, Marketplace listing, or universal data-leak
+prevention guarantee. It uses synthetic data only and proves one narrow
+workflow.
 
 P0, P1, P2, P3, P4, P5, and P6 are cleared. The hosted demo video URL is recorded,
 the final submission package is rebuilt, and the challenge-readiness remediation
@@ -71,6 +127,9 @@ bash scripts/run_local.sh
 - `PROJECT_SOURCE_OF_TRUTH.md` — locked scope and product invariants.
 - `docs/priority_ladder.md` — P0-P7 priority ladder; P0-P6 and final challenge-readiness remediation are complete.
 - `docs/adk_alignment.md` — P6 ADK concept mapping and wrapper boundary.
+- `docs/a2a_intent_map.md` — explicit A2A protocol proof table.
+- `docs/third_party_rights.md` and `docs/eligibility_statement.md` — public-safe rights and original-work notes.
+- `docs/public_release_gate.md` — scan gate before making the GitHub repo public.
 - `docs/challenge_readiness_remediation.md` — final remediation summary and AuditOps evidence map.
 - `docs/p1_acceptance.md` — completed P1 demo-path polish acceptance checks.
 - `docs/p2_acceptance.md` — completed P2 Gemini/Vertex hardening acceptance checks.
@@ -123,7 +182,8 @@ Target demo URL: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
 4. Confirm the model panel says `Mode: vertex`, `Model: gemini-2.5-flash`, project `akretic-a2a-trust-gateway`, and location `us-central1`.
 5. Confirm the page shows `run_id`, permitted source IDs, and `Denied before model context: executive_acquisition_memo.`
 6. Confirm the external/sensitive action is `approval_required` and the export result is blocked pending reviewer action.
-7. Scan A2A Proof for agent, skill, `correlation_id`, Agent Card resolution, and outcome.
+7. Scan A2A Proof for Agent Card URL, agent, skill/intent, caller/callee,
+   `correlation_id`, outcome, and evidence event/hash.
 8. Record an approve or reject decision as `security_reviewer`.
 9. Confirm Evidence Verification reports a valid hash chain and event count.
 
@@ -150,7 +210,7 @@ tests or local development.
 
 ## What this proves
 
-- A root workflow can coordinate specialized agents over the A2A-style Agent Card and skill-call path.
+- A root workflow can coordinate specialized agents over A2A Agent Cards and skill calls.
 - Identity is derived from the demo request header, not upgraded by request-body claims.
 - Gate0-lite policy checks run before retrieval and before sensitive external action completion.
 - RAG DMZ-lite filters restricted synthetic chunks before model context is assembled.
@@ -164,18 +224,17 @@ tests or local development.
 - This is not a legal opinion, audit attestation, or Marketplace status claim.
 - This is not a guarantee that every possible data leak or policy bypass is impossible.
 - This does not replace enterprise SSO, full policy administration, monitoring, incident response, or customer-specific controls.
-- The current proof path uses Vertex/Gemini summarization and thin A2A Agent Card skill-call wiring, with ADK alignment documented as part of the Google Cloud agent architecture path rather than overclaiming full ADK-native orchestration.
+- The current proof path uses Vertex/Gemini summarization, A2A Agent Card skill-call wiring, and a Google ADK Workflow wrapper that delegates to the verified orchestrator path without overclaiming Agent Runtime or Agent Registry integration.
 
 ## P6 ADK alignment posture
 
-The current proof path runs on Cloud Run with Vertex/Gemini summarization and
-thin A2A Agent Card skill-call wiring. P6 adds ADK alignment documentation and
-an ADK-compatible wrapper around the verified orchestrator path. Authorization,
-retrieval filtering, approvals, and evidence remain outside Gemini and are not
-delegated to the model.
+The current proof path runs on Cloud Run with Vertex/Gemini summarization,
+A2A Agent Card skill-call wiring, and a Google ADK Workflow wrapper around the
+verified orchestrator path. Authorization, retrieval filtering, approvals, and
+evidence remain outside Gemini and are not delegated to the model.
 
-This does not claim full ADK-native orchestration, Agent Runtime, Agent Registry,
-or a replacement public demo path. See `docs/adk_alignment.md`.
+This does not claim Agent Runtime, Agent Registry, or a replacement public demo
+path. See `docs/adk_alignment.md`.
 
 ## Judging instructions
 

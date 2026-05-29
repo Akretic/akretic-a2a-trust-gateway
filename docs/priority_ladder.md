@@ -15,8 +15,9 @@ before selecting or expanding work.
 - Hosted demo video URL is recorded.
 - Unlisted Akretic landing page is live at `https://akretic.com/a2a-trust-gateway-demo`.
 - P6 ADK alignment hardening is complete.
-- Final challenge-readiness remediation is complete: latest AuditOps report is
-  A/90 with quality gate passed, 0 active caps, 0 findings, and 0 P0/P1 tasks.
+- Final challenge-readiness remediation is complete: public repo release gate,
+  A2A/ADK proof, eligibility/rights docs, judge-first copy, refreshed package,
+  redeploy, and rerun audit are green.
 - P7 remains post-challenge productization and must not displace the challenge path.
 - P1 acceptance is tracked in `docs/p1_acceptance.md`.
 - P2 acceptance is tracked in `docs/p2_acceptance.md`.
@@ -35,7 +36,7 @@ before selecting or expanding work.
 | P3 | Cloud Run deployment | Complete | Harden deploy scripts, service configuration, IAM notes, verification scripts, and rollback/runbook material for the existing Cloud Run shape. |
 | P4 | Judge hardening | Complete | Make the public judging path more resilient and self-explanatory while keeping admin/evidence surfaces role-checked and claims bounded. |
 | P5 | Submission package | Complete | Final package, hosted video URL, public-safe brief, screenshots, sample evidence report, and submission docs are prepared and verified. |
-| P6 | ADK alignment hardening | Complete | Strengthen the ADK story without replacing the working proof path. Prefer an ADK-compatible root wrapper that delegates to the verified orchestrator, docs mapping current root behavior to ADK concepts, and tests proving Gate0-lite, RAG DMZ-lite, approval, and evidence are not bypassed. Do not prioritize Firestore, embeddings, search grounding, Agent Runtime, or Registry. |
+| P6 | ADK alignment hardening | Complete | Strengthen the ADK story without replacing trust semantics. The current root entrypoint uses a Google ADK Workflow wrapper that delegates to the verified orchestrator, with tests proving Gate0-lite, RAG DMZ-lite, approval, and evidence are not bypassed. Do not prioritize Firestore, embeddings, search grounding, Agent Runtime, or Registry. |
 | P7 | Post-challenge productization | Post-challenge | Consider SSO, real enterprise connectors, broader policy administration, production monitoring, incident workflows, and customer environment hardening only after the challenge path is complete. |
 
 ## Selection Rules

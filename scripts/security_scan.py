@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 import zipfile
 from dataclasses import dataclass
@@ -20,7 +21,7 @@ from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 
-EXCLUDED_DIRS = {
+DEFAULT_EXCLUDED_DIRS = {
     ".git",
     ".venv",
     ".audit",
@@ -32,6 +33,7 @@ EXCLUDED_DIRS = {
     "build",
     "dist",
 }
+GENERATED_SCAN_DIRS = {".akretic", "dist"}
 
 TEXT_SUFFIXES = {
     ".css",
@@ -60,6 +62,11 @@ PUBLIC_PACKAGE_FILES = [
     "docs/submission_package.md",
     "docs/challenge_readiness_remediation.md",
     "docs/judge_readiness.md",
+    "docs/adk_alignment.md",
+    "docs/a2a_intent_map.md",
+    "docs/third_party_rights.md",
+    "docs/eligibility_statement.md",
+    "docs/public_release_gate.md",
     "docs/architecture.md",
     "docs/architecture.mmd",
     "docs/deployment.md",
@@ -79,6 +86,11 @@ OVERCLAIM_PATTERNS = [
     re.compile(r"\bunhackable\b", re.IGNORECASE),
     re.compile(r"\buniversal data[- ]leak prevention\b", re.IGNORECASE),
     re.compile(r"\blegal non[- ]repudiation\b", re.IGNORECASE),
+]
+
+PLACEHOLDER_PATTERNS = [
+    re.compile(r"\bCLIENT_INPUT_REQUIRED\b", re.IGNORECASE),
+    re.compile(r"\bTODO\b", re.IGNORECASE),
 ]
 
 NEGATION_HINTS = (
@@ -130,6 +142,8 @@ class Finding:
     line: int
     snippet: str
     level: str = "error"
+    severity: str = "S1"
+    accepted: bool = False
 
 
 def read_text(path: Path) -> str:
@@ -139,12 +153,15 @@ def read_text(path: Path) -> str:
         return path.read_text(encoding="utf-8", errors="ignore")
 
 
-def iter_project_text_files() -> Iterable[Path]:
+def iter_project_text_files(*, include_generated: bool = False) -> Iterable[Path]:
+    excluded_dirs = set(DEFAULT_EXCLUDED_DIRS)
+    if include_generated:
+        excluded_dirs -= GENERATED_SCAN_DIRS
     for path in ROOT.rglob("*"):
         if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
             continue
         rel_parts = path.relative_to(ROOT).parts
-        if any(part in EXCLUDED_DIRS for part in rel_parts):
+        if any(part in excluded_dirs for part in rel_parts):
             continue
         yield path
 
@@ -183,13 +200,17 @@ def line_at(text: str, index: int) -> str:
     return text[start:end].strip()
 
 
+def redacted_line(text: str, index: int, pattern: re.Pattern[str]) -> str:
+    return pattern.sub("<redacted>", line_at(text, index))
+
+
 def negated_public_claim(line: str) -> bool:
     lowered = line.lower()
     return any(hint in lowered for hint in NEGATION_HINTS)
 
 
-def scan_secrets(findings: list[Finding]) -> None:
-    for path in iter_project_text_files():
+def scan_secrets(findings: list[Finding], *, include_generated: bool = False) -> None:
+    for path in iter_project_text_files(include_generated=include_generated):
         rel = path.relative_to(ROOT).as_posix()
         text = read_text(path)
         for rule_id, title, pattern in SECRET_RULES:
@@ -200,7 +221,7 @@ def scan_secrets(findings: list[Finding]) -> None:
                         message=f"{title} pattern appears in project text.",
                         path=rel,
                         line=line_number(text, match.start()),
-                        snippet=line_at(text, match.start()),
+                        snippet=redacted_line(text, match.start(), pattern),
                     )
                 )
 
@@ -233,6 +254,56 @@ def scan_public_surfaces(findings: list[Finding]) -> None:
                         snippet=line,
                     )
                 )
+        for pattern in PLACEHOLDER_PATTERNS:
+            for match in pattern.finditer(text):
+                line = line_at(text, match.start())
+                if "CLIENT_INPUT_REQUIRED" in line and "public_release_gate" in path:
+                    continue
+                findings.append(
+                    Finding(
+                        rule_id="akretic-public-placeholder",
+                        message="Submission/public package surface contains a stale placeholder.",
+                        path=path,
+                        line=line_number(text, match.start()),
+                        snippet=line,
+                    )
+                )
+
+
+def scan_git_history_for_secrets(findings: list[Finding]) -> None:
+    proc = subprocess.run(
+        ["git", "log", "--all", "--patch", "--no-ext-diff", "--format=commit %H"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+        errors="ignore",
+    )
+    if proc.returncode != 0:
+        findings.append(
+            Finding(
+                rule_id="akretic-git-history-scan-failed",
+                message="Git history scan failed.",
+                path="git-history",
+                line=1,
+                snippet=proc.stderr[-300:] or "git log failed",
+                severity="S1",
+            )
+        )
+        return
+    text = proc.stdout
+    for rule_id, title, pattern in SECRET_RULES:
+        for match in pattern.finditer(text):
+            findings.append(
+                Finding(
+                    rule_id=f"{rule_id}-history",
+                    message=f"{title} pattern appears in git history.",
+                    path="git-history",
+                    line=line_number(text, match.start()),
+                    snippet=redacted_line(text, match.start(), pattern),
+                )
+            )
 
 
 def sarif_rules() -> list[dict[str, object]]:
@@ -250,6 +321,22 @@ def sarif_rules() -> list[dict[str, object]]:
             "name": "Bounded public claims",
             "shortDescription": {
                 "text": "Public copy must not claim production readiness, certification, or guarantees."
+            },
+            "defaultConfiguration": {"level": "error"},
+        },
+        {
+            "id": "akretic-public-placeholder",
+            "name": "No stale public placeholders",
+            "shortDescription": {
+                "text": "Submission/public package artifacts must not contain stale placeholders."
+            },
+            "defaultConfiguration": {"level": "error"},
+        },
+        {
+            "id": "akretic-git-history-scan-failed",
+            "name": "Git history scan failed",
+            "shortDescription": {
+                "text": "Git history must be scanned before public repository release."
             },
             "defaultConfiguration": {"level": "error"},
         },
@@ -315,11 +402,21 @@ def main() -> int:
     parser.add_argument("--sarif", default=".audit/akretic-security.sarif")
     parser.add_argument("--json", default="")
     parser.add_argument("--no-fail", action="store_true")
+    parser.add_argument("--include-generated", action="store_true")
+    parser.add_argument("--scan-git-history", action="store_true")
     args = parser.parse_args()
 
     findings: list[Finding] = []
-    scan_secrets(findings)
+    scan_secrets(findings, include_generated=args.include_generated)
     scan_public_surfaces(findings)
+    if args.scan_git_history:
+        scan_git_history_for_secrets(findings)
+
+    s0_s1_count = len([finding for finding in findings if finding.severity in {"S0", "S1"}])
+    s2_unaccepted_count = len(
+        [finding for finding in findings if finding.severity == "S2" and not finding.accepted]
+    )
+    release_gate_passed = s0_s1_count == 0 and s2_unaccepted_count == 0
 
     sarif_path = ROOT / args.sarif
     sarif_path.parent.mkdir(parents=True, exist_ok=True)
@@ -331,8 +428,11 @@ def main() -> int:
         json_path.write_text(
             json.dumps(
                 {
-                    "status": "fail" if findings else "pass",
+                    "status": "pass" if release_gate_passed else "fail",
                     "finding_count": len(findings),
+                    "s0_s1_count": s0_s1_count,
+                    "s2_unaccepted_count": s2_unaccepted_count,
+                    "release_gate": "pass" if release_gate_passed else "fail",
                     "sarif": sarif_path.relative_to(ROOT).as_posix(),
                     "findings": [finding.__dict__ for finding in findings],
                 },
@@ -343,7 +443,13 @@ def main() -> int:
 
     if findings:
         for finding in findings:
-            print(f"{finding.rule_id}: {finding.path}:{finding.line}: {finding.message}")
+            print(
+                f"{finding.severity} {finding.rule_id}: "
+                f"{finding.path}:{finding.line}: {finding.message}"
+            )
+        if release_gate_passed:
+            print("Security scan release gate passed with accepted non-S0/S1 findings.")
+            return 0
         return 0 if args.no_fail else 1
 
     print(f"Security scan passed; SARIF written to {sarif_path.relative_to(ROOT).as_posix()}")

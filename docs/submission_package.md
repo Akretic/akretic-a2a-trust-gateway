@@ -13,8 +13,9 @@ P0, P1, P2, P3, P4, and P5 are cleared. P5 submission packaging has a hosted
 demo video URL recorded in `dist/video_url.txt`, a rebuilt final zip, and an
 unlisted Akretic landing page at `https://akretic.com/a2a-trust-gateway-demo`.
 The proof path is deployed and verified with public unauthenticated Cloud Run
-access to the demo UI. Private agent/root/evidence services remain protected by
-Cloud Run IAM and are invoked by the UI runtime service account.
+access to the demo UI, and the GitHub repository is public/judge-accessible.
+Private agent/root/evidence services remain protected by Cloud Run IAM and are
+invoked by the UI runtime service account.
 
 Final challenge-readiness remediation is complete for the declared prototype
 scope. The latest AuditOps report is A/90 with quality gate passed, 0 active
@@ -40,6 +41,10 @@ trust semantics.
 | Sample evidence report | Refreshed in P5 | latest `artifacts/sample-evidence-report-<run_id>.json` |
 | Screenshots | Refreshed in P5 | `artifacts/screenshots/demo-home.png`, `artifacts/screenshots/demo-review-result.png`, `artifacts/screenshots/evidence-report.png` |
 | Public-safe brief/PDF | Refreshed in P5 | `docs/public_brief.md`, `dist/akretic-a2a-trust-gateway-public-brief.pdf` |
+| A2A intent map | Prepared | `docs/a2a_intent_map.md` |
+| ADK alignment proof | Prepared | `docs/adk_alignment.md` |
+| Third-party rights disclosure | Prepared | `docs/third_party_rights.md` |
+| Original-work eligibility note | Prepared | `docs/eligibility_statement.md` |
 | Final zip | Built in P5 | `dist/akretic-a2a-trust-gateway-submission.zip` |
 | Final readiness remediation | Complete | `docs/challenge_readiness_remediation.md`, `.auditops/latest-audit-report.md` |
 | Limitations and synthetic-data disclosure | Prepared | `docs/submission_answers_public.md`, `docs/public_claims_guardrails.md` |
@@ -47,17 +52,16 @@ trust semantics.
 ## Demo Proof Points
 
 - Root orchestrator calls Policy, Knowledge, and Approval/Evidence services over
-  A2A-style HTTP with Agent Cards.
+  A2A Agent Card skill calls.
 - Gate0-lite returns deterministic `allow`, `deny`, and `approval_required`.
 - RAG DMZ-lite filters restricted source contents before Gemini context.
 - Vertex AI Gemini summarizes only permitted context.
 - Sensitive external export returns `approval_required`.
 - Reviewer decision is recorded by `security_reviewer`.
 - Evidence report verifies the hash chain and includes material decisions.
-- The current proof path uses Vertex/Gemini summarization and thin A2A Agent
-  Card skill-call wiring, with ADK alignment documented as part of the Google
-  Cloud agent architecture path rather than overclaiming full ADK-native
-  orchestration.
+- The current proof path uses Vertex/Gemini summarization, A2A Agent Card
+  skill-call wiring, and a Google ADK Workflow wrapper that delegates to the
+  verified orchestrator path.
 
 ## Package Rules
 

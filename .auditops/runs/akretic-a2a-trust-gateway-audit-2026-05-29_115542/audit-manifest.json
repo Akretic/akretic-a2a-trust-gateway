@@ -30,11 +30,6 @@
     "tool_contract_version": "auditops-mcp-2026-05-21"
   },
   "artifacts": {
-    "json": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\latest-audit-report.json",
-    "html": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\latest-audit-report.html",
-    "markdown": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\latest-audit-report.md"
-  },
-  "runArtifacts": {
     "json": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_115542\\audit-report.json",
     "html": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_115542\\audit-report.html",
     "markdown": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_115542\\audit-report.md"

@@ -12,7 +12,8 @@ P1 is accepted when the existing VendorNova judge path is easier to run and scan
 - Review page shows `approval_required` for the external/sensitive action.
 - Reviewer approve/reject path is visible.
 - Evidence verification result is visible.
-- A2A calls show agent, skill, and `correlation_id`.
+- A2A calls show Agent Card URL, agent, skill/intent, caller/callee,
+  `correlation_id`, outcome, and evidence event/hash.
 - Synthetic-data and challenge-prototype labels are visible.
 - README includes a `90-second judge walkthrough`.
 - `pytest -q` passes.

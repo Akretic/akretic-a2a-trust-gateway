@@ -53,6 +53,7 @@ async def call_skill(
     async with httpx.AsyncClient(timeout=20.0) as client:
         request_headers = _auth_headers(base_url, headers)
         card = await fetch_agent_card(base_url, headers=headers)
+        agent_card_url = f"{base_url.rstrip('/')}/.well-known/agent-card.json"
         response = await client.post(
             f"{base_url.rstrip('/')}/{skill}",
             json=payload,
@@ -60,7 +61,7 @@ async def call_skill(
         )
         response.raise_for_status()
         result = response.json()
-    append_event(
+    event = append_event(
         run_id=run_id,
         actor=actor,
         agent_id=caller_agent_id,
@@ -74,8 +75,23 @@ async def call_skill(
             "caller": caller_agent_id,
             "callee": card.get("name"),
             "skill": skill,
+            "skill_intent": skill,
             "base_url": base_url,
+            "agent_card_url": agent_card_url,
             "identity_source": "x-akretic-persona header",
         },
     )
-    return result
+    return {
+        **result,
+        "_a2a": {
+            "caller": caller_agent_id,
+            "callee": card.get("name"),
+            "skill": skill,
+            "skill_intent": skill,
+            "base_url": base_url,
+            "agent_card_url": agent_card_url,
+            "agent_card_resolved": True,
+            "evidence_event_id": event["event_id"],
+            "evidence_event_hash": event["event_hash"],
+        },
+    }

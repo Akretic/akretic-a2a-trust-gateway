@@ -1,7 +1,7 @@
 [project]
 name = "akretic-a2a-trust-gateway"
 version = "0.1.0"
-description = "Akretic A2A Trust Gateway challenge prototype starter"
+description = "Akretic A2A Trust Gateway challenge prototype"
 requires-python = ">=3.11"
 
 [tool.pytest.ini_options]

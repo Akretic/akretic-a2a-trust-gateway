@@ -30,6 +30,26 @@
               }
             },
             {
+              "id": "akretic-public-placeholder",
+              "name": "No stale public placeholders",
+              "shortDescription": {
+                "text": "Submission/public package artifacts must not contain stale placeholders."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "akretic-git-history-scan-failed",
+              "name": "Git history scan failed",
+              "shortDescription": {
+                "text": "Git history must be scanned before public repository release."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
               "id": "akretic-secret-private-key",
               "name": "Private key marker",
               "shortDescription": {
@@ -85,7 +105,7 @@
       "invocations": [
         {
           "executionSuccessful": true,
-          "endTimeUtc": "2026-05-29T15:39:40.809785+00:00"
+          "endTimeUtc": "2026-05-29T16:56:01.891921+00:00"
         }
       ],
       "results": []

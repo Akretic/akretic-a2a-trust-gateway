@@ -99,7 +99,16 @@ def main() -> int:
         checks.append(
             run_check(
                 "public-surface-security-sarif",
-                [sys.executable, "scripts/security_scan.py", "--sarif", ".audit/akretic-security.sarif"],
+                [
+                    sys.executable,
+                    "scripts/security_scan.py",
+                    "--sarif",
+                    ".audit/akretic-security.sarif",
+                    "--json",
+                    ".audit/akretic-security.json",
+                    "--include-generated",
+                    "--scan-git-history",
+                ],
             )
         )
 

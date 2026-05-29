@@ -42,7 +42,7 @@
     ]
   },
   "qualityGate": {
-    "minFinalScore": 85,
+    "minFinalScore": 90,
     "minConfidence": 70,
     "maxCritical": 0,
     "maxHigh": 0

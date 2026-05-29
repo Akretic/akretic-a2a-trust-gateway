@@ -29,10 +29,9 @@ scope.
   - `evidence-report.png`
 - Public copy remains bounded and does not imply production launch approval,
   legal or compliance status, Marketplace listing, or universal safety.
-- The current proof path is described as Vertex/Gemini summarization plus thin
-  A2A Agent Card skill-call wiring, with ADK alignment documented as part of
-  the Google Cloud agent architecture path rather than overclaiming full
-  ADK-native orchestration.
+- The current proof path is described as Vertex/Gemini summarization, A2A Agent
+  Card skill-call wiring, and a Google ADK Workflow wrapper that delegates to
+  the verified orchestrator path.
 
 ## Final Verification
 

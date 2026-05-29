@@ -48,12 +48,19 @@ def _a2a_proof(
     result: dict[str, Any],
     outcome: str | None = None,
 ) -> dict[str, Any]:
+    a2a = result.get("_a2a", {})
     return {
-        "agent": agent,
+        "agent_card_url": a2a.get("agent_card_url", "UNKNOWN"),
+        "agent": a2a.get("callee") or agent,
         "skill": skill,
+        "skill_intent": a2a.get("skill_intent") or skill,
+        "caller": a2a.get("caller", "root_orchestrator"),
+        "callee": a2a.get("callee") or agent,
         "correlation_id": result.get("correlation_id", "UNKNOWN"),
         "outcome": outcome or result.get("outcome") or result.get("status") or "result",
-        "agent_card_resolved": True,
+        "agent_card_resolved": bool(a2a.get("agent_card_resolved", True)),
+        "evidence_event_id": a2a.get("evidence_event_id", "UNKNOWN"),
+        "evidence_event_hash": a2a.get("evidence_event_hash", "UNKNOWN"),
     }
 
 
@@ -114,6 +121,11 @@ async def run_vendor_review_workflow(
         resource_id=payload.get("vendor", "VendorNova"),
         outcome="started",
         reason="vendor-risk review started",
+        metadata={
+            "orchestration_wrapper": payload.get("orchestration_wrapper", "direct_root"),
+            "adk_package": payload.get("adk_package"),
+            "adk_workflow": payload.get("adk_workflow"),
+        },
     )
 
     identity_headers = {"x-akretic-persona": persona}
@@ -325,6 +337,11 @@ async def run_vendor_review(
     x_akretic_persona: str | None = Header(default=None),
 ) -> dict[str, Any]:
     try:
-        return await run_vendor_review_workflow(payload, x_akretic_persona=x_akretic_persona)
+        from agents.root_orchestrator.adk_alignment import run_adk_aligned_vendor_review
+
+        return await run_adk_aligned_vendor_review(
+            payload,
+            x_akretic_persona=x_akretic_persona,
+        )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
