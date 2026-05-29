@@ -7,7 +7,7 @@
 - Track: Track 3
 - Public demo URL: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
 - Unlisted Akretic landing page: `https://akretic.com/a2a-trust-gateway-demo`
-- Private GitHub repository: `https://github.com/Akretic/akretic-a2a-trust-gateway`
+- Repository URL submitted in the private Devpost field: `https://github.com/Akretic/akretic-a2a-trust-gateway`
 - Google Cloud project: `akretic-a2a-trust-gateway`
 - Region: `us-central1`
 - Runtime: Cloud Run
