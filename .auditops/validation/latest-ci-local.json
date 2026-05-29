@@ -1,7 +1,7 @@
 {
   "schema": "akretic-ci-local-v1",
   "status": "pass",
-  "finishedAt": "2026-05-29T15:37:44.301449+00:00",
+  "finishedAt": "2026-05-29T15:39:40.818297+00:00",
   "checks": [
     {
       "name": "submission-package",
@@ -15,7 +15,7 @@
       ],
       "status": "pass",
       "returncode": 0,
-      "durationSeconds": 0.654,
+      "durationSeconds": 0.695,
       "stdoutTail": "{\n    \"zip_path\":  \"dist/akretic-a2a-trust-gateway-submission.zip\",\n    \"size_mb\":  0.59,\n    \"evidence_report\":  \"sample-evidence-report-run_e4a4e47fae9c410c83583c490cf1caf7.json\",\n    \"video_url_file\":  \"dist/video_url.txt\",\n    \"video_binaries_included\":  false\n}\n",
       "stderrTail": ""
     },
@@ -29,7 +29,7 @@
       ],
       "status": "pass",
       "returncode": 0,
-      "durationSeconds": 0.319,
+      "durationSeconds": 0.33,
       "stdoutTail": "Security scan passed; SARIF written to .audit/akretic-security.sarif\n",
       "stderrTail": ""
     }

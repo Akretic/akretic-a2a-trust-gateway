@@ -1,8 +1,8 @@
 {
   "schemaVersion": "7.0",
   "reportType": "auditops-studio-report",
-  "generatedAt": "2026-05-29T10:37:30-05:00",
-  "auditId": "a79f39d6-e053-46a2-8ef9-234af22ba093",
+  "generatedAt": "2026-05-29T10:39:26-05:00",
+  "auditId": "342d92a6-429d-4375-af87-986bfebd60d8",
   "plugin": {
     "name": "AuditOps Studio",
     "version": "7.1.50",
@@ -488,7 +488,7 @@
       "title": "Git worktree state",
       "status": "warning",
       "score": 70,
-      "summary": "Git worktree has 13 changed files.",
+      "summary": "Git worktree has 1 changed files.",
       "evidence": [
         "EVD-002"
       ]
@@ -594,7 +594,7 @@
       "command": {
         "command": ".\\.venv\\Scripts\\python.exe -m pytest -q --junitxml=.audit/junit.xml",
         "returncode": 0,
-        "durationSeconds": 12.22,
+        "durationSeconds": 13.0,
         "stdout": "................................                                         [100%]\n============================== warnings summary ===============================\ntests/test_a2a_remote_call_logged.py::test_root_calls_policy_and_knowledge_agents_over_a2a\n  C:\\dev\\akretic-a2a-trust-gateway\\.venv\\Lib\\site-packages\\websockets\\legacy\\__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions\n    warnings.warn(  # deprecated in 14.0 - 2024-11-09\n\ntests/test_a2a_remote_call_logged.py::test_root_calls_policy_and_knowledge_agents_over_a2a\n  C:\\dev\\akretic-a2a-trust-gateway\\.venv\\Lib\\site-packages\\uvicorn\\protocols\\websockets\\websockets_impl.py:17: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated\n    from websockets.server import WebSocketServerProtocol\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n---- generated xml file: C:\\dev\\akretic-a2a-trust-gateway\\.audit\\junit.xml ----\n",
         "stderr": "",
         "status": "pass",
@@ -631,7 +631,7 @@
       "command": {
         "command": ".\\.venv\\Scripts\\python.exe scripts/ci_local.py --skip-tests",
         "returncode": 0,
-        "durationSeconds": 1.03,
+        "durationSeconds": 1.09,
         "stdout": "ci_local passed; validation written to .auditops/validation/latest-ci-local.json\n",
         "stderr": "",
         "status": "pass",
@@ -703,7 +703,7 @@
       "title": "Git metadata collected",
       "status": "verified",
       "source": "git",
-      "details": "Branch final/challenge-readiness-remediation, commit 4f93f18, dirty files 13",
+      "details": "Branch final/challenge-readiness-remediation, commit c622284, dirty files 1",
       "confidence": "high"
     },
     {
@@ -775,7 +775,7 @@
       "title": "Command broker: configured test",
       "status": "verified",
       "source": ".\\.venv\\Scripts\\python.exe -m pytest -q --junitxml=.audit/junit.xml",
-      "details": "classification=verification; decision=allowed; reason=Known safe verification command; returncode=0; duration=12.22s",
+      "details": "classification=verification; decision=allowed; reason=Known safe verification command; returncode=0; duration=13.0s",
       "confidence": "high"
     },
     {
@@ -784,7 +784,7 @@
       "title": "Command broker: configured build",
       "status": "verified",
       "source": ".\\.venv\\Scripts\\python.exe scripts/ci_local.py --skip-tests",
-      "details": "classification=safe-local-verification; decision=allowed; reason=Known safe verification command; returncode=0; duration=1.03s",
+      "details": "classification=safe-local-verification; decision=allowed; reason=Known safe verification command; returncode=0; duration=1.09s",
       "confidence": "high"
     },
     {
@@ -793,10 +793,10 @@
       "title": "Ingested artifact: .audit/junit.xml",
       "status": "verified",
       "source": ".audit/junit.xml",
-      "details": "sha256=7409353f7e0f0071",
+      "details": "sha256=7c463a632027e35b",
       "confidence": "high",
       "artifact": "C:\\dev\\akretic-a2a-trust-gateway\\.audit\\junit.xml",
-      "hash": "7409353f7e0f0071"
+      "hash": "7c463a632027e35b"
     },
     {
       "id": "EVD-013",
@@ -804,10 +804,10 @@
       "title": "Ingested artifact: .audit/akretic-security.sarif",
       "status": "verified",
       "source": ".audit/akretic-security.sarif",
-      "details": "sha256=9f7226710a0815cd",
+      "details": "sha256=9612bf5194addf86",
       "confidence": "high",
       "artifact": "C:\\dev\\akretic-a2a-trust-gateway\\.audit\\akretic-security.sarif",
-      "hash": "9f7226710a0815cd"
+      "hash": "9612bf5194addf86"
     },
     {
       "id": "EVD-014",
@@ -823,13 +823,13 @@
   "scannerArtifacts": [
     {
       "path": ".audit/junit.xml",
-      "hash": "7409353f7e0f0071",
+      "hash": "7c463a632027e35b",
       "bytes": 4274,
       "kind": "junit"
     },
     {
       "path": ".audit/akretic-security.sarif",
-      "hash": "9f7226710a0815cd",
+      "hash": "9612bf5194addf86",
       "bytes": 3051,
       "kind": "sarif"
     }
@@ -945,8 +945,8 @@
   "git": {
     "root": "C:/dev/akretic-a2a-trust-gateway",
     "branch": "final/challenge-readiness-remediation",
-    "commit": "4f93f18",
-    "dirtyFiles": 13
+    "commit": "c622284",
+    "dirtyFiles": 1
   },
   "inventory": {
     "fileCount": 145,
@@ -1579,7 +1579,7 @@
           "title": "Git worktree state",
           "status": "warning",
           "score": 70,
-          "summary": "Git worktree has 13 changed files."
+          "summary": "Git worktree has 1 changed files."
         }
       ],
       "findings": [],
@@ -1713,10 +1713,10 @@
       "manifest": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\latest-audit-manifest.json"
     },
     "runArtifacts": {
-      "json": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_103730\\audit-report.json",
-      "html": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_103730\\audit-report.html",
-      "markdown": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_103730\\audit-report.md",
-      "manifest": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_103730\\audit-manifest.json"
+      "json": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_103926\\audit-report.json",
+      "html": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_103926\\audit-report.html",
+      "markdown": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_103926\\audit-report.md",
+      "manifest": "C:\\dev\\akretic-a2a-trust-gateway\\.auditops\\runs\\akretic-a2a-trust-gateway-audit-2026-05-29_103926\\audit-manifest.json"
     },
     "counts": {
       "findings": 0,
@@ -1907,7 +1907,7 @@
             "title": "Git worktree state",
             "status": "warning",
             "score": 70,
-            "summary": "Git worktree has 13 changed files."
+            "summary": "Git worktree has 1 changed files."
           }
         ],
         "findings": [],
@@ -2182,6 +2182,11 @@
       "label": "2026-05-29",
       "score": 73,
       "confidence": 60
+    },
+    {
+      "label": "2026-05-29",
+      "score": 90,
+      "confidence": 92
     },
     {
       "label": "2026-05-29",
