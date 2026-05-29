@@ -120,7 +120,32 @@ def test_demo_ui_approval_calls_private_service_with_auth_headers(monkeypatch):
     ]
 
 
-def test_demo_ui_review_result_shows_p1_proof_markers():
+def test_demo_ui_home_first_viewport_shows_judge_proof_markers():
+    html = demo_ui.home()
+
+    assert "Akretic A2A Trust Gateway" in html
+    assert "Procurement and security teams" in html
+    assert "VendorNova vendor-risk workflow" in html
+    assert "Challenge prototype" in html
+    assert "Synthetic data" in html
+    assert "Cloud Run" in html
+    assert "Vertex Gemini" in html
+    assert "A2A Agent Cards" in html
+    assert "ADK-aligned wrapper" in html
+    assert "approval_required gate" in html
+    assert "Evidence proof" in html
+    assert "Identity" in html
+    assert "Policy" in html
+    assert "RAG Filter" in html
+    assert "Gemini" in html
+    assert "A2A" in html
+    assert "Approval" in html
+    assert "Evidence" in html
+
+
+def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
+    monkeypatch.setattr(demo_ui, "read_events", lambda run_id: [])
+
     result = {
         "run_id": "run-p1",
         "summary": "VendorNova review assembled from permitted synthetic context only.",
@@ -144,24 +169,42 @@ def test_demo_ui_review_result_shows_p1_proof_markers():
         },
         "a2a_calls": [
             {
+                "agent_card_url": "https://policy.example/.well-known/agent-card.json",
                 "agent": "akretic-policy-agent",
                 "skill": "authorize_intent",
+                "skill_intent": "authorize_intent",
+                "caller": "root_orchestrator",
+                "callee": "akretic-policy-agent",
                 "correlation_id": "corr-policy-read",
                 "outcome": "allow",
+                "evidence_event_id": "evt-policy-read",
+                "evidence_event_hash": "1234567890abcdef9999",
                 "agent_card_resolved": True,
             },
             {
+                "agent_card_url": "https://knowledge.example/.well-known/agent-card.json",
                 "agent": "akretic-knowledge-agent",
                 "skill": "retrieve_permitted_context",
+                "skill_intent": "retrieve_permitted_context",
+                "caller": "root_orchestrator",
+                "callee": "akretic-knowledge-agent",
                 "correlation_id": "corr-rag",
                 "outcome": "result",
+                "evidence_event_id": "evt-rag",
+                "evidence_event_hash": "abcdef12345678909999",
                 "agent_card_resolved": True,
             },
             {
+                "agent_card_url": "https://approval.example/.well-known/agent-card.json",
                 "agent": "akretic-approval-evidence-agent",
                 "skill": "request_approval",
+                "skill_intent": "request_approval",
+                "caller": "root_orchestrator",
+                "callee": "akretic-approval-evidence-agent",
                 "correlation_id": "corr-approval",
                 "outcome": "approval_required",
+                "evidence_event_id": "evt-approval",
+                "evidence_event_hash": "feedfacecafebeef9999",
                 "agent_card_resolved": True,
             },
         ],
@@ -172,7 +215,15 @@ def test_demo_ui_review_result_shows_p1_proof_markers():
     assert "Judge walkthrough" in html
     assert "Denied before model context: executive_acquisition_memo." in html
     assert "external action is approval_required" in html
+    assert "local permitted context only" in html
     assert "approval_required: external/sensitive action is paused." in html
+    assert "Agent Card URL" in html
+    assert "Skill / intent" in html
+    assert "Caller / callee" in html
+    assert "Evidence event / hash" in html
+    assert "https://policy.example/.well-known/agent-card.json" in html
+    assert "root_orchestrator -&gt; akretic-policy-agent" in html
+    assert "evt-policy-read / 1234567890abcdef" in html
     assert "Agent Card resolved" in html
     assert "correlation_id" in html
     assert "valid hash chain" in html

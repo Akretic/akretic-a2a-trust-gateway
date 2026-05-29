@@ -13,6 +13,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 from agents.root_orchestrator.main import run_vendor_review_workflow
 from common.a2a_client import cloud_run_auth_headers
+from common.evidence import read_events
 
 app = FastAPI(title="Akretic Demo UI")
 SAMPLE_REPORT_PATH = (
@@ -81,15 +82,28 @@ a { color: var(--accent-dark); }
   white-space: nowrap;
 }
 .label.warn { border-color: #fed7aa; background: var(--warn-bg); color: #92400e; }
+.label.info { border-color: #bfdbfe; background: var(--info-bg); color: #1e3a8a; }
+.label.ok { border-color: #bbd7c1; background: var(--ok-bg); color: #14532d; }
 .hero, .panel, .metric {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
 }
-.hero { margin-top: 24px; padding: 26px; }
+.hero { margin-top: 24px; padding: 24px; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr); gap: 22px; align-items: start; }
+.eyebrow { margin: 0 0 8px; color: var(--accent-dark); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .hero h1, .page-title h1 { margin: 0 0 10px; font-size: 34px; line-height: 1.08; letter-spacing: 0; }
 .hero p, .page-title p { margin: 0; color: var(--muted); line-height: 1.55; max-width: 760px; }
-.summary-copy { color: var(--muted); line-height: 1.55; max-width: 860px; }
+.hero-actions { margin-top: 18px; }
+.hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.hero-form {
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+}
+.hero-form h2 { margin: 0 0 10px; font-size: 17px; }
+.summary-copy { color: var(--muted); line-height: 1.55; max-width: 860px; overflow-wrap: anywhere; }
 .summary-copy strong { color: #1f2937; }
 .walkthrough {
   margin-top: 18px;
@@ -100,7 +114,7 @@ a { color: var(--accent-dark); }
 }
 .walkthrough h2 { margin: 0 0 10px; font-size: 18px; }
 .walkthrough ol { margin: 0; padding-left: 22px; color: #2f3a4c; line-height: 1.55; }
-.form-grid { display: grid; grid-template-columns: 220px 1fr; gap: 16px; margin-top: 24px; align-items: end; }
+.form-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 12px; align-items: end; }
 label { display: block; margin-bottom: 7px; color: #263244; font-size: 13px; font-weight: 700; }
 select, textarea, input {
   width: 100%;
@@ -127,7 +141,22 @@ button:hover { background: var(--accent-dark); }
 .metric { padding: 14px; min-height: 86px; }
 .metric span { display: block; color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
 .metric strong { display: block; margin-top: 8px; font-size: 18px; overflow-wrap: anywhere; }
-.proof-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 18px 0; }
+.proof-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin: 18px 0; }
+.trust-chain { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; margin-top: 18px; }
+.trust-chain span {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px solid #d6dde8;
+  background: #fff;
+  border-radius: 7px;
+  padding: 7px;
+  color: #243044;
+  font-size: 12px;
+  font-weight: 800;
+}
 .proof-step {
   min-height: 76px;
   border: 1px solid #d6dde8;
@@ -163,6 +192,7 @@ button:hover { background: var(--accent-dark); }
   margin: 14px 0;
   background: #fff;
   line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 .callout strong { display: block; margin-bottom: 3px; }
 .callout.deny { border-color: #fecaca; border-left-color: var(--deny); background: var(--deny-bg); color: #7f1d1d; }
@@ -174,15 +204,27 @@ button:hover { background: var(--accent-dark); }
 .invalid { color: var(--deny); font-weight: 780; }
 .code-chip {
   display: inline-block;
+  max-width: 100%;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   background: #f1f5f9;
   border: 1px solid #d8e0ea;
   border-radius: 5px;
   padding: 2px 5px;
+  overflow-wrap: anywhere;
 }
-.a2a-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.a2a-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
 .a2a-table th, .a2a-table td { border-bottom: 1px solid var(--line); padding: 9px 8px; text-align: left; vertical-align: top; }
 .a2a-table th { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+.a2a-table .code-chip { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+.a2a-table th:nth-child(1), .a2a-table td:nth-child(1) { width: 20%; }
+.a2a-table th:nth-child(2), .a2a-table td:nth-child(2) { width: 13%; }
+.a2a-table th:nth-child(3), .a2a-table td:nth-child(3) { width: 13%; }
+.a2a-table th:nth-child(4), .a2a-table td:nth-child(4) { width: 15%; }
+.a2a-table th:nth-child(5), .a2a-table td:nth-child(5) { width: 15%; }
+.a2a-table th:nth-child(6), .a2a-table td:nth-child(6) { width: 10%; }
+.a2a-table th:nth-child(7), .a2a-table td:nth-child(7) { width: 14%; }
+.table-scroll { overflow-x: auto; }
+.table-scroll table { min-width: 100%; }
 .muted { color: var(--muted); font-size: 12px; }
 pre {
   max-height: 360px;
@@ -205,8 +247,38 @@ pre {
 .footer-nav { margin-top: 22px; }
 @media (max-width: 820px) {
   .shell { padding: 20px 14px 32px; }
-  .topbar, .form-grid, .grid, .metrics, .proof-row, .approval-form { grid-template-columns: 1fr; display: grid; }
+  .topbar, .hero-grid, .form-grid, .grid, .metrics, .proof-row, .approval-form { grid-template-columns: 1fr; display: grid; }
+  .trust-chain { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hero h1, .page-title h1 { font-size: 27px; }
+  .table-scroll { overflow-x: visible; }
+  .a2a-table, .a2a-table thead, .a2a-table tbody, .a2a-table tr, .a2a-table td { display: block; width: 100% !important; }
+  .a2a-table thead { display: none; }
+  .a2a-table tr {
+    box-sizing: border-box;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    background: #fff;
+  }
+  .a2a-table td {
+    border-bottom: 0;
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr);
+    gap: 8px;
+    box-sizing: border-box;
+    padding: 6px 0;
+  }
+  .a2a-table td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+}
+@media (min-width: 821px) and (max-width: 1120px) {
+  .proof-row, .trust-chain { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 """
 
@@ -340,12 +412,27 @@ def _judge_walkthrough_panel() -> str:
       <h2>Judge walkthrough</h2>
       <ol>
         <li>Start the VendorNova review as <span class="code-chip">procurement_user</span>.</li>
-        <li>Scan the proof chain: Identity, Policy, RAG Filter, A2A, Approval, Evidence Verify.</li>
-        <li>Confirm permitted sources are listed and <span class="code-chip">executive_acquisition_memo</span> is denied before model context.</li>
-        <li>Confirm the external action is <span class="code-chip">approval_required</span>, then record approve or reject as reviewer.</li>
-        <li>Check the evidence verification result and the A2A call table for correlation IDs.</li>
+        <li>Confirm <span class="code-chip">executive_acquisition_memo</span> is denied before Gemini context.</li>
+        <li>Confirm only permitted source IDs are eligible for model context.</li>
+        <li>Confirm the external action returns <span class="code-chip">approval_required</span>.</li>
+        <li>Confirm A2A calls show Agent Card URLs, caller/callee, skills, and correlation IDs.</li>
+        <li>Confirm hash-chain evidence verifies.</li>
       </ol>
     </section>
+    """
+
+
+def _trust_chain_markup() -> str:
+    return """
+    <div class="trust-chain" aria-label="Trust proof chain">
+      <span>Identity</span>
+      <span>Policy</span>
+      <span>RAG Filter</span>
+      <span>Gemini</span>
+      <span>A2A</span>
+      <span>Approval</span>
+      <span>Evidence</span>
+    </div>
     """
 
 
@@ -371,11 +458,13 @@ def _proof_chain_row(result: dict[str, Any], *, persona: str) -> str:
         approval_status = f"approval_required / {result['approval_request'].get('status', 'pending')}"
     evidence_state = "ok" if verification.get("valid") else "bad"
     policy_outcome = result.get("export_decision", {}).get("outcome", "UNKNOWN")
+    model_mode = result.get("model_summary", {}).get("mode", "UNKNOWN")
     return (
         '<section class="proof-row" aria-label="Proof chain status">'
         + _proof_step("Identity", f"{persona} from header")
         + _proof_step("Policy", f"external action is {policy_outcome}", "warn")
         + _proof_step("RAG Filter", f"{denied_count} denied before context")
+        + _proof_step("Gemini", f"{model_mode} permitted context only")
         + _proof_step("A2A", f"{a2a_count} calls with correlation IDs")
         + _proof_step("Approval", approval_status, "warn")
         + _proof_step(
@@ -460,47 +549,95 @@ def _model_path_callout(result: dict[str, Any]) -> str:
     """
 
 
+def _agent_card_url_from_base(base_url: str) -> str:
+    if not base_url or base_url == "UNKNOWN":
+        return "UNKNOWN"
+    return f"{base_url.rstrip('/')}/.well-known/agent-card.json"
+
+
+def _a2a_evidence_events(run_id: str) -> dict[str, dict[str, Any]]:
+    try:
+        events = read_events(run_id)
+    except Exception:
+        return {}
+    return {
+        str(event.get("correlation_id", "")): event
+        for event in events
+        if event.get("action") == "a2a_call"
+    }
+
+
 def _a2a_rows(result: dict[str, Any]) -> list[dict[str, str]]:
     calls = result.get("a2a_calls") or []
+    event_by_correlation = _a2a_evidence_events(str(result.get("run_id", "")))
     if calls:
-        return [
-            {
-                "agent": str(call.get("agent", "UNKNOWN")),
-                "skill": str(call.get("skill", "UNKNOWN")),
-                "correlation_id": str(call.get("correlation_id", "UNKNOWN")),
-                "outcome": str(call.get("outcome", "result")),
-                "card": "Agent Card resolved" if call.get("agent_card_resolved") else "Agent Card UNKNOWN",
-            }
-            for call in calls
-        ]
+        rows = []
+        for call in calls:
+            correlation_id = str(call.get("correlation_id", "UNKNOWN"))
+            event = event_by_correlation.get(correlation_id, {})
+            metadata = event.get("metadata", {}) if isinstance(event, dict) else {}
+            base_url = str(call.get("base_url") or metadata.get("base_url") or "UNKNOWN")
+            callee = str(call.get("callee") or metadata.get("callee") or call.get("agent") or "UNKNOWN")
+            caller = str(call.get("caller") or metadata.get("caller") or "root_orchestrator")
+            skill = str(call.get("skill_intent") or call.get("skill") or metadata.get("skill") or "UNKNOWN")
+            event_id = str(call.get("evidence_event_id") or event.get("event_id") or "UNKNOWN")
+            event_hash = str(call.get("evidence_event_hash") or event.get("event_hash") or "UNKNOWN")
+            rows.append(
+                {
+                    "agent_card_url": str(call.get("agent_card_url") or metadata.get("agent_card_url") or _agent_card_url_from_base(base_url)),
+                    "agent": str(call.get("agent", callee)),
+                    "skill": skill,
+                    "caller_callee": f"{caller} -> {callee}",
+                    "correlation_id": correlation_id,
+                    "outcome": str(call.get("outcome", event.get("outcome") or "result")),
+                    "event": f"{event_id} / {event_hash[:16]}",
+                    "card": "Agent Card resolved" if call.get("agent_card_resolved") else "Agent Card UNKNOWN",
+                }
+            )
+        return rows
     fallback = []
     if result.get("retrieval_decision"):
+        correlation_id = str(result["retrieval_decision"].get("correlation_id", "UNKNOWN"))
+        event = event_by_correlation.get(correlation_id, {})
         fallback.append(
             {
+                "agent_card_url": _agent_card_url_from_base(str(event.get("metadata", {}).get("base_url", "UNKNOWN"))),
                 "agent": "akretic-policy-agent",
                 "skill": "authorize_intent",
-                "correlation_id": str(result["retrieval_decision"].get("correlation_id", "UNKNOWN")),
+                "caller_callee": "root_orchestrator -> akretic-policy-agent",
+                "correlation_id": correlation_id,
                 "outcome": str(result["retrieval_decision"].get("outcome", "UNKNOWN")),
+                "event": f"{event.get('event_id', 'UNKNOWN')} / {str(event.get('event_hash', 'UNKNOWN'))[:16]}",
                 "card": "Agent Card resolved",
             }
         )
     if result.get("retrieval"):
+        correlation_id = str(result["retrieval"].get("correlation_id", "UNKNOWN"))
+        event = event_by_correlation.get(correlation_id, {})
         fallback.append(
             {
+                "agent_card_url": _agent_card_url_from_base(str(event.get("metadata", {}).get("base_url", "UNKNOWN"))),
                 "agent": "akretic-knowledge-agent",
                 "skill": "retrieve_permitted_context",
-                "correlation_id": str(result["retrieval"].get("correlation_id", "UNKNOWN")),
+                "caller_callee": "root_orchestrator -> akretic-knowledge-agent",
+                "correlation_id": correlation_id,
                 "outcome": "result",
+                "event": f"{event.get('event_id', 'UNKNOWN')} / {str(event.get('event_hash', 'UNKNOWN'))[:16]}",
                 "card": "Agent Card resolved",
             }
         )
     if result.get("export_decision"):
+        correlation_id = str(result["export_decision"].get("correlation_id", "UNKNOWN"))
+        event = event_by_correlation.get(correlation_id, {})
         fallback.append(
             {
+                "agent_card_url": _agent_card_url_from_base(str(event.get("metadata", {}).get("base_url", "UNKNOWN"))),
                 "agent": "akretic-policy-agent",
                 "skill": "authorize_intent",
-                "correlation_id": str(result["export_decision"].get("correlation_id", "UNKNOWN")),
+                "caller_callee": "root_orchestrator -> akretic-policy-agent",
+                "correlation_id": correlation_id,
                 "outcome": str(result["export_decision"].get("outcome", "UNKNOWN")),
+                "event": f"{event.get('event_id', 'UNKNOWN')} / {str(event.get('event_hash', 'UNKNOWN'))[:16]}",
                 "card": "Agent Card resolved",
             }
         )
@@ -513,18 +650,23 @@ def _a2a_table(result: dict[str, Any]) -> str:
         return "<p>No A2A calls returned for this run.</p>"
     body = "".join(
         "<tr>"
-        f"<td><strong>{html.escape(row['agent'])}</strong><br><span class=\"muted\">{html.escape(row['card'])}</span></td>"
-        f"<td>{html.escape(row['skill'])}</td>"
-        f"<td><span class=\"code-chip\">{html.escape(row['correlation_id'])}</span></td>"
-        f"<td>{html.escape(row['outcome'])}</td>"
+        f"<td data-label=\"Agent Card URL\"><span class=\"code-chip\">{html.escape(row['agent_card_url'])}</span><br><span class=\"muted\">{html.escape(row['card'])}</span></td>"
+        f"<td data-label=\"Agent\"><strong>{html.escape(row['agent'])}</strong></td>"
+        f"<td data-label=\"Skill / intent\">{html.escape(row['skill'])}</td>"
+        f"<td data-label=\"Caller / callee\">{html.escape(row['caller_callee'])}</td>"
+        f"<td data-label=\"correlation_id\"><span class=\"code-chip\">{html.escape(row['correlation_id'])}</span></td>"
+        f"<td data-label=\"Outcome\">{html.escape(row['outcome'])}</td>"
+        f"<td data-label=\"Evidence event / hash\"><span class=\"code-chip\">{html.escape(row['event'])}</span></td>"
         "</tr>"
         for row in rows
     )
     return f"""
-    <table class="a2a-table">
-      <thead><tr><th>Agent</th><th>Skill called</th><th>correlation_id</th><th>Outcome</th></tr></thead>
-      <tbody>{body}</tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="a2a-table">
+        <thead><tr><th>Agent Card URL</th><th>Agent</th><th>Skill / intent</th><th>Caller / callee</th><th>correlation_id</th><th>Outcome</th><th>Evidence event / hash</th></tr></thead>
+        <tbody>{body}</tbody>
+      </table>
+    </div>
     """
 
 
@@ -744,32 +886,53 @@ def sample_evidence_report() -> JSONResponse:
 def home() -> str:
     return _page(
         "Akretic A2A Trust Gateway",
-        """
+        f"""
         <section class="hero">
-        <h1>Akretic A2A Trust Gateway</h1>
-        <p>Challenge prototype: policy-mediated, approval-gated A2A vendor-risk review using synthetic data.</p>
-        <form method="post" action="/run">
-          <div class="form-grid">
+          <div class="hero-grid">
             <div>
-              <label>Persona</label>
-              <select name="persona">
-                <option value="procurement_user">procurement_user</option>
-                <option value="security_reviewer">security_reviewer</option>
-                <option value="legal_reviewer">legal_reviewer</option>
-                <option value="admin">admin</option>
-              </select>
+              <p class="eyebrow">Track 3 B2B A2A trust gateway</p>
+              <h1>Akretic A2A Trust Gateway</h1>
+              <p>
+                Procurement and security teams use the VendorNova vendor-risk workflow to
+                prove that enterprise agents can collaborate while policy, retrieval filtering,
+                approvals, and evidence stay outside Gemini.
+              </p>
+              <div class="hero-badges" aria-label="Demo proof badges">
+                <span class="label warn">Challenge prototype</span>
+                <span class="label">Synthetic data</span>
+                <span class="label info">Cloud Run</span>
+                <span class="label info">Vertex Gemini</span>
+                <span class="label info">A2A Agent Cards</span>
+                <span class="label">ADK-aligned wrapper</span>
+                <span class="label warn">approval_required gate</span>
+                <span class="label ok">Evidence proof</span>
+              </div>
+              {_trust_chain_markup()}
             </div>
-            <div>
-              <label>Query</label>
-              <textarea name="query">VendorNova procurement security policy</textarea>
-            </div>
+            <form class="hero-form" method="post" action="/run">
+              <h2>Start VendorNova Review</h2>
+              <div class="form-grid">
+                <div>
+                  <label>Persona</label>
+                  <select name="persona">
+                    <option value="procurement_user">procurement_user</option>
+                    <option value="security_reviewer">security_reviewer</option>
+                    <option value="legal_reviewer">legal_reviewer</option>
+                    <option value="admin">admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Query</label>
+                  <textarea name="query">VendorNova procurement security policy</textarea>
+                </div>
+              </div>
+              <p class="hero-actions"><button type="submit">Start VendorNova Review</button></p>
+            </form>
           </div>
-          <p><button type="submit">Start VendorNova Review</button></p>
-        </form>
         </section>
         """ + _judge_walkthrough_panel() + """
         """,
-        status="Judge walkthrough",
+        status="Cloud Run judge path",
     )
 
 
