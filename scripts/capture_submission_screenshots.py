@@ -43,6 +43,13 @@ def render_evidence_preview(report_path: Path) -> Path:
         )
     denied_source_ids = ", ".join(latest_model.get("denied_source_ids") or [])
     permitted_source_ids = ", ".join(latest_model.get("permitted_source_ids") or [])
+    a2a_call_count = summary.get("a2a_call_count", 0)
+    approval_actions = summary.get("approval_required_actions") or []
+    approval_state = "approval_required"
+    if report.get("summary", {}).get("reviewer_decisions"):
+        approval_state = "approval_required, reviewer decision recorded"
+    elif approval_actions:
+        approval_state = "approval_required, reviewer decision pending"
     html_text = f"""<!doctype html>
 <html>
 <head>
@@ -53,10 +60,10 @@ def render_evidence_preview(report_path: Path) -> Path:
     h1 {{ font-size: 32px; margin: 0 0 8px; }}
     h2 {{ font-size: 18px; margin-top: 28px; }}
     .subtle {{ color: #64748b; }}
-    .grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0; }}
+    .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 24px 0; }}
     .card {{ background: #fff; border: 1px solid #dbe4ef; border-radius: 8px; padding: 14px; }}
     .label {{ color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; }}
-    .value {{ display: block; margin-top: 6px; font-weight: 800; }}
+    .value {{ display: block; margin-top: 6px; font-weight: 800; overflow-wrap: anywhere; }}
     .ok {{ color: #047857; }}
     .warn {{ color: #b45309; }}
     table {{ width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #dbe4ef; }}
@@ -68,16 +75,21 @@ def render_evidence_preview(report_path: Path) -> Path:
 <body>
   <h1>Sample Evidence Report</h1>
   <p class="subtle">Public-safe preview generated from <code>{html.escape(report_path.name)}</code>.</p>
+  <p class="subtle">
+    This report proves the run: policy decisions, denied retrievals, A2A calls,
+    approval state, reviewer decision, and verification are recorded as hash-chained evidence.
+  </p>
   <div class="grid">
     <div class="card"><span class="label">Run ID</span><span class="value">{html.escape(str(report.get('run_id', '')))}</span></div>
-    <div class="card"><span class="label">Hash Chain</span><span class="value ok">{html.escape(str(verification.get('valid', False)).lower())}</span></div>
+    <div class="card"><span class="label">Hash-Chain Status</span><span class="value ok">{html.escape(str(verification.get('valid', False)).lower())}</span></div>
     <div class="card"><span class="label">Event Count</span><span class="value">{html.escape(str(verification.get('event_count', '')))}</span></div>
     <div class="card"><span class="label">Model Path</span><span class="value">{html.escape(str(latest_model.get('mode', '')))} / {html.escape(str(latest_model.get('model', '')))}</span></div>
+    <div class="card"><span class="label">A2A Calls</span><span class="value">{html.escape(str(a2a_call_count))}</span></div>
   </div>
   <div class="grid">
     <div class="card"><span class="label">Permitted Source IDs</span><span class="value">{html.escape(permitted_source_ids)}</span></div>
-    <div class="card"><span class="label">Denied Source IDs</span><span class="value warn">{html.escape(denied_source_ids)}</span></div>
-    <div class="card"><span class="label">Approval</span><span class="value">approval_required, reviewer decision recorded</span></div>
+    <div class="card"><span class="label">Denied Sources</span><span class="value warn">{html.escape(denied_source_ids)}</span></div>
+    <div class="card"><span class="label">Approval State</span><span class="value">{html.escape(approval_state)}</span></div>
     <div class="card"><span class="label">Boundary</span><span class="value">Denied text is not rendered in this preview.</span></div>
   </div>
   <h2>Evidence Events</h2>

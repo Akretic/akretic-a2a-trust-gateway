@@ -96,6 +96,17 @@ a { color: var(--accent-dark); }
 .hero p, .page-title p { margin: 0; color: var(--muted); line-height: 1.55; max-width: 760px; }
 .hero-actions { margin-top: 18px; }
 .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.business-scenario {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.business-scenario h2, .proof-story-block h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.business-scenario p { color: #2f3a4c; }
+.proof-story-block { margin-top: 20px; }
 .scenario-copy {
   margin: 0 0 14px;
   color: #3f4c61;
@@ -464,42 +475,49 @@ def _story_step(number: int, title: str, body: str, state: str = "ok") -> str:
 
 def _home_proof_story() -> str:
     return """
-    <section class="proof-story" aria-label="Seven step proof path">
-      <article class="story-step ok">
-        <span class="step-number">1</span>
-        <h3>Identity</h3>
-        <div>Derived persona: <span class="code-chip">procurement_user</span>. Body claims cannot upgrade access.</div>
-      </article>
-      <article class="story-step warn">
-        <span class="step-number">2</span>
-        <h3>Policy</h3>
-        <div>Gate0-lite returns allow, deny, or <span class="code-chip">approval_required</span>.</div>
-      </article>
-      <article class="story-step deny">
-        <span class="step-number">3</span>
-        <h3>RAG Filter</h3>
-        <div><span class="code-chip">executive_acquisition_memo</span> is blocked before Gemini.</div>
-      </article>
-      <article class="story-step info">
-        <span class="step-number">4</span>
-        <h3>Gemini</h3>
-        <div>Vertex Gemini summarizes permitted sources only.</div>
-      </article>
-      <article class="story-step ok">
-        <span class="step-number">5</span>
-        <h3>A2A</h3>
-        <div>Agents are called through Agent Cards with correlation IDs.</div>
-      </article>
-      <article class="story-step warn">
-        <span class="step-number">6</span>
-        <h3>Approval</h3>
-        <div>External export remains blocked until reviewer decision.</div>
-      </article>
-      <article class="story-step ok">
-        <span class="step-number">7</span>
-        <h3>Evidence</h3>
-        <div>Hash-chain evidence verifies the run.</div>
-      </article>
+    <section class="proof-story-block">
+      <h2>The controlled path Akretic enforces</h2>
+      <p class="panel-note">
+        The same user request moves through identity, policy, retrieval filtering,
+        Gemini summarization, A2A calls, approval, and evidence.
+      </p>
+      <div class="proof-story" aria-label="Seven step proof path">
+        <article class="story-step ok">
+          <span class="step-number">1</span>
+          <h3>Identity</h3>
+          <div>Derived persona: <span class="code-chip">procurement_user</span>. Body claims cannot upgrade access.</div>
+        </article>
+        <article class="story-step warn">
+          <span class="step-number">2</span>
+          <h3>Policy</h3>
+          <div>Gate0-lite returns allow, deny, or <span class="code-chip">approval_required</span>.</div>
+        </article>
+        <article class="story-step deny">
+          <span class="step-number">3</span>
+          <h3>RAG Filter</h3>
+          <div><span class="code-chip">executive_acquisition_memo</span> is blocked before Gemini.</div>
+        </article>
+        <article class="story-step info">
+          <span class="step-number">4</span>
+          <h3>Gemini</h3>
+          <div>Vertex Gemini summarizes permitted sources only.</div>
+        </article>
+        <article class="story-step ok">
+          <span class="step-number">5</span>
+          <h3>A2A</h3>
+          <div>Agents are called through Agent Cards with correlation IDs.</div>
+        </article>
+        <article class="story-step warn">
+          <span class="step-number">6</span>
+          <h3>Approval</h3>
+          <div>External export remains blocked until reviewer decision.</div>
+        </article>
+        <article class="story-step ok">
+          <span class="step-number">7</span>
+          <h3>Evidence</h3>
+          <div>Hash-chain evidence verifies the run.</div>
+        </article>
+      </div>
     </section>
     """
 
@@ -720,6 +738,46 @@ def _a2a_story_list(result: dict[str, Any]) -> str:
     return f'<ul class="mini-list">{items}</ul>'
 
 
+def _business_outcome_panel(result: dict[str, Any]) -> str:
+    verification = result.get("verification", {})
+    if verification.get("valid"):
+        outcome = (
+            "VendorNova review summary was generated from permitted procurement context. "
+            "Executive-only material was denied before Gemini. External export is blocked "
+            "pending security reviewer approval. The A2A call trail and evidence hash chain "
+            "verified successfully."
+        )
+        state = "ok"
+    else:
+        outcome = (
+            "VendorNova review summary was generated from permitted procurement context. "
+            "Executive-only material was denied before Gemini. External export is blocked "
+            "pending security reviewer approval. Evidence verification did not complete "
+            "successfully, so this run should not be presented as complete."
+        )
+        state = "deny"
+    return f"""
+    <section class="panel">
+      <h2>Business outcome</h2>
+      <div class="callout {state}">
+        <strong>Controlled VendorNova review result</strong>
+        {html.escape(outcome)}
+      </div>
+    </section>
+    """
+
+
+def _prevented_callout() -> str:
+    return """
+    <div class="callout deny">
+      <strong>What Akretic prevented</strong>
+      The executive acquisition memo did not enter Gemini context. The external
+      export did not complete without reviewer approval. The run cannot be
+      presented as complete without a valid evidence chain.
+    </div>
+    """
+
+
 def _result_proof_story(
     result: dict[str, Any],
     *,
@@ -749,14 +807,14 @@ def _result_proof_story(
     return f"""
     <section class="panel story-panel">
       <h2>Proof Path From This Run</h2>
-      <p class="panel-note">The result mirrors the homepage story with the actual run evidence.</p>
+      <p class="panel-note">The result mirrors the homepage story with the actual business and control evidence.</p>
       <div class="proof-story" aria-label="Run evidence proof path">
-        {_story_step(1, "Identity", f'Persona <span class="code-chip">{html.escape(persona)}</span>; actor <span class="code-chip">{html.escape(actor_id)}</span>; role <span class="code-chip">{html.escape(role)}</span>.', "ok")}
-        {_story_step(2, "Policy", f'Retrieval decision <span class="code-chip">{html.escape(retrieval_outcome)}</span>; external export decision <span class="code-chip">{html.escape(export_outcome)}</span>.', "warn")}
-        {_story_step(3, "RAG Filter", f'Permitted source IDs: <span class="code-chip">{html.escape(permitted)}</span><br>Denied before context: <span class="code-chip">{html.escape(denied)}</span>.', "deny")}
-        {_story_step(4, "Gemini", f'Mode <span class="code-chip">{html.escape(mode)}</span>; model <span class="code-chip">{html.escape(model)}</span>; project <span class="code-chip">{html.escape(project_id)}</span>; location <span class="code-chip">{html.escape(location)}</span>.', "info")}
-        {_story_step(5, "A2A", _a2a_story_list(result), "ok")}
-        {_story_step(6, "Approval", f'Approval ID <span class="code-chip">{html.escape(approval_id)}</span>; status <span class="code-chip">{html.escape(approval_status)}</span>; export remains blocked until reviewer decision.', "warn")}
+        {_story_step(1, "Identity", f'<span class="code-chip">{html.escape(persona)}</span> derived; actor <span class="code-chip">{html.escape(actor_id)}</span>; role <span class="code-chip">{html.escape(role)}</span>.', "ok")}
+        {_story_step(2, "Policy", f'Retrieval <span class="code-chip">{html.escape(retrieval_outcome)}</span>; export <span class="code-chip">{html.escape(export_outcome)}</span>. Policy stops the external action at reviewer approval.', "warn")}
+        {_story_step(3, "RAG Filter", f'<span class="code-chip">executive_acquisition_memo</span> denied before context.<br>Denied IDs: <span class="code-chip">{html.escape(denied)}</span>.<br>Permitted: <span class="code-chip">{html.escape(permitted)}</span>.', "deny")}
+        {_story_step(4, "Gemini", f'Vertex Gemini summarizes permitted sources only. Mode <span class="code-chip">{html.escape(mode)}</span>; model <span class="code-chip">{html.escape(model)}</span>; project <span class="code-chip">{html.escape(project_id)}</span>; location <span class="code-chip">{html.escape(location)}</span>.', "info")}
+        {_story_step(5, "A2A", f'Agent Card calls recorded with correlation IDs. {_a2a_story_list(result)}', "ok")}
+        {_story_step(6, "Approval", f'Export blocked pending reviewer decision. Approval ID <span class="code-chip">{html.escape(approval_id)}</span>; status <span class="code-chip">{html.escape(approval_status)}</span>.', "warn")}
         {_story_step(7, "Evidence", f'<span class="code-chip">{html.escape(valid_label)}</span>; event count <span class="code-chip">{html.escape(event_count)}</span>; <a href="/sample-evidence-report" target="_blank" rel="noreferrer">sample report</a>.', evidence_state)}
       </div>
     </section>
@@ -830,7 +888,13 @@ def _render_review_result(result: dict[str, Any], *, persona: str) -> str:
         f"""
         <section class="page-title">
           <h1>VendorNova Review</h1>
+        </section>
+        {_business_outcome_panel(result)}
+        <section class="panel">
+          <h2>Permitted-context summary</h2>
+          <p class="panel-note">Generated by Vertex Gemini from permitted source IDs only.</p>
           <div class="summary-copy">{_summary_html(result['summary'])}</div>
+          {_prevented_callout()}
         </section>
         {_result_proof_story(result, persona=persona, permitted_source_ids=permitted_source_ids, denied_source_ids=denied_source_ids)}
         <section class="metrics">
@@ -994,14 +1058,25 @@ def home() -> str:
                 <span class="label info">Cloud Run + Vertex Gemini</span>
                 <span class="label info">A2A protocol proof</span>
               </div>
+              <section class="business-scenario">
+                <h2>The business scenario</h2>
+                <p>
+                  Procurement needs a fast VendorNova security review using internal policy
+                  and vendor context. Without a trust gateway, agents could retrieve
+                  executive-only documents, summarize restricted context through Gemini, or
+                  export an external-facing exception before review. Akretic lets agents
+                  collaborate through A2A while policy, retrieval filtering, approval, and
+                  evidence stay outside the model.
+                </p>
+              </section>
               {_home_proof_story()}
             </div>
             <form class="hero-form" method="post" action="/run">
               <h2>Run the controlled VendorNova review.</h2>
               <p class="scenario-copy">
                 A procurement user asks for VendorNova security context. Akretic allows
-                permitted sources, denies executive-only material before Gemini, pauses
-                export for approval, and records the A2A evidence trail.
+                procurement policy, blocks executive-only material before Gemini, pauses
+                external export for reviewer approval, and records the A2A evidence trail.
               </p>
               <div class="form-grid">
                 <div>
