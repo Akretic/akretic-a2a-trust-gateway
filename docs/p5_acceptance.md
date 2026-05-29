@@ -7,12 +7,12 @@ scope.
 ## Acceptance Checks
 
 - P0, P1, P2, P3, and P4 remain cleared.
-- P5 submission package is the active lane.
+- P5 submission package is accepted and preserved.
 - Final package exists at `dist/akretic-a2a-trust-gateway-submission.zip`.
 - Final package is under 35 MB.
 - Final package contains no raw video files, screen recordings, editing project
   files, or large video exports.
-- Hosted video URL is tracked in `dist/video_url.txt` when available.
+- Hosted video URL is tracked in `dist/video_url.txt`.
 - Demo video planning material is source-only:
   - `docs/demo_video_script.md`
   - `docs/video_shot_list.md`
@@ -36,7 +36,7 @@ scope.
 
 ## Final Verification
 
-Run from `p5/submission-package` before P5 acceptance:
+Run from `main` before P5 acceptance:
 
 ```powershell
 .\scripts\verify_judge_readiness.ps1

@@ -6,6 +6,7 @@
 - Program: Google for Startups AI Agents Challenge
 - Track: Track 3
 - Public demo URL: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
+- Unlisted Akretic landing page: `https://akretic.com/a2a-trust-gateway-demo`
 - Private GitHub repository: `https://github.com/Akretic/akretic-a2a-trust-gateway`
 - Google Cloud project: `akretic-a2a-trust-gateway`
 - Region: `us-central1`
@@ -27,6 +28,7 @@
 - Demo video script: `docs/demo_video_script.md`
 - Video shot list: `docs/video_shot_list.md`
 - Hosted video URL: `dist/video_url.txt`
+- Unlisted Akretic landing page: `https://akretic.com/a2a-trust-gateway-demo`
 - Public-safe submission answers: `docs/submission_answers_public.md`
 - Paste-ready form packet: `docs/submission_form_packet.md`
 - Devpost answers: `docs/devpost_answers.md`

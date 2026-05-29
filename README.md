@@ -18,11 +18,11 @@ The demo must prove these controls in one short path:
 5. Evidence ledger records allow, deny, approval, A2A call, and result events in a hash chain.
 6. `/verify/{run_id}` proves the chain is intact and detects tampering.
 
-P0, P1, P2, P3, and P4 are cleared. P5 package baseline is complete, final P5
-acceptance is pending the hosted demo video URL, and P6 ADK alignment
-exploration may begin in isolated branches. Coding agents
+P0, P1, P2, P3, P4, and P5 are cleared. The hosted demo video URL is recorded,
+the final submission package is rebuilt, and P6 ADK alignment exploration may
+continue in isolated branches. Coding agents
 must read `PROJECT_SOURCE_OF_TRUTH.md` and then `docs/priority_ladder.md` before
-selecting work so P6 exploration does not jeopardize the P5 submission baseline
+selecting work so P6 exploration does not jeopardize the P5 accepted package
 and P7 productization work does not displace the challenge path.
 
 ## Fast start
@@ -69,12 +69,12 @@ bash scripts/run_local.sh
 
 - `AGENTS.md` — repo-level instructions Codex must read before work.
 - `PROJECT_SOURCE_OF_TRUTH.md` — locked scope and product invariants.
-- `docs/priority_ladder.md` — P0-P7 priority ladder; P5 package baseline is complete and P6 ADK alignment exploration may begin in isolated branches.
+- `docs/priority_ladder.md` — P0-P7 priority ladder; P5 is complete and P6 ADK alignment exploration may continue in isolated branches.
 - `docs/p1_acceptance.md` — completed P1 demo-path polish acceptance checks.
 - `docs/p2_acceptance.md` — completed P2 Gemini/Vertex hardening acceptance checks.
 - `docs/p3_acceptance.md` — completed P3 Cloud Run deployment hardening acceptance checks.
 - `docs/p4_acceptance.md` — completed P4 judge hardening acceptance checks.
-- `docs/p5_acceptance.md` — P5 submission package acceptance checks; final acceptance is pending hosted video URL.
+- `docs/p5_acceptance.md` — completed P5 submission package acceptance checks.
 - `docs/devpost_answers.md` — paste-ready public submission answers.
 - `docs/demo_video_script.md` and `docs/video_shot_list.md` — hosted demo video planning material.
 - `docs/judge_readiness.md` — public judge-path checklist and trust-boundary verifier.

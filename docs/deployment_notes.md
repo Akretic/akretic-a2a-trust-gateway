@@ -6,12 +6,21 @@ Date: 2026-05-28
 
 Date: 2026-05-28
 
+### Final Acceptance Update
+
+- Hosted demo video URL recorded: `https://youtu.be/FAziZQFkIfw`.
+- Unlisted Akretic landing page is live at
+  `https://akretic.com/a2a-trust-gateway-demo`.
+- Final package rebuilt at `dist/akretic-a2a-trust-gateway-submission.zip`.
+- Public Cloud Run verification retained a fresh evidence report under
+  `artifacts/`.
+
 ### Scope
 
 - Added P5 acceptance, Devpost-ready answers, hosted-video script, and shot-list docs.
 - Refreshed submission checklist and package docs for hosted video URL handling.
 - Excluded raw video binaries from the repo and final zip; `dist/video_url.txt`
-  is the hosted-video URL placeholder until upload.
+  contains the hosted-video URL.
 - Regenerated public-safe brief PDF from `docs/public_brief.md`.
 - Refreshed public demo screenshots and a public-safe evidence report preview.
 - Added reproducible local helpers for screenshots, PDF rendering, and zip packaging.
@@ -22,7 +31,7 @@ Date: 2026-05-28
 
 - Final zip: `dist/akretic-a2a-trust-gateway-submission.zip`
 - Public-safe PDF: `dist/akretic-a2a-trust-gateway-public-brief.pdf`
-- Hosted video URL placeholder: `dist/video_url.txt`
+- Hosted video URL: `dist/video_url.txt`
 - Screenshot artifacts:
   - `artifacts/screenshots/demo-home.png`
   - `artifacts/screenshots/demo-review-result.png`

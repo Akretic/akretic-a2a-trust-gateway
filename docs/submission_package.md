@@ -9,18 +9,19 @@
 
 ## Current Status
 
-P0, P1, P2, P3, and P4 are cleared. P5 submission packaging has a hosted demo
-video URL recorded in `dist/video_url.txt`; final P5 acceptance remains pending
-the final verifier set and acceptance tag. The proof path is deployed and
-verified with public unauthenticated Cloud Run access to the demo UI. Private
-agent/root/evidence services remain protected by Cloud Run IAM and are invoked
-by the UI runtime service account.
+P0, P1, P2, P3, P4, and P5 are cleared. P5 submission packaging has a hosted
+demo video URL recorded in `dist/video_url.txt`, a rebuilt final zip, and an
+unlisted Akretic landing page at `https://akretic.com/a2a-trust-gateway-demo`.
+The proof path is deployed and verified with public unauthenticated Cloud Run
+access to the demo UI. Private agent/root/evidence services remain protected by
+Cloud Run IAM and are invoked by the UI runtime service account.
 
 ## Prepared Deliverables
 
 | Deliverable | Status | Artifact |
 |---|---|---|
 | Public Cloud Run demo URL | Ready | `https://akretic-demo-ui-oes3slkexq-uc.a.run.app` |
+| Unlisted Akretic landing page | Ready | `https://akretic.com/a2a-trust-gateway-demo` |
 | README with install, test, and deploy instructions | Prepared | `README.md`, `docs/deployment.md` |
 | Submission checklist | Prepared | `docs/submission_checklist.md` |
 | 1-2 minute demo video script | Prepared | `docs/demo_video_script.md` |
@@ -76,7 +77,5 @@ by the UI runtime service account.
 - Paste or adapt `docs/devpost_answers.md` into the submission form.
 - Attach the screenshots, sample evidence report, architecture doc, and public
   brief/PDF as the submission platform allows.
-- Run the final verifier set and create the P5 acceptance tag only after it is
-  green.
 - Optional: add an `environment` project tag in Google Cloud if the Akretic
   organization later requires it for project hygiene.

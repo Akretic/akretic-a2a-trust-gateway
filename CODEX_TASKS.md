@@ -3,17 +3,16 @@
 Use `/plan` for ambiguous work, then `/goal` for execution. Keep every goal bounded and testable.
 
 Before selecting work, read `PROJECT_SOURCE_OF_TRUTH.md`, then
-`docs/priority_ladder.md`. P0, P1, P2, P3, and P4 are cleared. P5 package
-baseline is complete and the hosted demo video URL is recorded; final P5
-acceptance is pending final verification and acceptance tag. P6 ADK alignment
-exploration may begin in isolated branches, and P7 post-challenge
-productization must not displace the challenge path.
+`docs/priority_ladder.md`. P0, P1, P2, P3, P4, and P5 are cleared. The
+hosted demo video URL is recorded and the unlisted Akretic landing page is live.
+P6 ADK alignment exploration may continue in isolated branches, and P7
+post-challenge productization must not displace the challenge path.
 
 ## Current active lane
 
 P6 ADK alignment exploration may begin in isolated branches. The P0 tickets below are
 regression and reference material only unless tests fail or the user explicitly
-assigns P0 regression work. Do not rebuild cleared P0/P1 work just because the
+assigns regression work. Do not rebuild cleared P0-P5 work just because the
 historical ticket sequence is still documented here.
 
 ## Goal mode operating rule
