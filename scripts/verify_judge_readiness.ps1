@@ -47,9 +47,14 @@ $homeResponse = Invoke-WebRequest -UseBasicParsing -Uri "$baseUrl/" -TimeoutSec 
 $homeHtml = $homeResponse.Content
 
 Assert-ContainsText $homeHtml "Akretic A2A Trust Gateway" "home brand"
+Assert-ContainsText $homeHtml "Agents collaborate. Gemini does not authorize." "home thesis"
+Assert-ContainsText $homeHtml "controlled VendorNova review" "home buyer workflow"
 Assert-ContainsText $homeHtml "Challenge prototype" "home prototype label"
 Assert-ContainsText $homeHtml "Synthetic data" "home synthetic-data label"
-Assert-ContainsText $homeHtml "Judge walkthrough" "home judge walkthrough"
+Assert-ContainsText $homeHtml "Cloud Run + Vertex Gemini" "home Vertex Cloud Run chip"
+Assert-ContainsText $homeHtml "A2A protocol proof" "home A2A proof chip"
+Assert-ContainsText $homeHtml "What this demo proves" "home proof narrative"
+Assert-ContainsText $homeHtml "Run the controlled VendorNova review." "home scenario form"
 Assert-ContainsText $homeHtml "Start VendorNova Review" "home start button"
 
 $body = "persona=procurement_user&query=$([uri]::EscapeDataString($Query))"
@@ -63,6 +68,8 @@ $runResponse = Invoke-WebRequest `
 
 $runHtml = $runResponse.Content
 Assert-ContainsText $runHtml "VendorNova Review" "review page"
+Assert-ContainsText $runHtml "Proof Path From This Run" "review proof storyboard"
+Assert-ContainsText $runHtml "The result mirrors the homepage story with the actual run evidence." "review proof narrative"
 Assert-ContainsText $runHtml "<span>Run ID</span>" "run ID metric"
 Assert-ContainsText $runHtml "Mode: vertex" "Vertex mode"
 Assert-ContainsText $runHtml "Model: gemini-2.5-flash" "Gemini model"

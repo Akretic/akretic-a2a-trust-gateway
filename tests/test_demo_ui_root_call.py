@@ -124,23 +124,26 @@ def test_demo_ui_home_first_viewport_shows_judge_proof_markers():
     html = demo_ui.home()
 
     assert "Akretic A2A Trust Gateway" in html
-    assert "Procurement and security teams" in html
-    assert "VendorNova vendor-risk workflow" in html
+    assert "Agents collaborate. Gemini does not authorize." in html
+    assert "Akretic gives procurement and security teams a controlled VendorNova review" in html
     assert "Challenge prototype" in html
     assert "Synthetic data" in html
-    assert "Cloud Run" in html
-    assert "Vertex Gemini" in html
-    assert "A2A Agent Cards" in html
-    assert "ADK-aligned wrapper" in html
-    assert "approval_required gate" in html
-    assert "Evidence proof" in html
+    assert "Cloud Run + Vertex Gemini" in html
+    assert "A2A protocol proof" in html
+    assert "Run the controlled VendorNova review." in html
+    assert "A procurement user asks for VendorNova security context" in html
+    assert "executive_acquisition_memo" in html
+    assert "What this demo proves" in html
     assert "Identity" in html
+    assert "Derived persona: <span class=\"code-chip\">procurement_user</span>" in html
     assert "Policy" in html
+    assert "Gate0-lite returns allow, deny, or" in html
     assert "RAG Filter" in html
     assert "Gemini" in html
     assert "A2A" in html
     assert "Approval" in html
     assert "Evidence" in html
+    assert "ADK-aligned wrapper" not in html
 
 
 def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
@@ -212,10 +215,17 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
 
     html = demo_ui._render_review_result(result, persona="procurement_user")
 
-    assert "Judge walkthrough" in html
+    assert "Proof Path From This Run" in html
+    assert "The result mirrors the homepage story with the actual run evidence." in html
+    assert "Persona <span class=\"code-chip\">procurement_user</span>" in html
+    assert "Retrieval decision <span class=\"code-chip\">allow</span>" in html
+    assert "external export decision <span class=\"code-chip\">approval_required</span>" in html
+    assert "Permitted source IDs: <span class=\"code-chip\">procurement_policy</span>" in html
+    assert "Denied before context: <span class=\"code-chip\">executive_acquisition_memo</span>" in html
+    assert "Mode <span class=\"code-chip\">local</span>" in html
+    assert "Approval ID <span class=\"code-chip\">approval-p1</span>" in html
+    assert "event count <span class=\"code-chip\">12</span>" in html
     assert "Denied before model context: executive_acquisition_memo." in html
-    assert "external action is approval_required" in html
-    assert "local permitted context only" in html
     assert "approval_required: external/sensitive action is paused." in html
     assert "Agent Card URL" in html
     assert "Skill / intent" in html
@@ -230,6 +240,7 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
     assert "Evidence proof: valid hash chain." in html
     assert "Challenge prototype" in html
     assert "Synthetic data" in html
+    assert "Judge walkthrough" not in html
     assert "P1 judge walkthrough" not in html
     assert "Evidence chain</span><strong class=\"valid\">true" not in html
 

@@ -96,6 +96,11 @@ a { color: var(--accent-dark); }
 .hero p, .page-title p { margin: 0; color: var(--muted); line-height: 1.55; max-width: 760px; }
 .hero-actions { margin-top: 18px; }
 .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.scenario-copy {
+  margin: 0 0 14px;
+  color: #3f4c61;
+  line-height: 1.52;
+}
 .hero-form {
   border: 1px solid var(--line);
   background: #f8fafc;
@@ -105,6 +110,7 @@ a { color: var(--accent-dark); }
 .hero-form h2 { margin: 0 0 10px; font-size: 17px; }
 .summary-copy { color: var(--muted); line-height: 1.55; max-width: 860px; overflow-wrap: anywhere; }
 .summary-copy strong { color: #1f2937; }
+.story-copy { color: #2f3a4c; line-height: 1.58; max-width: 980px; margin: 0; }
 .walkthrough {
   margin-top: 18px;
   padding: 18px;
@@ -142,21 +148,43 @@ button:hover { background: var(--accent-dark); }
 .metric span { display: block; color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
 .metric strong { display: block; margin-top: 8px; font-size: 18px; overflow-wrap: anywhere; }
 .proof-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin: 18px 0; }
-.trust-chain { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; margin-top: 18px; }
-.trust-chain span {
-  min-height: 44px;
-  display: flex;
+.proof-story { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 18px; }
+.story-panel .proof-story { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.story-panel .story-step:nth-child(5) { grid-column: span 2; }
+.story-panel .mini-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; padding-left: 0; list-style: none; }
+.story-step {
+  position: relative;
+  min-height: 108px;
+  border: 1px solid #d6dde8;
+  border-left-width: 4px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px 12px 12px 46px;
+}
+.story-step .step-number {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  border: 1px solid #d6dde8;
-  background: #fff;
-  border-radius: 7px;
-  padding: 7px;
-  color: #243044;
+  border-radius: 999px;
+  background: #e8f6f2;
+  color: var(--accent-dark);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 850;
 }
+.story-step h3 { margin: 0 0 6px; font-size: 14px; }
+.story-step p, .story-step div { margin: 0; color: #354155; font-size: 13px; line-height: 1.42; overflow-wrap: anywhere; }
+.story-step.ok { border-left-color: var(--ok); }
+.story-step.warn { border-left-color: var(--warn); }
+.story-step.deny { border-left-color: var(--deny); }
+.story-step.info { border-left-color: var(--info); }
+.mini-list { margin: 0; padding-left: 16px; }
+.mini-list li { margin-bottom: 6px; }
+.story-panel { margin-top: 18px; }
 .proof-step {
   min-height: 76px;
   border: 1px solid #d6dde8;
@@ -248,7 +276,10 @@ pre {
 @media (max-width: 820px) {
   .shell { padding: 20px 14px 32px; }
   .topbar, .hero-grid, .form-grid, .grid, .metrics, .proof-row, .approval-form { grid-template-columns: 1fr; display: grid; }
-  .trust-chain { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .proof-story { grid-template-columns: 1fr; }
+  .story-panel .proof-story { grid-template-columns: 1fr; }
+  .story-panel .story-step:nth-child(5) { grid-column: auto; }
+  .story-panel .mini-list { display: block; padding-left: 16px; list-style: disc; }
   .hero h1, .page-title h1 { font-size: 27px; }
   .table-scroll { overflow-x: visible; }
   .a2a-table, .a2a-table thead, .a2a-table tbody, .a2a-table tr, .a2a-table td { display: block; width: 100% !important; }
@@ -278,7 +309,7 @@ pre {
   }
 }
 @media (min-width: 821px) and (max-width: 1120px) {
-  .proof-row, .trust-chain { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .proof-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 """
 
@@ -406,33 +437,70 @@ def _failure_response(error: DemoUiError, *, title: str = "Demo path unavailable
     return HTMLResponse(content=content, status_code=error.status_code)
 
 
-def _judge_walkthrough_panel() -> str:
+def _what_this_demo_proves_panel() -> str:
     return """
     <section class="walkthrough">
-      <h2>Judge walkthrough</h2>
-      <ol>
-        <li>Start the VendorNova review as <span class="code-chip">procurement_user</span>.</li>
-        <li>Confirm <span class="code-chip">executive_acquisition_memo</span> is denied before Gemini context.</li>
-        <li>Confirm only permitted source IDs are eligible for model context.</li>
-        <li>Confirm the external action returns <span class="code-chip">approval_required</span>.</li>
-        <li>Confirm A2A calls show Agent Card URLs, caller/callee, skills, and correlation IDs.</li>
-        <li>Confirm hash-chain evidence verifies.</li>
-      </ol>
+      <h2>What this demo proves</h2>
+      <p class="story-copy">
+        In this run, a procurement user reviews VendorNova. Akretic derives identity,
+        allows permitted context, blocks executive-only material before Gemini,
+        calls specialist agents through A2A Agent Cards, pauses export with
+        <span class="code-chip">approval_required</span>, and verifies the run with
+        hash-chain evidence.
+      </p>
     </section>
     """
 
 
-def _trust_chain_markup() -> str:
+def _story_step(number: int, title: str, body: str, state: str = "ok") -> str:
+    return f"""
+    <article class="story-step {html.escape(state)}">
+      <span class="step-number">{number}</span>
+      <h3>{html.escape(title)}</h3>
+      <div>{body}</div>
+    </article>
+    """
+
+
+def _home_proof_story() -> str:
     return """
-    <div class="trust-chain" aria-label="Trust proof chain">
-      <span>Identity</span>
-      <span>Policy</span>
-      <span>RAG Filter</span>
-      <span>Gemini</span>
-      <span>A2A</span>
-      <span>Approval</span>
-      <span>Evidence</span>
-    </div>
+    <section class="proof-story" aria-label="Seven step proof path">
+      <article class="story-step ok">
+        <span class="step-number">1</span>
+        <h3>Identity</h3>
+        <div>Derived persona: <span class="code-chip">procurement_user</span>. Body claims cannot upgrade access.</div>
+      </article>
+      <article class="story-step warn">
+        <span class="step-number">2</span>
+        <h3>Policy</h3>
+        <div>Gate0-lite returns allow, deny, or <span class="code-chip">approval_required</span>.</div>
+      </article>
+      <article class="story-step deny">
+        <span class="step-number">3</span>
+        <h3>RAG Filter</h3>
+        <div><span class="code-chip">executive_acquisition_memo</span> is blocked before Gemini.</div>
+      </article>
+      <article class="story-step info">
+        <span class="step-number">4</span>
+        <h3>Gemini</h3>
+        <div>Vertex Gemini summarizes permitted sources only.</div>
+      </article>
+      <article class="story-step ok">
+        <span class="step-number">5</span>
+        <h3>A2A</h3>
+        <div>Agents are called through Agent Cards with correlation IDs.</div>
+      </article>
+      <article class="story-step warn">
+        <span class="step-number">6</span>
+        <h3>Approval</h3>
+        <div>External export remains blocked until reviewer decision.</div>
+      </article>
+      <article class="story-step ok">
+        <span class="step-number">7</span>
+        <h3>Evidence</h3>
+        <div>Hash-chain evidence verifies the run.</div>
+      </article>
+    </section>
     """
 
 
@@ -440,39 +508,6 @@ def _proof_step(label: str, value: str, state: str = "ok") -> str:
     return (
         f'<div class="proof-step {html.escape(state)}">'
         f"<span>{html.escape(label)}</span><strong>{html.escape(value)}</strong></div>"
-    )
-
-
-def _proof_chain_row(result: dict[str, Any], *, persona: str) -> str:
-    verification = result.get("verification", {})
-    denied_count = len(result.get("retrieval", {}).get("denied_sources", []))
-    a2a_count = len(result.get("a2a_calls", []))
-    if not a2a_count:
-        a2a_count = sum(
-            1
-            for key in ("retrieval_decision", "retrieval", "export_decision")
-            if result.get(key)
-        )
-    approval_status = "approval_required"
-    if result.get("approval_request"):
-        approval_status = f"approval_required / {result['approval_request'].get('status', 'pending')}"
-    evidence_state = "ok" if verification.get("valid") else "bad"
-    policy_outcome = result.get("export_decision", {}).get("outcome", "UNKNOWN")
-    model_mode = result.get("model_summary", {}).get("mode", "UNKNOWN")
-    return (
-        '<section class="proof-row" aria-label="Proof chain status">'
-        + _proof_step("Identity", f"{persona} from header")
-        + _proof_step("Policy", f"external action is {policy_outcome}", "warn")
-        + _proof_step("RAG Filter", f"{denied_count} denied before context")
-        + _proof_step("Gemini", f"{model_mode} permitted context only")
-        + _proof_step("A2A", f"{a2a_count} calls with correlation IDs")
-        + _proof_step("Approval", approval_status, "warn")
-        + _proof_step(
-            "Evidence Verify",
-            f"{'valid' if verification.get('valid') else 'invalid'} hash chain",
-            evidence_state,
-        )
-        + "</section>"
     )
 
 
@@ -670,6 +705,64 @@ def _a2a_table(result: dict[str, Any]) -> str:
     """
 
 
+def _a2a_story_list(result: dict[str, Any]) -> str:
+    rows = _a2a_rows(result)
+    if not rows:
+        return "No A2A calls returned for this run."
+    items = "".join(
+        "<li>"
+        f"<strong>{html.escape(row['agent'])}</strong> / {html.escape(row['skill'])}<br>"
+        f"<span class=\"code-chip\">{html.escape(row['correlation_id'])}</span> "
+        f"<span class=\"code-chip\">{html.escape(row['event'])}</span>"
+        "</li>"
+        for row in rows[:4]
+    )
+    return f'<ul class="mini-list">{items}</ul>'
+
+
+def _result_proof_story(
+    result: dict[str, Any],
+    *,
+    persona: str,
+    permitted_source_ids: list[str],
+    denied_source_ids: list[str],
+) -> str:
+    actor = result.get("actor") if isinstance(result.get("actor"), dict) else {}
+    actor_id = str(actor.get("actor_id") or persona)
+    role = str(actor.get("role") or persona)
+    retrieval_outcome = str(result.get("retrieval_decision", {}).get("outcome", "UNKNOWN"))
+    export_outcome = str(result.get("export_decision", {}).get("outcome", "UNKNOWN"))
+    approval = result.get("approval_request") or {}
+    approval_id = str(approval.get("approval_id", "none"))
+    approval_status = str(approval.get("status", result.get("export_result", {}).get("status", "UNKNOWN")))
+    model_summary = result.get("model_summary", {})
+    mode = str(model_summary.get("mode", "UNKNOWN"))
+    model = str(model_summary.get("model", "UNKNOWN"))
+    project_id = str(model_summary.get("project_id", "not applicable"))
+    location = str(model_summary.get("location", "not applicable"))
+    verification = result.get("verification", {})
+    valid_label = "valid hash chain" if verification.get("valid") else "verification failed"
+    event_count = str(verification.get("event_count", "UNKNOWN"))
+    permitted = ", ".join(permitted_source_ids) or "none"
+    denied = ", ".join(denied_source_ids) or "none"
+    evidence_state = "ok" if verification.get("valid") else "deny"
+    return f"""
+    <section class="panel story-panel">
+      <h2>Proof Path From This Run</h2>
+      <p class="panel-note">The result mirrors the homepage story with the actual run evidence.</p>
+      <div class="proof-story" aria-label="Run evidence proof path">
+        {_story_step(1, "Identity", f'Persona <span class="code-chip">{html.escape(persona)}</span>; actor <span class="code-chip">{html.escape(actor_id)}</span>; role <span class="code-chip">{html.escape(role)}</span>.', "ok")}
+        {_story_step(2, "Policy", f'Retrieval decision <span class="code-chip">{html.escape(retrieval_outcome)}</span>; external export decision <span class="code-chip">{html.escape(export_outcome)}</span>.', "warn")}
+        {_story_step(3, "RAG Filter", f'Permitted source IDs: <span class="code-chip">{html.escape(permitted)}</span><br>Denied before context: <span class="code-chip">{html.escape(denied)}</span>.', "deny")}
+        {_story_step(4, "Gemini", f'Mode <span class="code-chip">{html.escape(mode)}</span>; model <span class="code-chip">{html.escape(model)}</span>; project <span class="code-chip">{html.escape(project_id)}</span>; location <span class="code-chip">{html.escape(location)}</span>.', "info")}
+        {_story_step(5, "A2A", _a2a_story_list(result), "ok")}
+        {_story_step(6, "Approval", f'Approval ID <span class="code-chip">{html.escape(approval_id)}</span>; status <span class="code-chip">{html.escape(approval_status)}</span>; export remains blocked until reviewer decision.', "warn")}
+        {_story_step(7, "Evidence", f'<span class="code-chip">{html.escape(valid_label)}</span>; event count <span class="code-chip">{html.escape(event_count)}</span>; <a href="/sample-evidence-report" target="_blank" rel="noreferrer">sample report</a>.', evidence_state)}
+      </div>
+    </section>
+    """
+
+
 def _evidence_callout(verification: dict[str, Any]) -> str:
     valid = bool(verification.get("valid"))
     event_count = verification.get("event_count", "UNKNOWN")
@@ -739,8 +832,7 @@ def _render_review_result(result: dict[str, Any], *, persona: str) -> str:
           <h1>VendorNova Review</h1>
           <div class="summary-copy">{_summary_html(result['summary'])}</div>
         </section>
-        {_judge_walkthrough_panel()}
-        {_proof_chain_row(result, persona=persona)}
+        {_result_proof_story(result, persona=persona, permitted_source_ids=permitted_source_ids, denied_source_ids=denied_source_ids)}
         <section class="metrics">
           <div class="metric"><span>Run ID</span><strong>{html.escape(result['run_id'])}</strong></div>
           <div class="metric"><span>Persona</span><strong>{html.escape(persona)}</strong></div>
@@ -784,7 +876,7 @@ def _render_review_result(result: dict[str, Any], *, persona: str) -> str:
         </section>
         <p class="footer-nav"><a href="/">Back</a></p>
         """,
-        status="Judge walkthrough",
+        status="Proof storyboard",
     )
 
 
@@ -890,27 +982,27 @@ def home() -> str:
         <section class="hero">
           <div class="hero-grid">
             <div>
-              <p class="eyebrow">Track 3 B2B A2A trust gateway</p>
-              <h1>Akretic A2A Trust Gateway</h1>
+              <p class="eyebrow">Akretic A2A Trust Gateway</p>
+              <h1>Agents collaborate. Gemini does not authorize.</h1>
               <p>
-                Procurement and security teams use the VendorNova vendor-risk workflow to
-                prove that enterprise agents can collaborate while policy, retrieval filtering,
-                approvals, and evidence stay outside Gemini.
+                Akretic gives procurement and security teams a controlled VendorNova review
+                where policy, retrieval filtering, approval, and evidence stay outside the model.
               </p>
               <div class="hero-badges" aria-label="Demo proof badges">
                 <span class="label warn">Challenge prototype</span>
                 <span class="label">Synthetic data</span>
-                <span class="label info">Cloud Run</span>
-                <span class="label info">Vertex Gemini</span>
-                <span class="label info">A2A Agent Cards</span>
-                <span class="label">ADK-aligned wrapper</span>
-                <span class="label warn">approval_required gate</span>
-                <span class="label ok">Evidence proof</span>
+                <span class="label info">Cloud Run + Vertex Gemini</span>
+                <span class="label info">A2A protocol proof</span>
               </div>
-              {_trust_chain_markup()}
+              {_home_proof_story()}
             </div>
             <form class="hero-form" method="post" action="/run">
-              <h2>Start VendorNova Review</h2>
+              <h2>Run the controlled VendorNova review.</h2>
+              <p class="scenario-copy">
+                A procurement user asks for VendorNova security context. Akretic allows
+                permitted sources, denies executive-only material before Gemini, pauses
+                export for approval, and records the A2A evidence trail.
+              </p>
               <div class="form-grid">
                 <div>
                   <label>Persona</label>
@@ -930,7 +1022,7 @@ def home() -> str:
             </form>
           </div>
         </section>
-        """ + _judge_walkthrough_panel() + """
+        """ + _what_this_demo_proves_panel() + """
         """,
         status="Cloud Run judge path",
     )
