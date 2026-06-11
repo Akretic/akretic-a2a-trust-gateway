@@ -1301,6 +1301,7 @@ def build_packet(args: argparse.Namespace) -> Path:
     mode = args.mode.lower()
     urls = _service_urls(args)
     if mode == "cloud":
+        os.environ.setdefault("AKRETIC_CLOUD_RUN_AUTH", "identity_token")
         _assert_cloud_urls(urls)
         if args.skip_pytest:
             raise RuntimeError("cloud handoff requires pytest output; do not use --skip-pytest")
