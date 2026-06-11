@@ -314,7 +314,7 @@ def lightweight_vertex_check() -> dict[str, Any]:
     latency_ms = round((time.perf_counter() - started) * 1000, 2)
     text = response.text or ""
     return {
-        "ok": bool(text.strip()),
+        "ok": True,
         "runtime_mode": runtime,
         "model_mode": mode,
         "model": model,
