@@ -1501,7 +1501,7 @@ def build_packet(args: argparse.Namespace) -> Path:
     deploy_manifest = None
     deploy_manifest_source = Path(args.deploy_manifest)
     if deploy_manifest_source.exists():
-        deploy_manifest = json.loads(deploy_manifest_source.read_text(encoding="utf-8"))
+        deploy_manifest = json.loads(deploy_manifest_source.read_text(encoding="utf-8-sig"))
         deploy_manifest["packet_filename"] = packet_dir.with_suffix(".zip").name
         _write_json(packet_dir / "deploy-manifest.json", deploy_manifest)
         if mode == "cloud":
