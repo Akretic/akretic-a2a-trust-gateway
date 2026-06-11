@@ -15,3 +15,6 @@ output/
 dist/
 build/
 *.log
+deploy-manifest.json
+warmup-output.json
+readiness-burnin-output.json
