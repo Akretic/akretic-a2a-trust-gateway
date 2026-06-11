@@ -23,6 +23,7 @@ $AllowedServices = @(
   "akretic-research-agent",
   "akretic-approval-evidence"
 )
+$Gcloud = if ($IsWindows -or $env:OS -eq "Windows_NT") { "gcloud.cmd" } else { "gcloud" }
 
 function Run-Step {
   param(
@@ -59,12 +60,12 @@ function Test-DeploymentPreflight {
     }
   }
 
-  $activeAccount = (& gcloud config get-value account).Trim()
-  $activeProject = (& gcloud config get-value project).Trim()
+  $activeAccount = (& $Gcloud config get-value account).Trim()
+  $activeProject = (& $Gcloud config get-value project).Trim()
   Assert-Equal $activeAccount $ExpectedAccount "active gcloud account"
   Assert-Equal $activeProject $ProjectId "active gcloud project"
 
-  $billing = gcloud billing projects describe $ProjectId --format=json | ConvertFrom-Json
+  $billing = & $Gcloud billing projects describe $ProjectId --format=json | ConvertFrom-Json
   if (-not [bool]$billing.billingEnabled) {
     throw "Billing is not enabled for $ProjectId"
   }
@@ -85,10 +86,10 @@ function Test-DeploymentPreflight {
 
 function Ensure-ServiceAccount {
   param([string]$Email)
-  $existing = & gcloud iam service-accounts describe $Email --project $ProjectId --format "value(email)" 2>$null
+  $existing = & $Gcloud iam service-accounts describe $Email --project $ProjectId --format "value(email)" 2>$null
   if (-not $existing) {
     Run-Step "Create runtime service account" @(
-      "gcloud", "iam", "service-accounts", "create", $RuntimeServiceAccount,
+      $Gcloud, "iam", "service-accounts", "create", $RuntimeServiceAccount,
       "--project", $ProjectId,
       "--display-name", "Akretic P0 Cloud Run runtime"
     )
@@ -96,10 +97,10 @@ function Ensure-ServiceAccount {
 }
 
 function Ensure-ArtifactRepo {
-  $existing = & gcloud artifacts repositories describe $Repository --project $ProjectId --location $Region --format "value(name)" 2>$null
+  $existing = & $Gcloud artifacts repositories describe $Repository --project $ProjectId --location $Region --format "value(name)" 2>$null
   if (-not $existing) {
     Run-Step "Create Artifact Registry repository" @(
-      "gcloud", "artifacts", "repositories", "create", $Repository,
+      $Gcloud, "artifacts", "repositories", "create", $Repository,
       "--project", $ProjectId,
       "--repository-format", "docker",
       "--location", $Region,
@@ -109,10 +110,10 @@ function Ensure-ArtifactRepo {
 }
 
 function Ensure-Bucket {
-  $existing = & gcloud storage buckets describe "gs://$EvidenceBucket" --format "value(name)" 2>$null
+  $existing = & $Gcloud storage buckets describe "gs://$EvidenceBucket" --format "value(name)" 2>$null
   if (-not $existing) {
     Run-Step "Create private evidence bucket" @(
-      "gcloud", "storage", "buckets", "create", "gs://$EvidenceBucket",
+      $Gcloud, "storage", "buckets", "create", "gs://$EvidenceBucket",
       "--project", $ProjectId,
       "--location", $Region,
       "--uniform-bucket-level-access"
@@ -121,10 +122,10 @@ function Ensure-Bucket {
 }
 
 function Ensure-CorpusBucket {
-  $existing = & gcloud storage buckets describe "gs://$CorpusBucket" --format "value(name)" 2>$null
+  $existing = & $Gcloud storage buckets describe "gs://$CorpusBucket" --format "value(name)" 2>$null
   if (-not $existing) {
     Run-Step "Create private synthetic corpus bucket" @(
-      "gcloud", "storage", "buckets", "create", "gs://$CorpusBucket",
+      $Gcloud, "storage", "buckets", "create", "gs://$CorpusBucket",
       "--project", $ProjectId,
       "--location", $Region,
       "--uniform-bucket-level-access"
@@ -137,19 +138,19 @@ function Upload-SyntheticCorpus {
   $metadataTarget = if ($prefix) { "gs://$CorpusBucket/$prefix/metadata.json" } else { "gs://$CorpusBucket/metadata.json" }
   $documentsTarget = if ($prefix) { "gs://$CorpusBucket/$prefix/documents" } else { "gs://$CorpusBucket/documents" }
   Run-Step "Upload synthetic corpus metadata" @(
-    "gcloud", "storage", "cp", "corpus/metadata.json", $metadataTarget
+    $Gcloud, "storage", "cp", "corpus/metadata.json", $metadataTarget
   )
   Run-Step "Upload synthetic corpus documents" @(
-    "gcloud", "storage", "cp", "--recursive", "corpus/documents/*", $documentsTarget
+    $Gcloud, "storage", "cp", "--recursive", "corpus/documents/*", $documentsTarget
   )
 }
 
 function Ensure-CloudBuildSourceBucket {
   $CloudBuildSourceBucket = "${ProjectId}_cloudbuild"
-  $existing = & gcloud storage buckets describe "gs://$CloudBuildSourceBucket" --format "value(name)" 2>$null
+  $existing = & $Gcloud storage buckets describe "gs://$CloudBuildSourceBucket" --format "value(name)" 2>$null
   if (-not $existing) {
     Run-Step "Create Cloud Build source bucket" @(
-      "gcloud", "storage", "buckets", "create", "gs://$CloudBuildSourceBucket",
+      $Gcloud, "storage", "buckets", "create", "gs://$CloudBuildSourceBucket",
       "--project", $ProjectId,
       "--location", "US",
       "--uniform-bucket-level-access"
@@ -158,7 +159,7 @@ function Ensure-CloudBuildSourceBucket {
 }
 
 function Get-CloudBuildServiceAccount {
-  $email = (& gcloud builds get-default-service-account --project $ProjectId).Trim()
+  $email = (& $Gcloud builds get-default-service-account --project $ProjectId).Trim()
   if ($LASTEXITCODE -ne 0 -or -not $email) {
     throw "Failed to read Cloud Build default service account for $ProjectId"
   }
@@ -169,19 +170,19 @@ function Ensure-CloudBuildPermissions {
   param([string]$BuildServiceAccount)
   $CloudBuildSourceBucket = "${ProjectId}_cloudbuild"
   Run-Step "Grant Cloud Build source read access" @(
-    "gcloud", "storage", "buckets", "add-iam-policy-binding", "gs://$CloudBuildSourceBucket",
+    $Gcloud, "storage", "buckets", "add-iam-policy-binding", "gs://$CloudBuildSourceBucket",
     "--member", "serviceAccount:$BuildServiceAccount",
     "--role", "roles/storage.objectViewer"
   )
   Run-Step "Grant Cloud Build Artifact Registry write access" @(
-    "gcloud", "artifacts", "repositories", "add-iam-policy-binding", $Repository,
+    $Gcloud, "artifacts", "repositories", "add-iam-policy-binding", $Repository,
     "--project", $ProjectId,
     "--location", $Region,
     "--member", "serviceAccount:$BuildServiceAccount",
     "--role", "roles/artifactregistry.writer"
   )
   Run-Step "Grant Cloud Build log write access" @(
-    "gcloud", "projects", "add-iam-policy-binding", $ProjectId,
+    $Gcloud, "projects", "add-iam-policy-binding", $ProjectId,
     "--member", "serviceAccount:$BuildServiceAccount",
     "--role", "roles/logging.logWriter"
   )
@@ -220,7 +221,7 @@ function Deploy-Service {
   }
 
   Run-Step "Deploy Cloud Run service $Name" @(
-    "gcloud", "run", "deploy", $Name,
+    $Gcloud, "run", "deploy", $Name,
     "--project", $ProjectId,
     "--region", $Region,
     "--image", $Image,
@@ -232,7 +233,7 @@ function Deploy-Service {
 
 function Get-ServiceUrl {
   param([string]$Name)
-  $url = (& gcloud run services describe $Name --project $ProjectId --region $Region --format "value(status.url)")
+  $url = (& $Gcloud run services describe $Name --project $ProjectId --region $Region --format "value(status.url)")
   if ($LASTEXITCODE -ne 0) {
     throw "Failed to read Cloud Run service URL for $Name"
   }
@@ -248,10 +249,10 @@ if ($PreflightOnly) {
   return
 }
 
-Run-Step "Set active project" @("gcloud", "config", "set", "project", $ProjectId)
+Run-Step "Set active project" @($Gcloud, "config", "set", "project", $ProjectId)
 
 Run-Step "Enable required APIs" @(
-  "gcloud", "services", "enable",
+  $Gcloud, "services", "enable",
   "run.googleapis.com",
   "artifactregistry.googleapis.com",
   "cloudbuild.googleapis.com",
@@ -273,25 +274,25 @@ Ensure-CloudBuildPermissions -BuildServiceAccount $BuildServiceAccount
 Upload-SyntheticCorpus
 
 Run-Step "Grant Vertex AI user to runtime service account" @(
-  "gcloud", "projects", "add-iam-policy-binding", $ProjectId,
+  $Gcloud, "projects", "add-iam-policy-binding", $ProjectId,
   "--member", "serviceAccount:$RuntimeSaEmail",
   "--role", "roles/aiplatform.user"
 )
 
 Run-Step "Grant bucket object admin to runtime service account" @(
-  "gcloud", "storage", "buckets", "add-iam-policy-binding", "gs://$EvidenceBucket",
+  $Gcloud, "storage", "buckets", "add-iam-policy-binding", "gs://$EvidenceBucket",
   "--member", "serviceAccount:$RuntimeSaEmail",
   "--role", "roles/storage.objectAdmin"
 )
 
 Run-Step "Grant synthetic corpus read access to runtime service account" @(
-  "gcloud", "storage", "buckets", "add-iam-policy-binding", "gs://$CorpusBucket",
+  $Gcloud, "storage", "buckets", "add-iam-policy-binding", "gs://$CorpusBucket",
   "--member", "serviceAccount:$RuntimeSaEmail",
   "--role", "roles/storage.objectViewer"
 )
 
 Run-Step "Build and push shared container image" @(
-  "gcloud", "builds", "submit", ".",
+  $Gcloud, "builds", "submit", ".",
   "--project", $ProjectId,
   "--config", "infra/cloudrun/cloudbuild.yaml",
   "--substitutions", "_IMAGE=$Image"
@@ -319,7 +320,7 @@ foreach ($service in @(
   "akretic-root-orchestrator"
 )) {
   Run-Step "Grant runtime invoker on $service" @(
-    "gcloud", "run", "services", "add-iam-policy-binding", $service,
+    $Gcloud, "run", "services", "add-iam-policy-binding", $service,
     "--project", $ProjectId,
     "--region", $Region,
     "--member", "serviceAccount:$RuntimeSaEmail",
