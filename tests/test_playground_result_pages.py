@@ -25,7 +25,7 @@ def test_playground_result_page_shows_human_readable_sections():
 
     assert "Playground Result" in html
     assert "Denied before model" in html
-    assert "executive_acquisition_memo was denied for this persona. Denied source text was not sent to Vertex Gemini." in html
+    assert "executive_acquisition_memo was denied for this persona. Denied source text was not sent to the model." in html
     assert "Request governed: executive_acquisition_memo denied" in html
     assert "Actor / Action / Resource" in html
     assert "A2A Calls" in html
@@ -54,6 +54,6 @@ def test_playground_allowed_prompt_shows_filtered_sources_without_red_denial():
     )
 
     assert "Restricted sources filtered" in html
-    assert "Only permitted source IDs were sent to Vertex Gemini. Executive-only material was withheld before model context." in html
+    assert "Only permitted source IDs were sent to the model. Executive-only material was withheld before model context." in html
     assert "Denied before model" not in html
     assert "Policy</span><strong>allow" in html

@@ -124,12 +124,12 @@ def test_demo_ui_home_first_viewport_shows_judge_proof_markers(monkeypatch):
     html = demo_ui.home()
 
     assert "Akretic A2A Trust Gateway" in html
-    assert "Agents collaborate. Gemini does not authorize." in html
+    assert "Agents collaborate. Policy authorizes." in html
     assert "Akretic gives procurement and security teams a controlled VendorNova review" in html
     assert "Challenge prototype" in html
     assert "Synthetic data" in html
     assert "Local proof mode" in html
-    assert "Cloud Run + Vertex Gemini proof" not in html
+    assert "Cloud Run governed A2A proof" not in html
     assert "A2A protocol proof" in html
     assert "Run the controlled VendorNova review." in html
     assert "The business scenario" in html
@@ -138,7 +138,9 @@ def test_demo_ui_home_first_viewport_shows_judge_proof_markers(monkeypatch):
     assert "The controlled path Akretic enforces" in html
     assert "The same user request moves through identity, policy, retrieval filtering" in html
     assert "A procurement user asks for VendorNova security context" in html
-    assert "procurement policy, blocks executive-only material before Gemini" in html
+    assert "A security reviewer asks for VendorNova security context" in html
+    assert "permitted context for procurement_user, blocks executive-only material before model context" in html
+    assert "permitted security/procurement context, still blocks executive-only material before model context" in html
     assert "Evidence events" in html
     assert "generated per run" in html
     assert "<strong>dynamic</strong>" not in html
@@ -161,7 +163,7 @@ def test_demo_ui_home_first_viewport_shows_judge_proof_markers(monkeypatch):
     assert "Policy" in html
     assert "Gate0-lite returns allow, deny, or" in html
     assert "RAG Filter" in html
-    assert "Gemini" in html
+    assert "Model" in html
     assert "A2A" in html
     assert "Approval" in html
     assert "Evidence" in html
@@ -172,9 +174,9 @@ def test_demo_ui_home_cloud_mode_shows_cloud_vertex_badge(monkeypatch):
     monkeypatch.setenv("AKRETIC_RUNTIME_MODE", "cloud")
     html = demo_ui.home()
 
-    assert "Cloud Run + Vertex Gemini" in html
-    assert "Vertex Gemini summarizing permitted context" in html
-    assert "This is a live Cloud Run + Vertex Gemini path. Controls are enforced outside the model." in html
+    assert "Cloud Run governed A2A proof" in html
+    assert "Configured Vertex model summarizing permitted context" in html
+    assert "This is a live Cloud Run A2A path. Controls are enforced outside the model." in html
     assert "Local proof mode" not in html
 
 
@@ -186,7 +188,7 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
         "summary": "VendorNova review assembled from permitted synthetic context only.",
         "retrieval_decision": {"outcome": "allow", "correlation_id": "corr-policy-read"},
         "retrieval": {
-            "chunks": [{"source_id": "procurement_policy"}],
+            "chunks": [{"source_id": "procurement_policy"}, {"source_id": "injected_vendor_note"}],
             "denied_sources": [{"source_id": "executive_acquisition_memo"}],
             "correlation_id": "corr-rag",
         },
@@ -298,23 +300,24 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
     }
 
     html = demo_ui._render_review_result(result, persona="procurement_user")
+    security_html = demo_ui._render_review_result(result, persona="security_reviewer")
 
     assert "Business outcome" in html
-    assert "VendorNova review summary was generated from permitted procurement context." in html
+    assert "VendorNova review summary was generated from permitted context for procurement_user." in html
     assert "External export is blocked" in html
     assert "pending security reviewer approval." in html
     assert "Judge Proof" in html
     assert "Cloud Run" in html
-    assert "Vertex Gemini" in html
+    assert "Vertex model" in html
     assert "A2A Agent Cards resolved" in html
-    assert "Restricted memo denied before Gemini" in html
+    assert "Restricted memo denied before model" in html
     assert "Export gate approval_required" in html
     assert "Hash chain valid" in html
     assert "Live run complete - evidence event count: 12." in html
     assert "Permitted-context summary" in html
     assert "Generated in labeled local deterministic mode from permitted source IDs only." in html
     assert "What Akretic prevented" in html
-    assert "The executive acquisition memo did not enter Gemini context." in html
+    assert "The executive acquisition memo did not enter model context." in html
     assert "export did not complete without reviewer approval." in html
     assert "A2A Evidence Proof From This Run" in html
     assert "The result mirrors the homepage story with the actual business and control evidence." in html
@@ -322,7 +325,7 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
     assert "Retrieval <span class=\"code-chip\">allow</span>" in html
     assert "export <span class=\"code-chip\">approval_required</span>" in html
     assert "<span class=\"code-chip\">executive_acquisition_memo</span> denied before context." in html
-    assert "Permitted: <span class=\"code-chip\">procurement_policy</span>" in html
+    assert "Permitted: <span class=\"code-chip\">procurement_policy, injected_vendor_note</span>" in html
     assert "Local deterministic summarizer uses permitted sources only." in html
     assert "Mode <span class=\"code-chip\">local</span>" in html
     assert "Research Agent" in html
@@ -332,6 +335,8 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
     assert "Agent Card calls recorded with correlation IDs." in html
     assert "Export blocked pending reviewer decision." in html
     assert "Approval ID <span class=\"code-chip\">approval-p1</span>" in html
+    assert "Evidence before reviewer decision" in html
+    assert "Prompt-injected content is treated as data only; tool/export actions still require policy and approval." in html
     assert "event count <span class=\"code-chip\">12</span>" in html
     assert "Browser transport" in html
     assert "viewer persona selector" in html
@@ -347,6 +352,7 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
     assert "Evidence event / hash" in html
     assert "HTTP / latency" in html
     assert "Request / response hash" in html
+    assert "Full A2A call values" in html
     assert "https://policy.example/.well-known/agent-card.json" in html
     assert "root_orchestrator -&gt; akretic-policy-agent" in html
     assert "evt-policy-read / 1234567890abcdef" in html
@@ -358,6 +364,10 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
     assert "Synthetic data" in html
     assert "Judge walkthrough" not in html
     assert "P1 judge walkthrough" not in html
+    assert "VendorNova review summary was generated from permitted context for security_reviewer." in security_html
+    assert "Security reviewer is authorized to decide this approval, but export remains paused until approve/reject is recorded." in security_html
+    assert "<span class=\"code-chip\">executive_acquisition_memo</span> denied before context." in security_html
+    assert "Decision status: <span class=\"code-chip\">approved</span>" not in security_html
     assert "Evidence chain</span><strong class=\"valid\">true" not in html
 
 

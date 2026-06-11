@@ -43,7 +43,7 @@ def test_executive_memo_red_team_page_is_human_readable_denial():
     assert "Denied before model" in html
     assert "executive_acquisition_memo" in html
     assert "denied_source_ids" in html
-    assert "Denied source text was not sent to Vertex Gemini." in html
+    assert "Denied source text was not sent to the model." in html
     assert "denied_text_sent_to_vertex_gemini=<span class=\"code-chip\">False</span>" in html
     assert "restricted_canary_absent=<span class=\"code-chip\">True</span>" in html
     assert "restricted_canary_absent" in html
