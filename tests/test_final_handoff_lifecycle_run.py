@@ -55,10 +55,26 @@ def test_p0_verify_parser_exposes_enhanced_cloud_flags():
 
 def test_cloud_handoff_pytest_env_removes_identity_token_auth(monkeypatch):
     monkeypatch.setenv("AKRETIC_CLOUD_RUN_AUTH", "identity_token")
+    monkeypatch.setenv("AKRETIC_RUNTIME_MODE", "cloud")
+    monkeypatch.setenv("AKRETIC_GEMINI_MODE", "vertex")
+    monkeypatch.setenv("AKRETIC_CORPUS_BACKEND", "gcs")
+    monkeypatch.setenv("ROOT_ORCHESTRATOR_URL", "https://root.example")
+    monkeypatch.setenv("POLICY_AGENT_URL", "https://policy.example")
+    monkeypatch.setenv("KNOWLEDGE_AGENT_URL", "https://knowledge.example")
+    monkeypatch.setenv("RESEARCH_AGENT_URL", "https://research.example")
+    monkeypatch.setenv("APPROVAL_EVIDENCE_URL", "https://approval.example")
 
     env = _local_pytest_env()
 
     assert "AKRETIC_CLOUD_RUN_AUTH" not in env
+    assert "AKRETIC_RUNTIME_MODE" not in env
+    assert "AKRETIC_GEMINI_MODE" not in env
+    assert "AKRETIC_CORPUS_BACKEND" not in env
+    assert "ROOT_ORCHESTRATOR_URL" not in env
+    assert "POLICY_AGENT_URL" not in env
+    assert "KNOWLEDGE_AGENT_URL" not in env
+    assert "RESEARCH_AGENT_URL" not in env
+    assert "APPROVAL_EVIDENCE_URL" not in env
 
 
 def test_cloud_health_artifact_omits_non_success_body():

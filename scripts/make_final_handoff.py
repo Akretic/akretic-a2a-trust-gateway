@@ -124,7 +124,24 @@ def _write_json(path: Path, value: Any) -> None:
 
 def _local_pytest_env() -> dict[str, str]:
     env = os.environ.copy()
-    env.pop("AKRETIC_CLOUD_RUN_AUTH", None)
+    for name in (
+        "AKRETIC_CLOUD_RUN_AUTH",
+        "AKRETIC_RUNTIME_MODE",
+        "AKRETIC_GEMINI_MODE",
+        "AKRETIC_CORPUS_BACKEND",
+        "ROOT_ORCHESTRATOR_URL",
+        "POLICY_AGENT_URL",
+        "KNOWLEDGE_AGENT_URL",
+        "RESEARCH_AGENT_URL",
+        "APPROVAL_EVIDENCE_URL",
+        "EVIDENCE_GCS_BUCKET",
+        "EVIDENCE_GCS_PREFIX",
+        "AKRETIC_EVIDENCE_BUCKET",
+        "AKRETIC_EVIDENCE_PREFIX",
+        "AKRETIC_CORPUS_BUCKET",
+        "AKRETIC_CORPUS_PREFIX",
+    ):
+        env.pop(name, None)
     return env
 
 
@@ -1477,7 +1494,8 @@ def build_packet(args: argparse.Namespace) -> Path:
 
     latest_model = judge_flow.get("latest_model", {})
     corpus_status_manifest = json.loads((packet_dir / "raw" / "corpus-status.json").read_text(encoding="utf-8"))
-    commit_sha = _git_commit_sha(repo_root)
+    packet_generator_commit_sha = _git_commit_sha(repo_root)
+    commit_sha = packet_generator_commit_sha
     revisions = _cloud_run_revisions(args)
     deploy_manifest = None
     deploy_manifest_source = Path(args.deploy_manifest)
@@ -1485,6 +1503,8 @@ def build_packet(args: argparse.Namespace) -> Path:
         deploy_manifest = json.loads(deploy_manifest_source.read_text(encoding="utf-8"))
         deploy_manifest["packet_filename"] = packet_dir.with_suffix(".zip").name
         _write_json(packet_dir / "deploy-manifest.json", deploy_manifest)
+        if mode == "cloud":
+            commit_sha = str(deploy_manifest.get("commit_sha") or packet_generator_commit_sha)
         service_revisions = deploy_manifest.get("service_revisions", {}) if isinstance(deploy_manifest, dict) else {}
         mapped_revisions = {
             "demo_ui": service_revisions.get("akretic-demo-ui"),
@@ -1515,6 +1535,7 @@ def build_packet(args: argparse.Namespace) -> Path:
         "judge_run_id": judge_run_id,
         "verifier_run_id": verifier_run_id,
         "commit_sha": commit_sha,
+        "packet_generator_commit_sha": packet_generator_commit_sha,
         "runtime_mode": runtime_mode,
         "model_mode": model_mode,
         "model": model_name,
