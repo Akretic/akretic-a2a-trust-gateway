@@ -449,6 +449,7 @@ def _capture_judge_flow(
         red_team.raise_for_status()
         _write_text(raw_dir / "red-team-challenge.html", red_team.text)
 
+        red_team_json_results = []
         for challenge in (
             "self_assert_admin",
             "executive_memo",
@@ -466,10 +467,11 @@ def _capture_judge_flow(
             )
             response.raise_for_status()
             _write_text(raw_dir / f"red-team-{challenge}.html", response.text)
+            json_response = client.post(f"{base_url}/red-team/run.json", json={"challenge": challenge})
+            json_response.raise_for_status()
+            red_team_json_results.append(json_response.json())
 
-        red_team_results = client.get(f"{base_url}/red-team/results.json")
-        red_team_results.raise_for_status()
-        _write_text(raw_dir / "red-team-results.json", red_team_results.text)
+        _write_json(raw_dir / "red-team-results.json", {"results": red_team_json_results})
 
         knowledge_headers = _service_headers("knowledge", knowledge_url, mode)
         knowledge_no_receipt = client.post(

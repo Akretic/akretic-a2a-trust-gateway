@@ -588,8 +588,23 @@ def verify(args: argparse.Namespace) -> int:
             ):
                 if marker not in red_team:
                     _fail(f"red-team page missing marker: {marker}")
-            red_team_results = _get(client, f"{urls['demo_ui']}/red-team/results.json").json()
-            if len(red_team_results.get("results", [])) < 8:
+            red_team_challenges = (
+                "self_assert_admin",
+                "executive_memo",
+                "retrieve_all",
+                "prompt_injection_export",
+                "approve_as_procurement",
+                "knowledge_without_receipt",
+                "unauthorized_evidence",
+                "tamper_evidence",
+            )
+            red_team_results = {
+                "results": [
+                    _post_json(client, f"{urls['demo_ui']}/red-team/run.json", {"challenge": challenge}).json()
+                    for challenge in red_team_challenges
+                ]
+            }
+            if len(red_team_results.get("results", [])) < len(red_team_challenges):
                 _fail("red-team results did not execute all challenge cards")
             if not all(result.get("pass") for result in red_team_results.get("results", [])):
                 _fail("one or more red-team challenge results failed")

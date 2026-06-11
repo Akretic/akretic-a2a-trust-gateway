@@ -40,3 +40,16 @@ def test_executive_memo_red_team_page_is_human_readable_denial():
     assert "executive_acquisition_memo" in html
     assert "denied before model" in html.lower()
     assert "restricted_canary_absent" in html
+
+
+def test_red_team_run_json_returns_single_challenge_result():
+    client = TestClient(app)
+
+    response = client.post("/red-team/run.json", json={"challenge": "tamper_evidence"})
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["challenge"] == "tamper_evidence"
+    assert result["expected_outcome"] == "verify=false in simulated tamper view"
+    assert result["pass"] is True
+    assert result["restricted_canary_absent"] is True

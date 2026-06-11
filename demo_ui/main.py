@@ -2709,6 +2709,13 @@ async def red_team_run(challenge: str = Form(...)):
     return _render_red_team_result(actual)
 
 
+@app.post("/red-team/run.json")
+async def red_team_run_json(payload: dict[str, Any]) -> JSONResponse:
+    challenge = str(payload.get("challenge", ""))
+    actual = await _execute_red_team_challenge(challenge)
+    return JSONResponse(actual)
+
+
 async def _execute_red_team_challenge(challenge: str) -> dict[str, Any]:
     title, expected, prompt = RED_TEAM_CHALLENGES.get(
         challenge,
