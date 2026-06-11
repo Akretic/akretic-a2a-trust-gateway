@@ -98,12 +98,13 @@ def test_demo_ui_approval_calls_private_service_with_auth_headers(monkeypatch):
     assert calls == [
         {
             "method": "POST",
-            "url": "https://approval.example/decide_approval",
-            "json": {
-                "approval_id": "approval-1",
-                "status": "approved",
-                "reason": "demo reviewer decision",
-            },
+                "url": "https://approval.example/decide_approval",
+                "json": {
+                    "run_id": "run-1",
+                    "approval_id": "approval-1",
+                    "status": "approved",
+                    "reason": "demo reviewer decision",
+                },
             "headers": {
                 "x-akretic-persona": "security_reviewer",
                 "Authorization": "Bearer token-for-https://approval.example",

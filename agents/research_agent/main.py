@@ -45,6 +45,17 @@ def healthz() -> dict[str, str]:
     return {"status": "ok", "service": "research-agent"}
 
 
+@app.get("/readyz")
+def readyz() -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "service": "research-agent",
+        "runtime_mode": os.getenv("AKRETIC_RUNTIME_MODE", "local"),
+        "revision": os.getenv("K_REVISION", "local"),
+        "seeded_public_snippet_count": len(_seeded_snippets()),
+    }
+
+
 @app.get("/agent.json")
 @app.get("/agent-card.json")
 @app.get("/.well-known/agent-card.json")

@@ -7,7 +7,7 @@ from uuid import uuid4
 import httpx
 from fastapi import FastAPI, Header, HTTPException
 
-from common.a2a_client import call_skill
+from common.a2a_client import call_skill, fetch_agent_card_cached
 from common.corpus import EXECUTIVE_CANARY
 from common.evidence import append_event, verify_chain
 from common.gemini import GeminiError, summarize_vendor_review
@@ -31,6 +31,40 @@ def _dedupe(values: list[str]) -> list[str]:
 @app.get("/healthz")
 def healthz() -> dict[str, str]:
     return {"status": "ok", "service": "root-orchestrator"}
+
+
+@app.get("/readyz")
+async def readyz() -> dict[str, Any]:
+    urls = {
+        "policy": _agent_url("POLICY_AGENT_URL", "http://127.0.0.1:8101"),
+        "knowledge": _agent_url("KNOWLEDGE_AGENT_URL", "http://127.0.0.1:8102"),
+        "research": _agent_url("RESEARCH_AGENT_URL", "http://127.0.0.1:8103"),
+        "approval": _agent_url("APPROVAL_EVIDENCE_URL", "http://127.0.0.1:8104"),
+    }
+    checks: dict[str, Any] = {}
+    for name, url in urls.items():
+        try:
+            card = await fetch_agent_card_cached(url, service_name=name)
+            checks[f"{name}_agent_card"] = {
+                "ok": True,
+                "name": card.get("name"),
+                "url": card.get("url"),
+            }
+        except Exception as exc:
+            checks[f"{name}_agent_card"] = {
+                "ok": False,
+                "error_class": type(exc).__name__,
+            }
+    ok = all(check.get("ok") for check in checks.values())
+    return {
+        "status": "ok" if ok else "degraded",
+        "service": "root-orchestrator",
+        "runtime_mode": os.getenv("AKRETIC_RUNTIME_MODE", "local"),
+        "model_mode": os.getenv("AKRETIC_GEMINI_MODE", "local"),
+        "model": os.getenv("VERTEX_MODEL", "local-deterministic-test-summary"),
+        "revision": os.getenv("K_REVISION", "local"),
+        "checks": checks,
+    }
 
 
 def _agent_url(env_name: str, default: str) -> str:

@@ -142,6 +142,11 @@ def test_cloud_manifest_requires_public_agent_cards_and_identity_fields():
         "corpus_backend": "gcs",
         "corpus_manifest_hash": "f" * 64,
         "corpus_document_count": 9,
+        "warmup_output": "warmup-output.json",
+        "readiness_burnin_output": "readiness-burnin-output.json",
+        "deploy_manifest": "deploy-manifest.json",
+        "image_digest": "sha256:" + "a" * 64,
+        "build_id": "build-123",
         "identity_source": "demo identity adapter",
         "browser_transport": "viewer persona selector",
         "verifier_transport": "x-akretic-persona header",
@@ -166,6 +171,14 @@ def test_cloud_manifest_requires_public_agent_cards_and_identity_fields():
             "knowledge": "https://knowledge.example/.well-known/agent-card.json",
             "research": "https://research.example/.well-known/agent-card.json",
             "approval": "https://approval.example/.well-known/agent-card.json",
+        },
+        "min_instances": {
+            "akretic-demo-ui": 1,
+            "akretic-root-orchestrator": 1,
+            "akretic-policy-agent": 1,
+            "akretic-knowledge-agent": 1,
+            "akretic-research-agent": 1,
+            "akretic-approval-evidence": 1,
         },
     }
 

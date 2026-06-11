@@ -11,6 +11,7 @@ from common.corpus import corpus_status
 from common.identity import derive_actor_from_request
 from common.policy import validate_decision_receipt
 from common.rag import load_metadata, redact_context as minimize_context, retrieve_by_query, retrieve_permitted_context
+from common.structured_logging import log_event
 
 app = FastAPI(title="Akretic RAG DMZ-lite / Knowledge Agent")
 CARD_PATH = Path(__file__).resolve().parents[2] / "agents" / "knowledge_agent" / "agent-card.json"
@@ -19,6 +20,20 @@ CARD_PATH = Path(__file__).resolve().parents[2] / "agents" / "knowledge_agent" /
 @app.get("/healthz")
 def healthz() -> dict[str, str]:
     return {"status": "ok", "service": "rag-dmz-lite"}
+
+
+@app.get("/readyz")
+def readyz() -> dict[str, Any]:
+    status_payload = corpus_status()
+    return {
+        "status": "ok",
+        "service": "rag-dmz-lite",
+        "runtime_mode": os.getenv("AKRETIC_RUNTIME_MODE", "local"),
+        "revision": os.getenv("K_REVISION", "local"),
+        "corpus_backend": status_payload.get("backend"),
+        "corpus_document_count": status_payload.get("document_count"),
+        "corpus_manifest_hash": status_payload.get("corpus_manifest_hash"),
+    }
 
 
 @app.get("/agent.json")
@@ -46,6 +61,17 @@ def _validate_retrieval_receipt(payload: dict[str, Any], actor) -> None:
         resource_ids=requested_source_ids or None,
     )
     if not validation.get("valid"):
+        log_event(
+            "policy_receipt_invalid",
+            run_id=payload.get("run_id"),
+            correlation_id=payload.get("correlation_id"),
+            caller=str(actor.actor_id),
+            callee="knowledge-agent",
+            skill="retrieve_permitted_context",
+            service="knowledge-agent",
+            retry_count=0,
+            error_class=str(validation.get("reason", "invalid_receipt")),
+        )
         raise HTTPException(status_code=403, detail=validation["reason"])
 
 

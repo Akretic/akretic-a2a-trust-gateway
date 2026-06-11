@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import threading
 from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
@@ -28,9 +29,14 @@ class ApprovalRequest:
         return self.__dict__.copy()
 
 
+class ApprovalConflict(RuntimeError):
+    """Raised when a duplicate approval mutation does not match the recorded decision."""
+
+
 class ApprovalStore:
     def __init__(self) -> None:
         self._store: dict[str, ApprovalRequest] = {}
+        self._lock = threading.Lock()
 
     def create(
         self,
@@ -59,20 +65,37 @@ class ApprovalStore:
             created_at=now_iso(),
             decided_at=None,
         )
-        self._store[request.approval_id] = request
+        with self._lock:
+            self._store[request.approval_id] = request
         return request
 
-    def decide(self, *, approval_id: str, reviewer: Actor, status: str, reason: str) -> ApprovalRequest:
+    def decide(
+        self,
+        *,
+        approval_id: str,
+        reviewer: Actor,
+        status: str,
+        reason: str,
+        run_id: str | None = None,
+    ) -> tuple[ApprovalRequest, bool]:
         if status not in {"approved", "rejected"}:
             raise ValueError("status must be approved or rejected")
-        request = self._store[approval_id]
-        if reviewer.role != request.required_approval_role and request.required_approval_role not in reviewer.groups:
-            raise PermissionError("reviewer lacks required approval role")
-        request.status = status
-        request.reviewer_id = reviewer.actor_id
-        request.decision_reason = reason
-        request.decided_at = now_iso()
-        return request
+        with self._lock:
+            request = self._store[approval_id]
+            if run_id is not None and request.run_id != run_id:
+                raise ApprovalConflict("approval run_id does not match recorded request")
+            if reviewer.role != request.required_approval_role and request.required_approval_role not in reviewer.groups:
+                raise PermissionError("reviewer lacks required approval role")
+            if request.status != "pending":
+                if request.status == status and request.reviewer_id == reviewer.actor_id:
+                    return request, True
+                raise ApprovalConflict("approval decision conflicts with recorded decision")
+            request.status = status
+            request.reviewer_id = reviewer.actor_id
+            request.decision_reason = reason
+            request.decided_at = now_iso()
+            return request, False
 
     def get(self, approval_id: str) -> ApprovalRequest:
-        return self._store[approval_id]
+        with self._lock:
+            return self._store[approval_id]

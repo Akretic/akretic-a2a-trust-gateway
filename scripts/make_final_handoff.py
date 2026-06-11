@@ -72,13 +72,14 @@ CLOUD_UNKNOWN_FIELD_HINTS = (
 )
 REQUIRED_SERVICE_KEYS = ("demo_ui", "root", "policy", "knowledge", "research", "approval")
 REQUIRED_AGENT_CARD_KEYS = ("policy", "knowledge", "research", "approval")
-HEALTH_ARTIFACTS = {
-    "demo_ui": "raw/health-demo-ui.json",
-    "root": "raw/health-root.json",
-    "policy": "raw/health-policy.json",
-    "knowledge": "raw/health-knowledge.json",
-    "research": "raw/health-research.json",
-    "approval": "raw/health-approval.json",
+READYZ_ARTIFACTS = {
+    "public": "raw/readyz-public.json",
+    "deep": "raw/readyz-deep.json",
+    "root": "raw/private-health-authenticated-root.json",
+    "policy": "raw/private-health-authenticated-policy.json",
+    "knowledge": "raw/private-health-authenticated-knowledge.json",
+    "research": "raw/private-health-authenticated-research.json",
+    "approval": "raw/private-health-authenticated-approval.json",
 }
 AGENT_CARD_ARTIFACTS = {
     "policy": "raw/agent-card-policy.json",
@@ -265,35 +266,39 @@ def _capture_cloud_service_artifacts(
     mode: str,
     timeout: float,
 ) -> dict[str, str]:
-    raw_dir = packet_dir / "raw"
     captured: dict[str, str] = {}
     with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-        for name, relative in HEALTH_ARTIFACTS.items():
+        for label, route in (("public", "/readyz"), ("deep", "/readyz")):
+            response = client.get(f"{urls['demo_ui']}{route}")
+            artifact = _captured_response(
+                service="demo_ui",
+                route=route,
+                response=response,
+                authenticated=False,
+            )
+            if response.status_code != 200:
+                raise RuntimeError(f"public {route} readiness check returned HTTP {response.status_code}")
+            relative = READYZ_ARTIFACTS[label]
+            _write_json(packet_dir / relative, artifact)
+            captured[f"readyz_{label}"] = relative
+
+        for name in ("root", "policy", "knowledge", "research", "approval"):
             base_url = urls[name]
             headers = _service_headers(name, base_url, mode)
             authenticated = bool(headers and headers.get("Authorization"))
-            route = "/" if mode == "cloud" and name == "demo_ui" else "/healthz"
+            route = "/readyz" if mode == "cloud" else "/healthz"
             response = client.get(f"{base_url}{route}", headers=headers)
-            health_artifact = _captured_response(
+            artifact = _captured_response(
                 service=name,
                 route=route,
                 response=response,
                 authenticated=authenticated,
             )
-            _omit_cloud_health_body_if_non_success(health_artifact, mode=mode)
-            if response.status_code != 200 and (mode != "cloud" or name == "demo_ui"):
-                raise RuntimeError(f"{name} health check returned HTTP {response.status_code}")
-            if mode == "cloud" and name == "demo_ui":
-                healthz_response = client.get(f"{base_url}/healthz")
-                health_artifact["alternate_healthz"] = _captured_response(
-                    service=name,
-                    route="/healthz",
-                    response=healthz_response,
-                    authenticated=False,
-                )
-                _omit_cloud_health_body_if_non_success(health_artifact["alternate_healthz"], mode=mode)
-            _write_json(packet_dir / relative, health_artifact)
-            captured[f"health_{name}"] = relative
+            if response.status_code != 200:
+                raise RuntimeError(f"{name} authenticated readiness check returned HTTP {response.status_code}")
+            relative = READYZ_ARTIFACTS[name]
+            _write_json(packet_dir / relative, artifact)
+            captured[f"readyz_{name}"] = relative
 
         for name, relative in AGENT_CARD_ARTIFACTS.items():
             base_url = urls[name]
@@ -308,7 +313,7 @@ def _capture_cloud_service_artifacts(
                     response=response,
                     authenticated=authenticated,
                 )
-                if mode != "cloud" and response.status_code != 200:
+                if response.status_code != 200:
                     raise RuntimeError(f"{name} Agent Card route {route} returned HTTP {response.status_code}")
             _write_json(
                 packet_dir / relative,
@@ -774,6 +779,11 @@ def _validate_cloud_manifest(manifest: dict[str, Any]) -> None:
         raise RuntimeError("cloud manifest corpus_backend must be gcs")
     if not manifest.get("corpus_manifest_hash"):
         raise RuntimeError("cloud manifest missing corpus_manifest_hash")
+    for field in ("warmup_output", "readiness_burnin_output", "deploy_manifest", "image_digest", "build_id"):
+        if not manifest.get(field):
+            raise RuntimeError(f"cloud manifest missing {field}")
+    if not str(manifest.get("image_digest", "")).startswith("sha256:"):
+        raise RuntimeError("cloud manifest image_digest must be immutable sha256 digest")
     for field, expected in (
         ("identity_source", IDENTITY_SOURCE_LABEL),
         ("browser_transport", BROWSER_TRANSPORT_LABEL),
@@ -793,8 +803,19 @@ def _validate_cloud_manifest(manifest: dict[str, Any]) -> None:
         if not url or _contains_local(str(url)):
             raise RuntimeError(f"cloud manifest has invalid Cloud Run URL for {name}")
     for name, revision in manifest.get("cloud_run_revisions", {}).items():
-        if not revision or revision == "UNKNOWN":
+        if not revision or revision in {"UNKNOWN", "not_reported"}:
             raise RuntimeError(f"cloud manifest missing Cloud Run revision for {name}")
+    min_instances = manifest.get("min_instances", {})
+    for service in (
+        "akretic-demo-ui",
+        "akretic-root-orchestrator",
+        "akretic-policy-agent",
+        "akretic-knowledge-agent",
+        "akretic-research-agent",
+        "akretic-approval-evidence",
+    ):
+        if service not in min_instances:
+            raise RuntimeError(f"cloud manifest missing min instance setting for {service}")
     for name, url in manifest.get("a2a_agent_card_urls", {}).items():
         if not url or _contains_local(str(url)):
             raise RuntimeError(f"cloud manifest has invalid Agent Card URL for {name}")
@@ -897,14 +918,14 @@ The exact captured Windows verifier command is recorded in `FINAL_REVIEW.md`.
 
 The verifier supports `AKRETIC_CLOUD_RUN_AUTH=identity_token` and optional
 `AKRETIC_CLOUD_RUN_IMPERSONATE_SERVICE_ACCOUNT` for direct Cloud Run checks.
-The four private A2A Agent Cards are checked directly at both
+The public aggregate readiness endpoint is captured in `raw/readyz-public.json`
+and `raw/readyz-deep.json`. Private services remain protected by Cloud Run IAM;
+authenticated private readiness artifacts are captured as
+`raw/private-health-authenticated-*.json`. The four private A2A Agent Cards are
+checked directly at both
 `/.well-known/agent-card.json` and `/agent.json`; captured responses are under
-`raw/agent-card-*.json`. External direct `/healthz` responses are captured
-under `raw/health-*.json`; if Cloud Run returns an edge response before the
-container, that response is preserved rather than rewritten. The primary
-service-to-service proof path remains the public demo UI calling private Cloud
-Run services with its runtime identity; those A2A calls and Agent Card URLs are
-recorded in the current-run evidence.
+`raw/agent-card-*.json`. External unauthenticated private Cloud Run responses
+are not treated as health proof.
 
 ## Synthetic Data Statement
 
@@ -923,18 +944,20 @@ The packet does not include customer data, private third-party data, or secrets.
 - Seeded public snippets are allowlisted for the Track 3 proof path.
 
 Open `FINAL_REVIEW.md`, `manifest.json`, `verifier-output.json`, `pytest-output.json`,
+`deploy-manifest.json`, `warmup-output.json`, `readiness-burnin-output.json`,
 `raw/`, and `screenshots/` for review evidence. Unauthorized evidence access
 proof is captured in `raw/evidence-unauthorized.json` and
 `screenshots/07-evidence-unauthorized.png`.
 
-Raw Cloud Run health and Agent Card artifacts are captured in:
+Raw readiness and Agent Card artifacts are captured in:
 
-- `raw/health-demo-ui.json`
-- `raw/health-root.json`
-- `raw/health-policy.json`
-- `raw/health-knowledge.json`
-- `raw/health-research.json`
-- `raw/health-approval.json`
+- `raw/readyz-public.json`
+- `raw/readyz-deep.json`
+- `raw/private-health-authenticated-root.json`
+- `raw/private-health-authenticated-policy.json`
+- `raw/private-health-authenticated-knowledge.json`
+- `raw/private-health-authenticated-research.json`
+- `raw/private-health-authenticated-approval.json`
 - `raw/agent-card-policy.json`
 - `raw/agent-card-knowledge.json`
 - `raw/agent-card-research.json`
@@ -969,6 +992,9 @@ def _final_review(manifest: dict[str, Any], verifier: dict[str, Any], pytest_res
     agent_cards = "\n".join(
         f"- `{name}`: {url}" for name, url in manifest["a2a_agent_card_urls"].items()
     )
+    min_instances = "\n".join(
+        f"- `{name}`: {value}" for name, value in (manifest.get("min_instances") or {}).items()
+    ) or "- not captured"
     pytest_status = "not run"
     pytest_command = "not run"
     pytest_returncode = "not run"
@@ -995,6 +1021,8 @@ Result: packet generated for `{manifest["packet_type"]}`.
 - prompt hash: `{latest.get("prompt_hash")}`
 - output hash: `{latest.get("output_hash", latest.get("completion_hash"))}`
 - commit SHA: `{manifest["commit_sha"]}`
+- build ID: `{manifest.get("build_id")}`
+- image digest: `{manifest.get("image_digest")}`
 - identity_source: `{manifest["identity_source"]}`
 - browser_transport: `{manifest["browser_transport"]}`
 - verifier_transport: `{manifest["verifier_transport"]}`
@@ -1010,6 +1038,16 @@ Result: packet generated for `{manifest["packet_type"]}`.
 ## A2A Agent Card Endpoints
 
 {agent_cards}
+
+## Judging Runtime Settings
+
+Min instances:
+
+{min_instances}
+
+- deploy manifest: `{manifest.get("deploy_manifest")}`
+- warmup output: `{manifest.get("warmup_output")}`
+- readiness burn-in output: `{manifest.get("readiness_burnin_output")}`
 
 ## Test Commands
 
@@ -1050,7 +1088,17 @@ and policy, approval, and evidence controls run outside the model.
 - `pytest-output.txt`
 - `forbidden-string-scan.json`
 - `run-id-integrity.json`
+- `deploy-manifest.json`
+- `warmup-output.json`
+- `readiness-burnin-output.json`
 - `raw/`
+  - `raw/readyz-public.json`
+  - `raw/readyz-deep.json`
+  - `raw/private-health-authenticated-root.json`
+  - `raw/private-health-authenticated-policy.json`
+  - `raw/private-health-authenticated-knowledge.json`
+  - `raw/private-health-authenticated-research.json`
+  - `raw/private-health-authenticated-approval.json`
   - `raw/evidence-unauthorized.json`
   - `raw/corpus-status.json`
   - `raw/corpus-metadata.json`
@@ -1064,12 +1112,6 @@ and policy, approval, and evidence controls run outside the model.
   - `raw/red-team-results.json`
   - `raw/knowledge-no-receipt-403.json`
   - `raw/knowledge-invalid-receipt-403.json`
-  - `raw/health-demo-ui.json`
-  - `raw/health-root.json`
-  - `raw/health-policy.json`
-  - `raw/health-knowledge.json`
-  - `raw/health-research.json`
-  - `raw/health-approval.json`
   - `raw/agent-card-policy.json`
   - `raw/agent-card-knowledge.json`
   - `raw/agent-card-research.json`
@@ -1161,6 +1203,7 @@ def build_packet(args: argparse.Namespace) -> Path:
     )
     verifier = _run_command(verifier_command, cwd=repo_root, timeout=args.command_timeout)
     _write_json(packet_dir / "verifier-output.json", verifier)
+    _write_json(packet_dir / "p0-verify-output.json", verifier)
     _write_text(
         packet_dir / "p0-verify-output.txt",
         "\n".join(
@@ -1221,6 +1264,62 @@ def build_packet(args: argparse.Namespace) -> Path:
         )
         _write_text(packet_dir / "pytest-output.txt", "pytest skipped by --skip-pytest\n")
 
+    warmup_result = None
+    burnin_result = None
+    if mode == "cloud":
+        warmup_command = [
+            sys.executable,
+            "scripts/warmup_cloud_demo.py",
+            "--base-url",
+            urls["demo_ui"],
+            "--root-url",
+            urls["root"],
+            "--policy-url",
+            urls["policy"],
+            "--knowledge-url",
+            urls["knowledge"],
+            "--research-url",
+            urls["research"],
+            "--approval-url",
+            urls["approval"],
+            "--output",
+            str(packet_dir / "warmup-output.json"),
+        ]
+        warmup_result = _run_command(warmup_command, cwd=repo_root, timeout=args.command_timeout)
+        _write_json(packet_dir / "warmup-command-output.json", warmup_result)
+        if warmup_result["returncode"] != 0:
+            raise RuntimeError("warmup_cloud_demo.py failed; see warmup-command-output.json")
+
+        burnin_command = [
+            sys.executable,
+            "scripts/readiness_burnin.py",
+            "--base-url",
+            urls["demo_ui"],
+            "--runs",
+            "5",
+            "--expect-zero-5xx",
+            "--expect-vertex",
+            "--fail-on-local",
+            "--root-url",
+            urls["root"],
+            "--policy-url",
+            urls["policy"],
+            "--knowledge-url",
+            urls["knowledge"],
+            "--research-url",
+            urls["research"],
+            "--approval-url",
+            urls["approval"],
+            "--output",
+            str(packet_dir / "readiness-burnin-output.json"),
+            "--warmup-output",
+            str(packet_dir / "warmup-output.json"),
+        ]
+        burnin_result = _run_command(burnin_command, cwd=repo_root, timeout=max(args.command_timeout, 2400))
+        _write_json(packet_dir / "readiness-burnin-command-output.json", burnin_result)
+        if burnin_result["returncode"] != 0:
+            raise RuntimeError("readiness_burnin.py failed; see readiness-burnin-command-output.json")
+
     service_artifacts = _capture_cloud_service_artifacts(
         urls,
         packet_dir,
@@ -1252,6 +1351,27 @@ def build_packet(args: argparse.Namespace) -> Path:
     corpus_status_manifest = json.loads((packet_dir / "raw" / "corpus-status.json").read_text(encoding="utf-8"))
     commit_sha = _git_commit_sha(repo_root)
     revisions = _cloud_run_revisions(args)
+    deploy_manifest = None
+    deploy_manifest_source = Path(args.deploy_manifest)
+    if deploy_manifest_source.exists():
+        deploy_manifest = json.loads(deploy_manifest_source.read_text(encoding="utf-8"))
+        deploy_manifest["packet_filename"] = packet_dir.with_suffix(".zip").name
+        _write_json(packet_dir / "deploy-manifest.json", deploy_manifest)
+        service_revisions = deploy_manifest.get("service_revisions", {}) if isinstance(deploy_manifest, dict) else {}
+        mapped_revisions = {
+            "demo_ui": service_revisions.get("akretic-demo-ui"),
+            "root": service_revisions.get("akretic-root-orchestrator"),
+            "policy": service_revisions.get("akretic-policy-agent"),
+            "knowledge": service_revisions.get("akretic-knowledge-agent"),
+            "research": service_revisions.get("akretic-research-agent"),
+            "approval": service_revisions.get("akretic-approval-evidence"),
+        }
+        revisions = {
+            name: mapped_revisions.get(name) or value
+            for name, value in revisions.items()
+        }
+    elif mode == "cloud":
+        raise RuntimeError("cloud handoff requires deploy-manifest.json from the immutable deployment flow")
     agent_card_urls = _agent_card_urls(urls)
     project_label = args.project_label or latest_model.get("project_id") or "local-only"
     location = latest_model.get("location") or "local-only"
@@ -1282,6 +1402,9 @@ def build_packet(args: argparse.Namespace) -> Path:
         "a2a_agent_card_urls": agent_card_urls,
         "verifier_command": verifier_command,
         "pytest_command": [sys.executable, "-m", "pytest", "-q"],
+        "warmup_output": "warmup-output.json" if mode == "cloud" else None,
+        "readiness_burnin_output": "readiness-burnin-output.json" if mode == "cloud" else None,
+        "deploy_manifest": "deploy-manifest.json" if deploy_manifest else None,
         "verification": judge_flow.get("verification", {}),
         "screenshots": screenshots,
         "raw_artifacts": {
@@ -1326,6 +1449,9 @@ def build_packet(args: argparse.Namespace) -> Path:
             "verify_final": "raw/verify-final.json",
         },
         "cloud_run_revisions": revisions,
+        "min_instances": (deploy_manifest or {}).get("min_instances", {}),
+        "image_digest": (deploy_manifest or {}).get("image_digest"),
+        "build_id": (deploy_manifest or {}).get("build_id"),
         "model_metadata": latest_model,
         "final_event_count": judge_flow.get("final_report", {}).get("verification", {}).get("event_count"),
         "final_head_hash": judge_flow.get("final_report", {}).get("verification", {}).get("head_hash"),
@@ -1367,6 +1493,7 @@ def main() -> int:
     parser.add_argument("--knowledge-url")
     parser.add_argument("--research-url")
     parser.add_argument("--approval-url")
+    parser.add_argument("--deploy-manifest", default="deploy-manifest.json")
     parser.add_argument("--project-label", help="Project label to show in cloud packets; may be a redacted real project label.")
     parser.add_argument("--demo-ui-revision")
     parser.add_argument("--root-revision")

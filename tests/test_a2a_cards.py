@@ -1,7 +1,9 @@
 from pathlib import Path
+import asyncio
 
 import httpx
 
+from common.a2a_client import _AGENT_CARD_CACHE, fetch_agent_card_cached
 from common.agent_cards import load_card, validate_agent_card
 from agents.approval_evidence_agent.main import app as approval_app
 from agents.research_agent.main import app as research_app
@@ -48,3 +50,14 @@ def test_policy_and_knowledge_agent_cards_exposed_at_required_routes():
                 assert validate_agent_card(card) == []
                 assert card["url"] == base_url
                 assert card["authentication"]["notes"]
+
+
+def test_agent_card_cache_reuses_process_lifetime_entry():
+    _AGENT_CARD_CACHE.clear()
+    with run_service(policy_app) as base_url:
+        first = asyncio.run(fetch_agent_card_cached(base_url, service_name="policy-test"))
+        assert first["name"] == "akretic-policy-agent"
+        assert len(_AGENT_CARD_CACHE) == 1
+        second = asyncio.run(fetch_agent_card_cached(base_url, service_name="policy-test"))
+        assert second["name"] == first["name"]
+        assert len(_AGENT_CARD_CACHE) == 1

@@ -3,14 +3,28 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
+import time
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from common.models import Actor, now_iso
 from common.paths import env_path
+from common.structured_logging import log_event
 
 GENESIS_HASH = "0" * 64
+_RUN_LOCKS: dict[str, threading.Lock] = {}
+_RUN_LOCKS_GUARD = threading.Lock()
+
+
+def _run_lock(run_id: str) -> threading.Lock:
+    with _RUN_LOCKS_GUARD:
+        lock = _RUN_LOCKS.get(run_id)
+        if lock is None:
+            lock = threading.Lock()
+            _RUN_LOCKS[run_id] = lock
+        return lock
 
 
 def ledger_dir(path: str | Path | None = None) -> Path:
@@ -38,23 +52,40 @@ def _gcs_blob_name(run_id: str) -> str:
 
 
 def _read_gcs_text(run_id: str, bucket_name: str) -> str:
+    return _read_gcs_text_with_generation(run_id, bucket_name)[0]
+
+
+def _read_gcs_text_with_generation(run_id: str, bucket_name: str) -> tuple[str, int | None]:
     from google.api_core.exceptions import NotFound
     from google.cloud import storage
 
     client = storage.Client()
     blob = client.bucket(bucket_name).blob(_gcs_blob_name(run_id))
     try:
-        return blob.download_as_text(encoding="utf-8")
+        text = blob.download_as_text(encoding="utf-8")
+        return text, int(blob.generation) if blob.generation is not None else None
     except NotFound:
-        return ""
+        return "", 0
 
 
-def _write_gcs_text(run_id: str, bucket_name: str, text: str) -> None:
+def _write_gcs_text(
+    run_id: str,
+    bucket_name: str,
+    text: str,
+    if_generation_match: int | None = None,
+) -> None:
     from google.cloud import storage
 
     client = storage.Client()
     blob = client.bucket(bucket_name).blob(_gcs_blob_name(run_id))
-    blob.upload_from_string(text, content_type="application/jsonl")
+    if if_generation_match is None:
+        blob.upload_from_string(text, content_type="application/jsonl")
+    else:
+        blob.upload_from_string(
+            text,
+            content_type="application/jsonl",
+            if_generation_match=if_generation_match,
+        )
 
 
 def canonical_json(data: dict[str, Any]) -> str:
@@ -102,31 +133,67 @@ def append_event(
     event_metadata.setdefault("browser_transport", "not used for server-side event")
     event_metadata.setdefault("verifier_transport", "server-side demo adapter")
     event_metadata.setdefault("transport", "server-side demo adapter")
-    event = {
-        "event_id": f"evt_{uuid4().hex}",
-        "run_id": run_id,
-        "actor_id": actor_id,
-        "agent_id": agent_id,
-        "action": action,
-        "resource_id": resource_id,
-        "outcome": outcome,
-        "reason": reason,
-        "correlation_id": correlation_id or f"corr_{uuid4().hex}",
-        "prev_hash": _last_hash(run_id, path),
-        "timestamp": now_iso(),
-        "metadata": event_metadata,
-    }
-    event["event_hash"] = compute_event_hash(event)
     bucket_name = _gcs_bucket_name(path)
-    line = json.dumps(event, sort_keys=True) + "\n"
-    if bucket_name:
-        existing = _read_gcs_text(run_id, bucket_name)
-        _write_gcs_text(run_id, bucket_name, existing + line)
-    else:
-        target = ledger_path(run_id, path)
-        with target.open("a", encoding="utf-8") as handle:
-            handle.write(line)
-    return event
+    lock = _run_lock(run_id)
+    attempts = 5 if bucket_name else 1
+    for attempt in range(1, attempts + 1):
+        with lock:
+            if bucket_name:
+                if getattr(_read_gcs_text, "__module__", __name__) != __name__:
+                    existing = _read_gcs_text(run_id, bucket_name)
+                    generation = None
+                else:
+                    existing, generation = _read_gcs_text_with_generation(run_id, bucket_name)
+                events = [json.loads(line) for line in existing.splitlines() if line.strip()]
+                previous_hash = events[-1]["event_hash"] if events else GENESIS_HASH
+            else:
+                existing = ""
+                generation = None
+                previous_hash = _last_hash(run_id, path)
+
+            event = {
+                "event_id": f"evt_{uuid4().hex}",
+                "run_id": run_id,
+                "actor_id": actor_id,
+                "agent_id": agent_id,
+                "action": action,
+                "resource_id": resource_id,
+                "outcome": outcome,
+                "reason": reason,
+                "correlation_id": correlation_id or f"corr_{uuid4().hex}",
+                "prev_hash": previous_hash,
+                "timestamp": now_iso(),
+                "metadata": event_metadata,
+            }
+            event["event_hash"] = compute_event_hash(event)
+            line = json.dumps(event, sort_keys=True) + "\n"
+            if not bucket_name:
+                target = ledger_path(run_id, path)
+                with target.open("a", encoding="utf-8") as handle:
+                    handle.write(line)
+                return event
+            try:
+                if generation is None:
+                    _write_gcs_text(run_id, bucket_name, existing + line)
+                else:
+                    try:
+                        _write_gcs_text(run_id, bucket_name, existing + line, generation)
+                    except TypeError:
+                        _write_gcs_text(run_id, bucket_name, existing + line)
+                return event
+            except Exception as exc:
+                if "precondition" not in type(exc).__name__.lower() and "precondition" not in str(exc).lower():
+                    raise
+                log_event(
+                    "evidence_write_conflict",
+                    run_id=run_id,
+                    correlation_id=event["correlation_id"],
+                    service=agent_id,
+                    retry_count=attempt,
+                    error_class=type(exc).__name__,
+                )
+        time.sleep(0.05 * attempt)
+    raise RuntimeError(f"evidence write conflict persisted for run_id={run_id}")
 
 
 def read_events(run_id: str, path: str | Path | None = None) -> list[dict[str, Any]]:
@@ -148,6 +215,12 @@ def verify_chain(run_id: str, path: str | Path | None = None) -> dict[str, Any]:
     for index, event in enumerate(events):
         expected_hash = compute_event_hash(event)
         if event.get("prev_hash") != previous:
+            log_event(
+                "evidence_verify_invalid",
+                run_id=run_id,
+                retry_count=0,
+                error_class="prev_hash_mismatch",
+            )
             return {
                 "run_id": run_id,
                 "valid": False,
@@ -156,6 +229,12 @@ def verify_chain(run_id: str, path: str | Path | None = None) -> dict[str, Any]:
                 "reason": "prev_hash mismatch",
             }
         if event.get("event_hash") != expected_hash:
+            log_event(
+                "evidence_verify_invalid",
+                run_id=run_id,
+                retry_count=0,
+                error_class="event_hash_mismatch",
+            )
             return {
                 "run_id": run_id,
                 "valid": False,

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from common.paths import env_path
+from common.structured_logging import log_event
 
 LOCAL_BACKEND = "local"
 GCS_BACKEND = "gcs"
@@ -214,7 +215,16 @@ def validate_metadata(
 
 
 def corpus_status() -> dict[str, Any]:
-    docs = load_metadata()
+    try:
+        docs = load_metadata()
+    except Exception as exc:
+        log_event(
+            "corpus_load_failure",
+            service="corpus",
+            retry_count=0,
+            error_class=type(exc).__name__,
+        )
+        raise
     classifications = [str(doc.get("classification", "")) for doc in docs]
     public_count = sum(1 for value in classifications if value == "public")
     restricted_count = sum(1 for value in classifications if value in {"restricted", "executive-only"})

@@ -151,37 +151,34 @@ def verify(args: argparse.Namespace) -> int:
 
     with httpx.Client(timeout=args.timeout, follow_redirects=True) as client:
         direct_private_headers: dict[str, dict[str, str] | None] = {}
-        direct_health_blockers: list[str] = []
-        for name, url in urls.items():
-            if mode == "cloud" and name == "demo_ui":
-                response = _get(client, f"{url}/")
-                if response.status_code != 200:
-                    _fail(f"{name} / returned {response.status_code}")
-                continue
-            if mode == "cloud":
+        if mode == "cloud":
+            readyz = _get(client, f"{urls['demo_ui']}/readyz").json()
+            if readyz.get("status") != "ok":
+                _fail("public /readyz did not return status ok")
+            if readyz.get("runtime_mode") != "cloud":
+                _fail("public /readyz runtime_mode is not cloud")
+            if args.expect_vertex and readyz.get("model_mode") != "vertex":
+                _fail("public /readyz model_mode is not vertex")
+            _ok("public aggregate /readyz passed")
+
+            for name in ("root", "policy", "knowledge", "research", "approval"):
+                url = urls[name]
                 headers, blocker = _direct_private_headers(name, url, mode)
                 if blocker:
-                    direct_health_blockers.append(f"{name}: {blocker}")
-                    continue
+                    _fail(f"{name} authenticated private /readyz headers unavailable: {blocker}")
                 direct_private_headers[name] = headers
-                try:
-                    response = _get(client, f"{url}/healthz", headers=headers)
-                except httpx.HTTPStatusError as exc:
-                    direct_health_blockers.append(
-                        f"{name} direct private /healthz returned HTTP "
-                        f"{exc.response.status_code} from external verifier"
-                    )
-                    continue
-            else:
-                response = _get(client, f"{url}/healthz")
-            if response.status_code != 200:
-                _fail(f"{name} /healthz returned {response.status_code}")
-        if mode == "cloud" and direct_health_blockers:
-            _ok(
-                "public demo URL passed; direct private /healthz edge responses "
-                f"recorded separately ({'; '.join(direct_health_blockers)})"
-            )
+                ready_response = _get(client, f"{url}/readyz", headers=headers)
+                ready_body = ready_response.json()
+                if ready_body.get("status") not in {"ok", "degraded"}:
+                    _fail(f"{name} authenticated private /readyz returned unexpected status")
+                if name != "root" and ready_body.get("status") != "ok":
+                    _fail(f"{name} authenticated private /readyz was not ok")
+            _ok("authenticated private /readyz checks passed")
         else:
+            for name, url in urls.items():
+                response = _get(client, f"{url}/healthz")
+                if response.status_code != 200:
+                    _fail(f"{name} /healthz returned {response.status_code}")
             _ok("health checks passed for demo UI and services")
 
         for service_name, expected_name in AGENT_CARD_EXPECTATIONS.items():

@@ -12,7 +12,7 @@ from fastapi import FastAPI, Form, Header, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 
 from agents.root_orchestrator.main import run_vendor_review_workflow
-from common.a2a_client import cloud_run_auth_headers
+from common.a2a_client import cloud_run_auth_headers, fetch_agent_card_cached
 from common.corpus import (
     DENIED_TEST_TERMS,
     corpus_status,
@@ -22,6 +22,7 @@ from common.corpus import (
     validate_metadata,
 )
 from common.evidence import append_event, build_evidence_report, read_events, verify_chain
+from common.gemini import lightweight_vertex_check, resolve_model_mode, runtime_mode as gemini_runtime_mode, vertex_config
 from common.identity import derive_actor
 from common.models import Resource
 from common.policy import evaluate, issue_decision_receipt
@@ -360,6 +361,14 @@ def _policy_url() -> str:
 
 def _knowledge_url() -> str:
     return os.getenv("KNOWLEDGE_AGENT_URL", "http://127.0.0.1:8102")
+
+
+def _research_url() -> str:
+    return os.getenv("RESEARCH_AGENT_URL", "http://127.0.0.1:8103")
+
+
+def _root_url() -> str:
+    return os.getenv("ROOT_ORCHESTRATOR_URL", "http://127.0.0.1:8100")
 
 
 async def _call_policy_agent_for_corpus(
@@ -1368,7 +1377,7 @@ async def decide_approval_from_ui(
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.post(
                 f"{approval_url}/decide_approval",
-                json={"approval_id": approval_id, "status": status, "reason": reason},
+                json={"run_id": run_id, "approval_id": approval_id, "status": status, "reason": reason},
                 headers=cloud_run_auth_headers(approval_url, {"x-akretic-persona": reviewer_persona}),
             )
             if response.status_code >= 400:
@@ -1917,6 +1926,173 @@ def _render_evidence_report(report: dict[str, Any]) -> str:
 @app.get("/healthz")
 def healthz() -> dict[str, str]:
     return {"status": "ok", "service": "demo-ui"}
+
+
+@app.get("/readyz")
+async def readyz() -> JSONResponse:
+    service_urls = {
+        "root": _root_url().rstrip("/"),
+        "policy": _policy_url().rstrip("/"),
+        "knowledge": _knowledge_url().rstrip("/"),
+        "research": _research_url().rstrip("/"),
+        "approval": _approval_url().rstrip("/"),
+    }
+    checks: dict[str, Any] = {"demo_ui": {"ok": True, "service": "demo-ui"}}
+    revision_map = {"demo_ui": os.getenv("K_REVISION", "local")}
+
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        try:
+            root_response = await client.get(
+                f"{service_urls['root']}/readyz",
+                headers=cloud_run_auth_headers(service_urls["root"]),
+            )
+            checks["root_reachable"] = {
+                "ok": root_response.status_code == 200,
+                "status_code": root_response.status_code,
+                "body": root_response.json() if root_response.headers.get("content-type", "").startswith("application/json") else {},
+            }
+        except Exception as exc:
+            checks["root_reachable"] = {"ok": False, "error_class": type(exc).__name__}
+
+        for name in ("policy", "knowledge", "research", "approval"):
+            try:
+                card = await fetch_agent_card_cached(
+                    service_urls[name],
+                    service_name=name,
+                    refresh=False,
+                )
+                checks[f"{name}_agent_card"] = {
+                    "ok": True,
+                    "name": card.get("name"),
+                    "url": card.get("url"),
+                }
+            except Exception as exc:
+                checks[f"{name}_agent_card"] = {"ok": False, "error_class": type(exc).__name__}
+            try:
+                ready_response = await client.get(
+                    f"{service_urls[name]}/readyz",
+                    headers=cloud_run_auth_headers(service_urls[name]),
+                )
+                ready_body = ready_response.json() if ready_response.headers.get("content-type", "").startswith("application/json") else {}
+                checks[f"{name}_readyz"] = {
+                    "ok": ready_response.status_code == 200 and ready_body.get("status") == "ok",
+                    "status_code": ready_response.status_code,
+                    "revision": ready_body.get("revision") or "not_reported",
+                }
+            except Exception as exc:
+                checks[f"{name}_readyz"] = {"ok": False, "error_class": type(exc).__name__}
+
+        try:
+            run_id = f"readyz_{uuid4().hex}"
+            record_response = await client.post(
+                f"{service_urls['approval']}/record_event",
+                json={
+                    "run_id": run_id,
+                    "persona": "security_reviewer",
+                    "agent_id": "demo_ui",
+                    "action": "readyz_evidence_check",
+                    "resource_id": "aggregate_readyz",
+                    "outcome": "result",
+                    "reason": "lightweight readiness evidence write",
+                    "metadata": {
+                        "identity_source": IDENTITY_SOURCE_LABEL,
+                        "browser_transport": "not used for readiness check",
+                        "verifier_transport": VERIFIER_TRANSPORT_LABEL,
+                        "transport": VERIFIER_TRANSPORT_LABEL,
+                    },
+                },
+                headers=cloud_run_auth_headers(service_urls["approval"], {"x-akretic-persona": "security_reviewer"}),
+            )
+            verify_response = await client.get(
+                f"{service_urls['approval']}/verify/{run_id}",
+                headers=cloud_run_auth_headers(service_urls["approval"], {"x-akretic-persona": "security_reviewer"}),
+            )
+            verification = verify_response.json() if verify_response.headers.get("content-type", "").startswith("application/json") else {}
+            checks["evidence_write_verify"] = {
+                "ok": record_response.status_code == 200 and verify_response.status_code == 200 and verification.get("valid") is True,
+                "run_id": run_id,
+                "record_status_code": record_response.status_code,
+                "verify_status_code": verify_response.status_code,
+                "head_hash": verification.get("head_hash"),
+            }
+        except Exception as exc:
+            checks["evidence_write_verify"] = {"ok": False, "error_class": type(exc).__name__}
+
+    try:
+        corpus = corpus_status()
+        checks["corpus_backend"] = {
+            "ok": bool(corpus.get("document_count")) and bool(corpus.get("corpus_manifest_hash")),
+            "backend": corpus.get("backend"),
+            "document_count": corpus.get("document_count"),
+            "corpus_manifest_hash": corpus.get("corpus_manifest_hash"),
+        }
+    except Exception as exc:
+        corpus = {}
+        checks["corpus_backend"] = {"ok": False, "error_class": type(exc).__name__}
+
+    try:
+        active_runtime = gemini_runtime_mode()
+        active_model_mode = resolve_model_mode(runtime=active_runtime)
+        vertex = vertex_config()
+        vertex_ok = (
+            active_runtime != "cloud"
+            or (
+                active_model_mode == "vertex"
+                and bool(vertex.get("project_id"))
+                and bool(vertex.get("location"))
+                and bool(vertex.get("model"))
+            )
+        )
+        checks["vertex_config"] = {
+            "ok": vertex_ok,
+            "runtime_mode": active_runtime,
+            "model_mode": active_model_mode,
+            "model": vertex.get("model") or "local-deterministic-test-summary",
+            "project_id": vertex.get("project_id") or ("local-only" if active_runtime != "cloud" else ""),
+            "location": vertex.get("location") or ("local-only" if active_runtime != "cloud" else ""),
+        }
+    except Exception as exc:
+        checks["vertex_config"] = {"ok": False, "error_class": type(exc).__name__}
+
+    root_body = checks.get("root_reachable", {}).get("body", {})
+    if isinstance(root_body, dict):
+        revision_map["root"] = root_body.get("revision", "not_reported")
+    for name in ("policy", "knowledge", "research", "approval"):
+        revision_map[name] = checks.get(f"{name}_readyz", {}).get("revision") or "not_reported"
+
+    ok = all(isinstance(check, dict) and check.get("ok") is True for check in checks.values())
+    payload = {
+        "status": "ok" if ok else "degraded",
+        "service": "demo-ui",
+        "runtime_mode": checks.get("vertex_config", {}).get("runtime_mode", _runtime_mode()),
+        "model_mode": checks.get("vertex_config", {}).get("model_mode"),
+        "model": checks.get("vertex_config", {}).get("model"),
+        "corpus_backend": corpus.get("backend"),
+        "checks": checks,
+        "service_urls": service_urls,
+        "revision_map": revision_map,
+        "identity_source": IDENTITY_SOURCE_LABEL,
+        "browser_transport": BROWSER_TRANSPORT_LABEL,
+        "verifier_transport": VERIFIER_TRANSPORT_LABEL,
+    }
+    return JSONResponse(payload, status_code=200 if ok else 503)
+
+
+@app.get("/readyz/vertex")
+def vertex_readyz() -> JSONResponse:
+    try:
+        result = lightweight_vertex_check()
+    except Exception as exc:
+        return JSONResponse(
+            {
+                "ok": False,
+                "runtime_mode": _runtime_mode(),
+                "error_class": type(exc).__name__,
+                "detail": str(exc),
+            },
+            status_code=503,
+        )
+    return JSONResponse(result, status_code=200 if result.get("ok") else 503)
 
 
 @app.get("/favicon.ico")

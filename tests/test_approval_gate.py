@@ -38,7 +38,7 @@ def test_approval_gate_blocks_until_reviewer_decision():
             reason="self approval should fail",
         )
 
-    decided = store.decide(
+    decided, replay = store.decide(
         approval_id=approval.approval_id,
         reviewer=reviewer,
         status="approved",
@@ -46,6 +46,16 @@ def test_approval_gate_blocks_until_reviewer_decision():
     )
     assert decided.status == "approved"
     assert decided.reviewer_id == reviewer.actor_id
+    assert replay is False
+
+    replayed, replay = store.decide(
+        approval_id=approval.approval_id,
+        reviewer=reviewer,
+        status="approved",
+        reason="approved for demo",
+    )
+    assert replayed.approval_id == approval.approval_id
+    assert replay is True
 
 
 def test_approval_service_records_request_and_reviewer_decision(monkeypatch, tmp_path):
@@ -95,6 +105,19 @@ def test_approval_service_records_request_and_reviewer_decision(monkeypatch, tmp
         )
         decision_response.raise_for_status()
         decision = decision_response.json()
+        replay_response = httpx.post(
+            f"{approval_url}/decide_approval",
+            json={
+                "run_id": run_id,
+                "approval_id": approval["approval_id"],
+                "status": "approved",
+                "reason": "duplicate approved for demo",
+            },
+            headers={"x-akretic-persona": "security_reviewer"},
+            timeout=5.0,
+        )
+        replay_response.raise_for_status()
+        replay = replay_response.json()
 
     events = read_events(run_id, path=tmp_path)
     approval_events = {event["action"]: event for event in events}
@@ -105,8 +128,10 @@ def test_approval_service_records_request_and_reviewer_decision(monkeypatch, tmp
     ]
     assert approval["status"] == "pending"
     assert decision["status"] == "approved"
+    assert replay["idempotent_replay"] is True
     assert approval_events["request_approval"]["outcome"] == "approval_required"
     assert approval_events["approve_action"]["outcome"] == "approved"
+    assert len([event for event in events if event["action"] == "approve_action" and event["outcome"] == "approved"]) == 1
     assert len(not_recorded_events) == 1
     assert not_recorded_events[0]["metadata"]["attempted_status"] == "approved"
     assert verify_chain(run_id, path=tmp_path)["valid"] is True

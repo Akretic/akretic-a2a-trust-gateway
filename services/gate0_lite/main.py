@@ -20,6 +20,16 @@ def healthz() -> dict[str, str]:
     return {"status": "ok", "service": "gate0-lite"}
 
 
+@app.get("/readyz")
+def readyz() -> dict[str, str]:
+    return {
+        "status": "ok",
+        "service": "gate0-lite",
+        "runtime_mode": os.getenv("AKRETIC_RUNTIME_MODE", "local"),
+        "revision": os.getenv("K_REVISION", "local"),
+    }
+
+
 @app.get("/agent.json")
 @app.get("/agent-card.json")
 @app.get("/.well-known/agent-card.json")

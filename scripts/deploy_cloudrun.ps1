@@ -2,7 +2,9 @@ param(
   [string]$ProjectId = "akretic-a2a-trust-gateway",
   [string]$Region = "us-central1",
   [string]$Repository = "akretic",
-  [string]$ImageTag = "p0-latest",
+  [string]$ImageTag = "",
+  [ValidateSet("judging", "cost-saving")]
+  [string]$DeployProfile = $(if ($env:AKRETIC_DEPLOY_PROFILE) { $env:AKRETIC_DEPLOY_PROFILE } else { "cost-saving" }),
   [string]$RuntimeServiceAccount = "akretic-p0-runtime",
   [string]$EvidenceBucket = "akretic-a2a-trust-gateway-evidence",
   [string]$CorpusBucket = "akretic-a2a-trust-gateway-corpus",
@@ -24,6 +26,11 @@ $AllowedServices = @(
   "akretic-approval-evidence"
 )
 $Gcloud = if ($IsWindows -or $env:OS -eq "Windows_NT") { "gcloud.cmd" } else { "gcloud" }
+$Python = if ($IsWindows -or $env:OS -eq "Windows_NT") { ".\\.venv\\Scripts\\python.exe" } else { ".venv/bin/python" }
+if (-not (Test-Path $Python)) {
+  $Python = "python"
+}
+$MinInstances = if ($DeployProfile -eq "judging") { "1" } else { "0" }
 
 function Run-Step {
   param(
@@ -61,6 +68,22 @@ function Invoke-GcloudValue {
     return ""
   }
   return (($output | Out-String).Trim())
+}
+
+function Get-ServiceRevision {
+  param([string]$Name)
+  return Invoke-GcloudValue @("run", "services", "describe", $Name, "--project", $ProjectId, "--region", $Region, "--format", "value(status.latestReadyRevisionName)")
+}
+
+function Get-FileSha256 {
+  param([string]$Text)
+  $sha = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Text)
+    return ([System.BitConverter]::ToString($sha.ComputeHash($bytes))).Replace("-", "").ToLowerInvariant()
+  } finally {
+    $sha.Dispose()
+  }
 }
 
 function Assert-Equal {
@@ -251,9 +274,10 @@ function Deploy-Service {
     $Gcloud, "run", "deploy", $Name,
     "--project", $ProjectId,
     "--region", $Region,
-    "--image", $Image,
+    "--image", $DeployImage,
     "--service-account", $RuntimeSaEmail,
     $authFlag,
+    "--min-instances", $MinInstances,
     "--set-env-vars", ($envVars -join ",")
   )
 }
@@ -268,7 +292,18 @@ function Get-ServiceUrl {
 }
 
 $RuntimeSaEmail = "$RuntimeServiceAccount@$ProjectId.iam.gserviceaccount.com"
-$Image = "$Region-docker.pkg.dev/$ProjectId/$Repository/akretic-p0:$ImageTag"
+$CommitSha = (git rev-parse HEAD).Trim()
+if (-not $ImageTag) {
+  $ImageTag = $CommitSha
+}
+$ImageBase = "$Region-docker.pkg.dev/$ProjectId/$Repository/akretic-p0"
+$Image = "${ImageBase}:$ImageTag"
+$DeployImage = $Image
+
+$PreviousRevisions = [ordered]@{}
+foreach ($service in $AllowedServices) {
+  $PreviousRevisions[$service] = Get-ServiceRevision $service
+}
 
 $preflight = Test-DeploymentPreflight
 if ($PreflightOnly) {
@@ -325,6 +360,14 @@ Run-Step "Build and push shared container image" @(
   "--substitutions", "_IMAGE=$Image"
 )
 
+$BuildId = Invoke-GcloudValue @("builds", "list", "--project", $ProjectId, "--sort-by", "~createTime", "--limit", "1", "--format", "value(id)")
+$ImageDigest = Invoke-GcloudValue @("artifacts", "docker", "images", "describe", $Image, "--project", $ProjectId, "--format", "value(image_summary.digest)")
+if (-not $ImageDigest) {
+  throw "Failed to resolve immutable image digest for $Image"
+}
+$DeployImage = "${ImageBase}@${ImageDigest}"
+Write-Host "Deploying immutable image $DeployImage"
+
 Deploy-Service -Name "akretic-policy-agent" -Module "services.gate0_lite.main:app" -Public $false
 Deploy-Service -Name "akretic-knowledge-agent" -Module "services.rag_dmz_lite.main:app" -Public $false
 Deploy-Service -Name "akretic-research-agent" -Module "agents.research_agent.main:app" -Public $false
@@ -357,6 +400,127 @@ foreach ($service in @(
 
 Deploy-Service -Name "akretic-demo-ui" -Module "demo_ui.main:app" -Public $true -ExtraEnv "$AgentEnv,ROOT_ORCHESTRATOR_URL=$RootUrl"
 $DemoUrl = Get-ServiceUrl "akretic-demo-ui"
+
+$env:AKRETIC_CLOUD_RUN_AUTH = "identity_token"
+$env:ROOT_ORCHESTRATOR_URL = $RootUrl
+$env:POLICY_AGENT_URL = $PolicyUrl
+$env:KNOWLEDGE_AGENT_URL = $KnowledgeUrl
+$env:RESEARCH_AGENT_URL = $ResearchUrl
+$env:APPROVAL_EVIDENCE_URL = $ApprovalUrl
+
+Run-Step "Run P0 verifier gate" @(
+  $Python, "scripts/p0_verify.py",
+  "--base-url", $DemoUrl,
+  "--mode", "cloud",
+  "--root-url", $RootUrl,
+  "--policy-url", $PolicyUrl,
+  "--knowledge-url", $KnowledgeUrl,
+  "--research-url", $ResearchUrl,
+  "--approval-url", $ApprovalUrl,
+  "--expect-vertex",
+  "--fail-on-local",
+  "--expect-corpus-backend", "gcs",
+  "--expect-freeform-playground",
+  "--expect-corpus-explorer",
+  "--expect-corpus-live-retrieval",
+  "--expect-decision-receipts",
+  "--expect-trust-receipt",
+  "--expect-model-context-envelope",
+  "--expect-red-team-cards"
+)
+
+Run-Step "Run five-run readiness burn-in" @(
+  $Python, "scripts/readiness_burnin.py",
+  "--base-url", $DemoUrl,
+  "--runs", "5",
+  "--expect-zero-5xx",
+  "--expect-vertex",
+  "--fail-on-local",
+  "--root-url", $RootUrl,
+  "--policy-url", $PolicyUrl,
+  "--knowledge-url", $KnowledgeUrl,
+  "--research-url", $ResearchUrl,
+  "--approval-url", $ApprovalUrl
+)
+
+$CurrentRevisions = [ordered]@{
+  "akretic-demo-ui" = Get-ServiceRevision "akretic-demo-ui"
+  "akretic-root-orchestrator" = Get-ServiceRevision "akretic-root-orchestrator"
+  "akretic-policy-agent" = Get-ServiceRevision "akretic-policy-agent"
+  "akretic-knowledge-agent" = Get-ServiceRevision "akretic-knowledge-agent"
+  "akretic-research-agent" = Get-ServiceRevision "akretic-research-agent"
+  "akretic-approval-evidence" = Get-ServiceRevision "akretic-approval-evidence"
+}
+$ServiceUrls = [ordered]@{
+  "akretic-demo-ui" = $DemoUrl
+  "akretic-root-orchestrator" = $RootUrl
+  "akretic-policy-agent" = $PolicyUrl
+  "akretic-knowledge-agent" = $KnowledgeUrl
+  "akretic-research-agent" = $ResearchUrl
+  "akretic-approval-evidence" = $ApprovalUrl
+}
+$MinInstanceSettings = [ordered]@{}
+foreach ($service in $AllowedServices) {
+  $MinInstanceSettings[$service] = [int]$MinInstances
+}
+$RollbackCommands = @()
+foreach ($service in $AllowedServices) {
+  $previous = $PreviousRevisions[$service]
+  if ($previous) {
+    $RollbackCommands += "gcloud run services update-traffic $service --project $ProjectId --region $Region --to-revisions $previous=100"
+  }
+}
+$BurnIn = Get-Content "readiness-burnin-output.json" -Raw | ConvertFrom-Json
+$EnvironmentMaterial = (@{
+  project_id = $ProjectId
+  region = $Region
+  deploy_profile = $DeployProfile
+  min_instances = $MinInstanceSettings
+  corpus_bucket = $CorpusBucket
+  corpus_prefix = $CorpusPrefix
+  evidence_bucket = $EvidenceBucket
+  vertex_model = "gemini-2.5-flash"
+} | ConvertTo-Json -Depth 6)
+$DeployManifest = [ordered]@{
+  packet_type = "cloud_judge_deploy_manifest"
+  created_at = (Get-Date).ToUniversalTime().ToString("o")
+  deploy_profile = $DeployProfile
+  build_id = $BuildId
+  commit_sha = $CommitSha
+  image_digest = $ImageDigest
+  deployed_image = $DeployImage
+  service_revisions = $CurrentRevisions
+  previous_revisions = $PreviousRevisions
+  service_urls = $ServiceUrls
+  min_instances = $MinInstanceSettings
+  environment_hash = Get-FileSha256 $EnvironmentMaterial
+  corpus_backend = "gcs"
+  model_metadata = @{
+    runtime_mode = "cloud"
+    model_mode = "vertex"
+    model = "gemini-2.5-flash"
+    project_id = $ProjectId
+    location = $Region
+  }
+  p0_verifier_run_id = (($BurnIn.runs | Select-Object -First 1).run_id)
+  readiness_burn_in_result = $BurnIn.ok
+  packet_filename = $null
+  rollback_commands = $RollbackCommands
+}
+$DeployManifest | ConvertTo-Json -Depth 10 | Set-Content -Path "deploy-manifest.json" -Encoding UTF8
+
+Run-Step "Generate final cloud handoff packet" @(
+  $Python, "scripts/make_final_handoff.py",
+  "--base-url", $DemoUrl,
+  "--mode", "cloud",
+  "--root-url", $RootUrl,
+  "--policy-url", $PolicyUrl,
+  "--knowledge-url", $KnowledgeUrl,
+  "--research-url", $ResearchUrl,
+  "--approval-url", $ApprovalUrl,
+  "--project-label", $ProjectId,
+  "--deploy-manifest", "deploy-manifest.json"
+)
 
 Write-Host "`nDeployment complete."
 Write-Host "Demo UI: $DemoUrl"

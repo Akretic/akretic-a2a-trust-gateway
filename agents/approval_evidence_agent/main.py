@@ -7,11 +7,12 @@ from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Request
 
-from common.approval import ApprovalStore
+from common.approval import ApprovalConflict, ApprovalStore
 from common.evidence import append_event, build_evidence_report, verify_chain
 from common.identity import derive_actor_from_request
 from common.models import Resource
 from common.policy import ALLOW, evaluate
+from common.structured_logging import log_event
 
 app = FastAPI(title="Akretic Approval/Evidence Agent")
 CARD_PATH = Path(__file__).resolve().parent / "agent-card.json"
@@ -21,6 +22,16 @@ APPROVALS = ApprovalStore()
 @app.get("/healthz")
 def healthz() -> dict[str, str]:
     return {"status": "ok", "service": "approval-evidence-agent"}
+
+
+@app.get("/readyz")
+def readyz() -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "service": "approval-evidence-agent",
+        "runtime_mode": os.getenv("AKRETIC_RUNTIME_MODE", "local"),
+        "revision": os.getenv("K_REVISION", "local"),
+    }
 
 
 @app.get("/agent.json")
@@ -107,11 +118,12 @@ def _decide_approval(
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="approval request not found") from exc
     try:
-        approval = APPROVALS.decide(
+        approval, replay = APPROVALS.decide(
             approval_id=approval_id,
             reviewer=reviewer,
             status=payload.get("status", "approved"),
             reason=payload.get("reason", "demo reviewer decision"),
+            run_id=payload.get("run_id"),
         )
     except PermissionError as exc:
         append_event(
@@ -135,6 +147,40 @@ def _decide_approval(
             },
         )
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ApprovalConflict as exc:
+        log_event(
+            "approval_conflict",
+            run_id=existing.run_id,
+            correlation_id=payload.get("correlation_id"),
+            caller=reviewer.actor_id,
+            service="approval-evidence-agent",
+            retry_count=0,
+            error_class=type(exc).__name__,
+        )
+        append_event(
+            run_id=existing.run_id,
+            actor=reviewer,
+            agent_id="approval_evidence_agent",
+            action="approve_action",
+            resource_id=existing.resource_id,
+            outcome="conflict",
+            reason=str(exc),
+            correlation_id=payload.get("correlation_id"),
+            metadata={
+                "approval_id": existing.approval_id,
+                "attempted_status": payload.get("status", "approved"),
+                "approval_status_before": existing.status,
+                "reviewer_id": reviewer.actor_id,
+                "external_egress_performed": False,
+                "identity_source": "demo identity adapter",
+                "browser_transport": "viewer persona selector",
+                "verifier_transport": "x-akretic-persona header",
+                "transport": "x-akretic-persona header",
+            },
+        )
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if replay:
+        return {**approval.to_dict(), "idempotent_replay": True}
     append_event(
         run_id=approval.run_id,
         actor=reviewer,

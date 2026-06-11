@@ -1,4 +1,5 @@
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 from common.evidence import append_event, ledger_path, verify_chain
 from common.identity import derive_actor
@@ -84,3 +85,27 @@ def test_evidence_hash_chain_can_use_shared_gcs_backend(monkeypatch):
 
     assert verify_chain(run_id)["valid"] is True
     assert len(objects["test-shared-evidence/test-gcs-evidence"].splitlines()) == 2
+
+
+def test_concurrent_local_evidence_appends_preserve_hash_chain(tmp_path):
+    actor = derive_actor("security_reviewer")
+    run_id = "test-concurrent-evidence"
+
+    def write(index: int) -> None:
+        append_event(
+            run_id=run_id,
+            actor=actor,
+            agent_id="approval_evidence_agent",
+            action="readyz_evidence_check",
+            resource_id=f"resource-{index}",
+            outcome="result",
+            reason="concurrent write test",
+            path=tmp_path,
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(write, range(25)))
+
+    verification = verify_chain(run_id, path=tmp_path)
+    assert verification["valid"] is True
+    assert verification["event_count"] == 25

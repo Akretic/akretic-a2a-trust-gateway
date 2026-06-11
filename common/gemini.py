@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import os
+import time
 from typing import Any
 
 from common.models import Actor
+from common.structured_logging import log_event
 
 LOCAL_TEST_MODE = "local"
 VERTEX_MODE = "vertex"
@@ -251,6 +253,78 @@ def _vertex_summary(
     return response.text or ""
 
 
+def lightweight_vertex_check() -> dict[str, Any]:
+    runtime = runtime_mode()
+    mode = resolve_model_mode(runtime=runtime)
+    config = vertex_config()
+    model = config["model"] or "gemini-2.5-flash"
+    project_id = config["project_id"]
+    location = config["location"] or "us-central1"
+    if mode != VERTEX_MODE:
+        return {
+            "ok": runtime == RUNTIME_LOCAL,
+            "runtime_mode": runtime,
+            "model_mode": mode,
+            "model": "local-deterministic-test-summary",
+            "latency_ms": 0,
+            "note": "Vertex warmup is only required in cloud runtime.",
+        }
+    missing = []
+    if not project_id:
+        missing.append("GOOGLE_CLOUD_PROJECT or PROJECT_ID")
+    if runtime == RUNTIME_CLOUD and not config["location"]:
+        missing.append("GOOGLE_CLOUD_LOCATION")
+    if runtime == RUNTIME_CLOUD and not config["model"]:
+        missing.append("VERTEX_MODEL")
+    if missing:
+        raise GeminiConfigurationError("Vertex Gemini mode requires: " + ", ".join(missing))
+
+    from google import genai
+    from google.genai.types import GenerateContentConfig, HttpOptions
+
+    started = time.perf_counter()
+    try:
+        client = genai.Client(
+            vertexai=True,
+            project=project_id,
+            location=location,
+            http_options=HttpOptions(api_version="v1"),
+        )
+        response = client.models.generate_content(
+            model=model,
+            contents="Return the single word ready.",
+            config=GenerateContentConfig(temperature=0, max_output_tokens=4),
+        )
+    except Exception as exc:
+        error = _classify_vertex_error(exc)
+        event_type = "vertex_timeout"
+        detail = f"{type(exc).__name__} {exc}".lower()
+        if "429" in detail or "quota" in detail or "rate" in detail:
+            event_type = "vertex_429"
+        elif any(token in detail for token in ("500", "502", "503", "504", "unavailable")):
+            event_type = "vertex_5xx"
+        log_event(
+            event_type,
+            service="vertex-gemini",
+            latency_ms=round((time.perf_counter() - started) * 1000, 2),
+            error_class=type(exc).__name__,
+            retry_count=0,
+        )
+        raise GeminiUnavailableError(error) from exc
+    latency_ms = round((time.perf_counter() - started) * 1000, 2)
+    text = response.text or ""
+    return {
+        "ok": bool(text.strip()),
+        "runtime_mode": runtime,
+        "model_mode": mode,
+        "model": model,
+        "project_id": project_id,
+        "location": location,
+        "latency_ms": latency_ms,
+        "output_hash": _text_hash(text),
+    }
+
+
 def summarize_vendor_review(
     *,
     query: str,
@@ -322,6 +396,16 @@ def summarize_vendor_review(
             model=model,
         )
     except Exception as exc:
+        detail = f"{type(exc).__name__} {exc}".lower()
+        if "429" in detail or "quota" in detail or "rate" in detail:
+            event_type = "vertex_429"
+        elif any(token in detail for token in ("500", "502", "503", "504", "unavailable")):
+            event_type = "vertex_5xx"
+        elif "timeout" in detail:
+            event_type = "vertex_timeout"
+        else:
+            event_type = "vertex_5xx"
+        log_event(event_type, service="vertex-gemini", retry_count=0, error_class=type(exc).__name__)
         raise GeminiUnavailableError(_classify_vertex_error(exc)) from exc
 
     _assert_no_denied_source_text(
