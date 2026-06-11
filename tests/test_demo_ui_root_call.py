@@ -93,7 +93,7 @@ def test_demo_ui_approval_calls_private_service_with_auth_headers(monkeypatch):
         )
     )
 
-    assert decision == {"status": "approved"}
+    assert decision == {"status": "approved", "external_egress_performed": False}
     assert verification == {"valid": True}
     assert calls == [
         {
@@ -120,7 +120,8 @@ def test_demo_ui_approval_calls_private_service_with_auth_headers(monkeypatch):
     ]
 
 
-def test_demo_ui_home_first_viewport_shows_judge_proof_markers():
+def test_demo_ui_home_first_viewport_shows_judge_proof_markers(monkeypatch):
+    monkeypatch.setenv("AKRETIC_RUNTIME_MODE", "local")
     html = demo_ui.home()
 
     assert "Akretic A2A Trust Gateway" in html
@@ -128,7 +129,8 @@ def test_demo_ui_home_first_viewport_shows_judge_proof_markers():
     assert "Akretic gives procurement and security teams a controlled VendorNova review" in html
     assert "Challenge prototype" in html
     assert "Synthetic data" in html
-    assert "Cloud Run + Vertex Gemini" in html
+    assert "Local proof mode" in html
+    assert "Cloud Run + Vertex Gemini" not in html
     assert "A2A protocol proof" in html
     assert "Run the controlled VendorNova review." in html
     assert "The business scenario" in html
@@ -138,6 +140,9 @@ def test_demo_ui_home_first_viewport_shows_judge_proof_markers():
     assert "The same user request moves through identity, policy, retrieval filtering" in html
     assert "A procurement user asks for VendorNova security context" in html
     assert "procurement policy, blocks executive-only material before Gemini" in html
+    assert "Evidence events" in html
+    assert "generated per run" in html
+    assert "<strong>dynamic</strong>" not in html
     assert "executive_acquisition_memo" in html
     assert "What this demo proves" in html
     assert "Identity" in html
@@ -152,6 +157,14 @@ def test_demo_ui_home_first_viewport_shows_judge_proof_markers():
     assert "ADK-aligned wrapper" not in html
 
 
+def test_demo_ui_home_cloud_mode_shows_cloud_vertex_badge(monkeypatch):
+    monkeypatch.setenv("AKRETIC_RUNTIME_MODE", "cloud")
+    html = demo_ui.home()
+
+    assert "Cloud Run + Vertex Gemini" in html
+    assert "Local proof mode" not in html
+
+
 def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
     monkeypatch.setattr(demo_ui, "read_events", lambda run_id: [])
 
@@ -164,6 +177,23 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
             "denied_sources": [{"source_id": "executive_acquisition_memo"}],
             "correlation_id": "corr-rag",
         },
+        "research_decision": {"outcome": "allow"},
+        "research": {
+            "source_scope": "seeded_allowlisted_public",
+            "source_ids": ["public_seed_vendornova_001", "public_seed_vendornova_002"],
+            "citations": [
+                "seeded://vendornova/public-profile",
+                "seeded://vendornova/public-risk-signals",
+            ],
+            "snippets": [
+                {
+                    "source_id": "public_seed_vendornova_001",
+                    "title": "VendorNova public profile snippet",
+                    "classification": "public",
+                    "text": "VendorNova is synthetic.",
+                }
+            ],
+        },
         "export_decision": {
             "outcome": "approval_required",
             "reason": "external export requires reviewer approval",
@@ -172,6 +202,12 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
         "approval_request": {"approval_id": "approval-p1", "status": "pending"},
         "export_result": {"status": "blocked_pending_approval"},
         "verification": {"valid": True, "event_count": 12, "head_hash": "abc"},
+        "identity_context": {
+            "identity_source": "demo identity adapter",
+            "browser_transport": "viewer persona selector",
+            "verifier_transport": "x-akretic-persona header",
+            "body_claims_trusted": False,
+        },
         "model_summary": {
             "mode": "local",
             "service_path": "local deterministic summary for tests only",
@@ -188,6 +224,10 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
                 "outcome": "allow",
                 "evidence_event_id": "evt-policy-read",
                 "evidence_event_hash": "1234567890abcdef9999",
+                "http_status": 200,
+                "latency_ms": 10.1,
+                "request_hash": "11112222333344445555",
+                "response_hash": "66667777888899990000",
                 "agent_card_resolved": True,
             },
             {
@@ -201,6 +241,27 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
                 "outcome": "result",
                 "evidence_event_id": "evt-rag",
                 "evidence_event_hash": "abcdef12345678909999",
+                "http_status": 200,
+                "latency_ms": 11.2,
+                "request_hash": "22223333444455556666",
+                "response_hash": "77778888999900001111",
+                "agent_card_resolved": True,
+            },
+            {
+                "agent_card_url": "https://research.example/.well-known/agent-card.json",
+                "agent": "akretic-research-agent",
+                "skill": "check_public_risk_signals",
+                "skill_intent": "check_public_risk_signals",
+                "caller": "root_orchestrator",
+                "callee": "akretic-research-agent",
+                "correlation_id": "corr-research",
+                "outcome": "result",
+                "evidence_event_id": "evt-research",
+                "evidence_event_hash": "aaaabbbbccccdddd9999",
+                "http_status": 200,
+                "latency_ms": 12.5,
+                "request_hash": "11112222333344445555",
+                "response_hash": "66667777888899990000",
                 "agent_card_resolved": True,
             },
             {
@@ -214,6 +275,10 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
                 "outcome": "approval_required",
                 "evidence_event_id": "evt-approval",
                 "evidence_event_hash": "feedfacecafebeef9999",
+                "http_status": 200,
+                "latency_ms": 13.6,
+                "request_hash": "33334444555566667777",
+                "response_hash": "88889999000011112222",
                 "agent_card_resolved": True,
             },
         ],
@@ -225,30 +290,44 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
     assert "VendorNova review summary was generated from permitted procurement context." in html
     assert "External export is blocked" in html
     assert "pending security reviewer approval." in html
+    assert "Judge Proof" in html
+    assert "Reviewer path" in html
     assert "Permitted-context summary" in html
-    assert "Generated by Vertex Gemini from permitted source IDs only." in html
+    assert "Generated in labeled local deterministic mode from permitted source IDs only." in html
     assert "What Akretic prevented" in html
     assert "The executive acquisition memo did not enter Gemini context." in html
     assert "export did not complete without reviewer approval." in html
-    assert "Proof Path From This Run" in html
+    assert "A2A Evidence Proof From This Run" in html
     assert "The result mirrors the homepage story with the actual business and control evidence." in html
     assert "<span class=\"code-chip\">procurement_user</span> derived" in html
     assert "Retrieval <span class=\"code-chip\">allow</span>" in html
     assert "export <span class=\"code-chip\">approval_required</span>" in html
     assert "<span class=\"code-chip\">executive_acquisition_memo</span> denied before context." in html
     assert "Permitted: <span class=\"code-chip\">procurement_policy</span>" in html
-    assert "Vertex Gemini summarizes permitted sources only." in html
+    assert "Local deterministic summarizer uses permitted sources only." in html
     assert "Mode <span class=\"code-chip\">local</span>" in html
+    assert "Research Agent" in html
+    assert "Seeded allowlisted public research returned." in html
+    assert "public_seed_vendornova_001" in html
+    assert "seeded://vendornova/public-risk-signals" in html
     assert "Agent Card calls recorded with correlation IDs." in html
     assert "Export blocked pending reviewer decision." in html
     assert "Approval ID <span class=\"code-chip\">approval-p1</span>" in html
     assert "event count <span class=\"code-chip\">12</span>" in html
+    assert "Browser transport" in html
+    assert "viewer persona selector" in html
+    assert "Verifier transport" in html
+    assert "x-akretic-persona header" in html
+    assert "/evidence/run-p1" in html
+    assert "sample evidence report" not in html.lower()
     assert "Denied before model context: executive_acquisition_memo." in html
     assert "approval_required: external/sensitive action is paused." in html
     assert "Agent Card URL" in html
     assert "Skill / intent" in html
     assert "Caller / callee" in html
     assert "Evidence event / hash" in html
+    assert "HTTP / latency" in html
+    assert "Request / response hash" in html
     assert "https://policy.example/.well-known/agent-card.json" in html
     assert "root_orchestrator -&gt; akretic-policy-agent" in html
     assert "evt-policy-read / 1234567890abcdef" in html

@@ -14,9 +14,10 @@ The demo must prove these controls in one short path:
 1. Root orchestrator creates a `run_id` for a VendorNova review.
 2. Policy Agent evaluates each material intent before retrieval, research, A2A exchange, approval, export, or verification.
 3. RAG DMZ-lite filters synthetic corpus chunks by derived user identity before model context is assembled.
-4. External-facing or sensitive side effects return `approval_required` and pause until reviewer action.
-5. Evidence ledger records allow, deny, approval, A2A call, and result events in a hash chain.
-6. `/verify/{run_id}` proves the chain is intact and detects tampering.
+4. Research Agent returns seeded allowlisted VendorNova public snippets with source IDs and citations.
+5. External-facing or sensitive side effects return `approval_required` and pause until reviewer action.
+6. Evidence ledger records allow, deny, research, approval, A2A call, and result events in a hash chain.
+7. `/verify/{run_id}` proves the chain is intact and detects tampering behind a demo viewer role check.
 
 P0, P1, P2, P3, P4, and P5 are cleared. The hosted demo video URL is recorded,
 the final submission package is rebuilt, and P6 ADK alignment exploration may
@@ -65,6 +66,16 @@ Run the local service stack:
 bash scripts/run_local.sh
 ```
 
+Local mode is the default. It is intentionally labeled and uses deterministic
+summaries for local development and tests:
+
+```bash
+AKRETIC_RUNTIME_MODE=local
+```
+
+Cloud judge mode must be explicit and must use Vertex/Gemini. It fails safe if
+the Vertex configuration is missing instead of falling back to local summaries.
+
 ## Important files for Codex
 
 - `AGENTS.md` — repo-level instructions Codex must read before work.
@@ -95,36 +106,88 @@ This packet includes:
 - deterministic policy evaluator skeleton;
 - demo identity adapter that ignores request-body privilege claims;
 - metadata-filtered synthetic corpus retrieval;
+- `corpus/documents/*.md` and `corpus/metadata.json` as the synthetic enterprise corpus source of truth;
+- Cloud Storage corpus loading when `AKRETIC_CORPUS_BACKEND=gcs` and `AKRETIC_RUNTIME_MODE=cloud`;
+- `/corpus/status`, `/corpus`, and `/corpus/metadata.json` for corpus backend, manifest, metadata, and persona access proof;
+- `/playground` for guided chips and free-form reviewer prompts mapped to governed intents;
 - hash-chained JSONL evidence ledger;
 - approval request and reviewer decision path for export-style side effects;
 - structured evidence report with A2A, retrieval, approval, reviewer decision, and verify sections;
+- model context envelope and A2A Trust Receipt endpoints for current-run proof artifacts;
+- current-run evidence report links from the run page, including downloadable JSON for that exact `run_id`;
 - FastAPI service shells for the agents and core services;
 - Agent Card JSON for each remote agent;
-- root-to-Policy and root-to-Knowledge HTTP A2A calls with evidence logging;
+- root-to-Policy, Knowledge, Research, and Approval/Evidence HTTP A2A calls with evidence logging;
+- A2A evidence metadata with HTTP status, latency, request hash, and response hash;
 - root summarization adapter for Vertex AI Gemini, with a labeled local test mode;
+- model events with runtime mode, prompt hash, and output/completion hash;
+- evidence/verify UI routes with demo viewer role checks;
+- `scripts/make_final_handoff.py` for final verifier output, raw responses, screenshots, manifest, and zip packaging;
 - baseline P0 tests;
 - Cloud Run deployment scaffolding and authenticated Cloud Run smoke proof.
 
 Current Cloud Run note: the demo services deploy, the public UI path passes,
 and private agent services remain behind Cloud Run IAM.
 
-The root Gemini path is isolated behind `common/gemini.py`. Set `AKRETIC_GEMINI_MODE=vertex`
-with `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, and `VERTEX_MODEL` for the Cloud Run demo.
-The `local` mode is explicitly labeled and reserved for tests.
+The root Gemini path is isolated behind `common/gemini.py`. Set
+`AKRETIC_RUNTIME_MODE=cloud` with `GOOGLE_CLOUD_PROJECT`,
+`GOOGLE_CLOUD_LOCATION`, and `VERTEX_MODEL` for the Cloud Run demo. Cloud mode
+requires Vertex/Gemini and does not silently fall back to local deterministic
+summaries. The `local` runtime mode is explicitly labeled and reserved for tests
+or local development.
 
-## 90-second judge walkthrough
+## Corpus and playground proof
+
+The demo is backed by a synthetic enterprise corpus under `corpus/documents/`
+with document metadata in `corpus/metadata.json`. The metadata includes source
+ID, title, classification, source type, document type, allowed groups, release
+flag, sensitivity tags, vendor ID, creation timestamp, content hash, storage
+URI, and index status. No customer data, private third-party data, real secrets,
+or production enterprise data is used.
+
+Local mode loads the corpus from the repository. Cloud mode must set:
+
+```text
+AKRETIC_RUNTIME_MODE=cloud
+AKRETIC_CORPUS_BACKEND=gcs
+AKRETIC_CORPUS_BUCKET=<bucket>
+AKRETIC_CORPUS_PREFIX=<prefix>
+AKRETIC_EVIDENCE_BUCKET=<bucket>
+```
+
+The free-form `/playground` maps reviewer prompts to constrained governed
+intents. Prompt chips are examples, not the only supported path. Unknown or
+unsafe prompts return `unsupported_intent` or a governed denial/fallback. Gemini
+sees only permitted model context assembled after identity derivation,
+Gate0-lite policy, Knowledge Agent filtering, seeded/allowlisted public
+research, and approval gating.
+
+The `/corpus` explorer shows what synthetic documents exist and evaluates the
+current persona's metadata/content/model-context access per document. Restricted
+content is withheld when policy denies access; denial source IDs can appear as
+proof but denied document text is not used as the control.
+
+## Public Demo URL
+
+Public demo URL placeholder: `https://<PUBLIC_DEMO_URL>`
+
+Replace the placeholder with the active Cloud Run demo UI URL when preparing the
+final judge packet.
+
+## 2-minute judge walkthrough
 
 Target demo URL: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
 
 1. Open the public Cloud Run demo URL and confirm the page labels the build as a challenge prototype using synthetic data.
 2. Keep persona as `procurement_user`, keep the VendorNova query, and select `Start VendorNova Review`.
-3. On the review page, scan the proof row: Identity, Policy, RAG Filter, A2A, Approval, Evidence Verify.
+3. On the review page, scan the Judge Proof panel: service path, Vertex Gemini mode, A2A Agent Cards, denied executive memo, `approval_required`, reviewer path pending, and valid hash chain.
 4. Confirm the model panel says `Mode: vertex`, `Model: gemini-2.5-flash`, project `akretic-a2a-trust-gateway`, and location `us-central1`.
-5. Confirm the page shows `run_id`, permitted source IDs, and `Denied before model context: executive_acquisition_memo.`
-6. Confirm the external/sensitive action is `approval_required` and the export result is blocked pending reviewer action.
-7. Scan A2A Proof for agent, skill, `correlation_id`, Agent Card resolution, and outcome.
-8. Record an approve or reject decision as `security_reviewer`.
-9. Confirm Evidence Verification reports a valid hash chain and event count.
+5. Confirm the page shows `run_id`, permitted source IDs, public research source IDs/citations, and `Denied before model context: executive_acquisition_memo.`
+6. Confirm the external/sensitive action is `approval_required` and the export result is blocked pending reviewer action. The challenge prototype records the approval decision but performs no external egress.
+7. Scan A2A Proof for agent, skill, `correlation_id`, Agent Card resolution, HTTP status/latency, request/response hashes, and evidence event/hash.
+8. Open the current-run evidence report link for that exact `run_id`; confirm the viewer persona, timeline, A2A calls, research citations, policy decisions, retrieval allow/deny IDs, model event hashes, approval events, model context envelope, A2A Trust Receipt, and downloadable JSON.
+9. Record an approve or reject decision as `security_reviewer`.
+10. Confirm Evidence Verification reports a valid hash chain and event count.
 
 ## Gemini/Vertex behavior
 
@@ -132,7 +195,7 @@ In Cloud Run, the root orchestrator uses Vertex AI Gemini through the thin adapt
 in `common/gemini.py` with:
 
 ```text
-AKRETIC_GEMINI_MODE=vertex
+AKRETIC_RUNTIME_MODE=cloud
 GOOGLE_CLOUD_PROJECT=akretic-a2a-trust-gateway
 GOOGLE_CLOUD_LOCATION=us-central1
 VERTEX_MODEL=gemini-2.5-flash
@@ -155,6 +218,7 @@ tests or local development.
 - RAG DMZ-lite filters restricted synthetic chunks before model context is assembled.
 - The VendorNova executive memo is denied before model context while permitted sources are still summarized.
 - External/sensitive action completion is approval-gated.
+- Authorized reviewer decisions are recorded; no external egress is performed in this challenge prototype.
 - Evidence events are hash-chained and can be verified for this synthetic run.
 
 ## What this does not claim
@@ -188,15 +252,25 @@ The intended judging flow:
 4. Confirm the page shows a `run_id`, permitted sources, denied sources, an
    `approval_required` external-action decision, and hash-chain verification.
 5. Submit the reviewer decision as `security_reviewer`.
-6. Use the sample evidence report in `artifacts/` or the private evidence report
-   endpoint to inspect the A2A, policy, retrieval, approval, and verification events.
+6. Use the current-run evidence link on the run page to inspect the A2A, policy,
+   research, retrieval, model, approval, and verification events for that exact `run_id`.
 
 The public UI uses Cloud Run's no-invoker IAM check mode so it can remain public
 for judging without an `allUsers` IAM binding. Verify the public proof path with:
 
 ```powershell
+.\.venv\Scripts\python.exe scripts\p0_verify.py --base-url https://<PUBLIC_DEMO_URL> --mode cloud --root-url https://<ROOT_SERVICE_URL> --policy-url https://<POLICY_SERVICE_URL> --knowledge-url https://<KNOWLEDGE_SERVICE_URL> --research-url https://<RESEARCH_SERVICE_URL> --approval-url https://<APPROVAL_EVIDENCE_SERVICE_URL> --expect-vertex --fail-on-local
+.\.venv\Scripts\python.exe scripts\p0_verify.py --base-url https://<PUBLIC_DEMO_URL> --mode cloud --root-url https://<ROOT_SERVICE_URL> --policy-url https://<POLICY_SERVICE_URL> --knowledge-url https://<KNOWLEDGE_SERVICE_URL> --research-url https://<RESEARCH_SERVICE_URL> --approval-url https://<APPROVAL_EVIDENCE_SERVICE_URL> --expect-vertex --fail-on-local --expect-corpus-backend gcs --expect-freeform-playground --expect-corpus-explorer --expect-corpus-live-retrieval --expect-decision-receipts --expect-trust-receipt --expect-model-context-envelope --expect-red-team-cards
+.\.venv\Scripts\python.exe scripts\make_final_handoff.py --mode cloud --base-url https://<PUBLIC_DEMO_URL> --root-url https://<ROOT_SERVICE_URL> --policy-url https://<POLICY_SERVICE_URL> --knowledge-url https://<KNOWLEDGE_SERVICE_URL> --research-url https://<RESEARCH_SERVICE_URL> --approval-url https://<APPROVAL_EVIDENCE_SERVICE_URL> --project-label <PROJECT_OR_REDACTED_PROJECT_LABEL> --demo-ui-revision <DEMO_UI_REVISION> --root-revision <ROOT_REVISION> --policy-revision <POLICY_REVISION> --knowledge-revision <KNOWLEDGE_REVISION> --research-revision <RESEARCH_REVISION> --approval-revision <APPROVAL_REVISION>
 .\scripts\verify_judge_readiness.ps1
 .\scripts\verify_cloudrun_p0.ps1 -RequirePublic
+```
+
+For local rehearsal:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\p0_verify.py --base-url http://127.0.0.1:8081 --mode local
+.\.venv\Scripts\python.exe scripts\p0_verify.py --base-url http://127.0.0.1:8081 --mode local --expect-corpus-backend local --expect-freeform-playground --expect-corpus-explorer --expect-corpus-live-retrieval --expect-decision-receipts --expect-trust-receipt --expect-model-context-envelope --expect-red-team-cards
 ```
 
 ## Public-claim discipline

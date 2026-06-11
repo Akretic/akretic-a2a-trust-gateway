@@ -29,11 +29,11 @@ def ledger_path(run_id: str, path: str | Path | None = None) -> Path:
 def _gcs_bucket_name(path: str | Path | None = None) -> str | None:
     if path is not None:
         return None
-    return os.getenv("EVIDENCE_GCS_BUCKET") or None
+    return os.getenv("AKRETIC_EVIDENCE_BUCKET") or os.getenv("EVIDENCE_GCS_BUCKET") or None
 
 
 def _gcs_blob_name(run_id: str) -> str:
-    prefix = os.getenv("EVIDENCE_GCS_PREFIX", "evidence").strip("/")
+    prefix = (os.getenv("AKRETIC_EVIDENCE_PREFIX") or os.getenv("EVIDENCE_GCS_PREFIX", "evidence")).strip("/")
     return f"{prefix}/{run_id}.jsonl" if prefix else f"{run_id}.jsonl"
 
 
@@ -97,6 +97,11 @@ def append_event(
     path: str | Path | None = None,
 ) -> dict[str, Any]:
     actor_id = actor.actor_id if isinstance(actor, Actor) else actor.get("actor_id", "unknown")
+    event_metadata = dict(metadata or {})
+    event_metadata.setdefault("identity_source", "demo identity adapter")
+    event_metadata.setdefault("browser_transport", "not used for server-side event")
+    event_metadata.setdefault("verifier_transport", "server-side demo adapter")
+    event_metadata.setdefault("transport", "server-side demo adapter")
     event = {
         "event_id": f"evt_{uuid4().hex}",
         "run_id": run_id,
@@ -109,7 +114,7 @@ def append_event(
         "correlation_id": correlation_id or f"corr_{uuid4().hex}",
         "prev_hash": _last_hash(run_id, path),
         "timestamp": now_iso(),
-        "metadata": metadata or {},
+        "metadata": event_metadata,
     }
     event["event_hash"] = compute_event_hash(event)
     bucket_name = _gcs_bucket_name(path)
@@ -172,6 +177,10 @@ def build_evidence_report(run_id: str, path: str | Path | None = None) -> dict[s
     verification = verify_chain(run_id, path)
     a2a_calls = [event for event in events if event["action"] == "a2a_call"]
     retrieval_events = [event for event in events if event["action"] == "retrieve_internal"]
+    knowledge_retrieval_events = [
+        event for event in retrieval_events if event.get("agent_id") == "knowledge_agent"
+    ]
+    research_events = [event for event in events if event["action"] == "research_public"]
     model_events = [event for event in events if event["action"] == "summarize_review"]
     approval_events = [
         event
@@ -186,17 +195,43 @@ def build_evidence_report(run_id: str, path: str | Path | None = None) -> dict[s
             key: latest_metadata.get(key)
             for key in (
                 "mode",
+                "runtime_mode",
                 "model",
                 "service_path",
                 "project_id",
                 "location",
                 "prompt_hash",
+                "output_hash",
+                "completion_hash",
                 "guardrails",
                 "permitted_source_ids",
                 "denied_source_ids",
+                "permitted_internal_source_ids",
+                "permitted_public_source_ids",
+                "model_context_source_ids",
+                "model_context_source_ids_display",
+                "restricted_canary_absent",
+                "model_context_token_count",
+                "policy_decision_ids",
+                "retrieval_trace_id",
+                "corpus_manifest_hash",
             )
             if latest_metadata.get(key) is not None
         }
+    research_source_ids = sorted(
+        {
+            source_id
+            for event in research_events
+            for source_id in event.get("metadata", {}).get("source_ids", [])
+        }
+    )
+    research_citations = sorted(
+        {
+            citation
+            for event in research_events
+            for citation in event.get("metadata", {}).get("citations", [])
+        }
+    )
 
     return {
         "run_id": run_id,
@@ -204,15 +239,25 @@ def build_evidence_report(run_id: str, path: str | Path | None = None) -> dict[s
         "summary": {
             "event_count": len(events),
             "a2a_call_count": len(a2a_calls),
+            "policy_resource_ids": [
+                event["resource_id"] for event in retrieval_events if event["agent_id"] == "policy_agent"
+            ],
             "retrieval_allow_source_ids": [
-                event["resource_id"] for event in retrieval_events if event["outcome"] == "allow"
+                event["resource_id"]
+                for event in knowledge_retrieval_events
+                if event["outcome"] == "allow"
             ],
             "retrieval_deny_source_ids": [
-                event["resource_id"] for event in retrieval_events if event["outcome"] == "deny"
+                event["resource_id"]
+                for event in knowledge_retrieval_events
+                if event["outcome"] == "deny"
             ],
             "approval_required_actions": [
                 event["action"] for event in approval_events if event["outcome"] == "approval_required"
             ],
+            "research_event_count": len(research_events),
+            "research_source_ids": research_source_ids,
+            "research_citations": research_citations,
             "model_event_count": len(model_events),
             "model_modes": sorted(
                 {
@@ -227,6 +272,8 @@ def build_evidence_report(run_id: str, path: str | Path | None = None) -> dict[s
                     "resource_id": event["resource_id"],
                     "outcome": event["outcome"],
                     "actor_id": event["actor_id"],
+                    "reviewer_id": event.get("metadata", {}).get("reviewer_id"),
+                    "decided_at": event.get("metadata", {}).get("decided_at"),
                 }
                 for event in approval_events
                 if event["action"] == "approve_action"
@@ -236,6 +283,7 @@ def build_evidence_report(run_id: str, path: str | Path | None = None) -> dict[s
         "a2a_calls": a2a_calls,
         "policy_decisions": [event for event in events if event["agent_id"] == "policy_agent"],
         "retrieval_events": retrieval_events,
+        "research_events": research_events,
         "model_events": model_events,
         "approval_events": approval_events,
         "events": events,

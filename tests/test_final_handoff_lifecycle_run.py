@@ -1,0 +1,53 @@
+from __future__ import annotations
+
+from scripts.make_final_handoff import PRIMARY_ARTIFACTS
+from scripts.p0_verify import build_parser
+
+
+def test_primary_handoff_artifacts_include_full_lifecycle_pages():
+    required = {
+        "raw/run.html",
+        "raw/evidence-before-decision.json",
+        "raw/approval-unauthorized.html",
+        "raw/approval-authorized.html",
+        "raw/evidence-final.json",
+        "raw/verify-final.json",
+        "raw/model-context-envelope.json",
+        "raw/a2a-trust-receipt.json",
+    }
+
+    assert required.issubset(set(PRIMARY_ARTIFACTS))
+
+
+def test_p0_verify_parser_exposes_enhanced_cloud_flags():
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "--base-url",
+            "https://demo.example",
+            "--mode",
+            "cloud",
+            "--expect-corpus-backend",
+            "gcs",
+            "--expect-freeform-playground",
+            "--expect-corpus-explorer",
+            "--expect-corpus-live-retrieval",
+            "--expect-decision-receipts",
+            "--expect-trust-receipt",
+            "--expect-model-context-envelope",
+            "--expect-red-team-cards",
+            "--expect-vertex",
+            "--fail-on-local",
+        ]
+    )
+
+    assert args.expect_corpus_backend == "gcs"
+    assert args.expect_freeform_playground is True
+    assert args.expect_corpus_explorer is True
+    assert args.expect_corpus_live_retrieval is True
+    assert args.expect_decision_receipts is True
+    assert args.expect_trust_receipt is True
+    assert args.expect_model_context_envelope is True
+    assert args.expect_red_team_cards is True
+    assert args.expect_vertex is True
+    assert args.fail_on_local is True

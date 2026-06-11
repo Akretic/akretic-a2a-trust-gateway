@@ -15,4 +15,6 @@ dist/*
 !dist/akretic-a2a-trust-gateway-public-brief.pdf
 !dist/video_url.txt
 build/
+output/
+review-packets/
 output/playwright/video/

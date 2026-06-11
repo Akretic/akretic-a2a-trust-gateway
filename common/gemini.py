@@ -8,12 +8,25 @@ from common.models import Actor
 
 LOCAL_TEST_MODE = "local"
 VERTEX_MODE = "vertex"
+RUNTIME_LOCAL = "local"
+RUNTIME_CLOUD = "cloud"
 DENIED_SOURCE_CANARIES = {
     "executive_acquisition_memo": (
         "Project Helios",
         "confidential acquisition timing",
+        "AKRETIC_EXEC_ONLY_CANARY_DO_NOT_SUMMARIZE",
     )
 }
+
+
+def _dedupe(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            result.append(value)
+    return result
 
 
 class GeminiError(RuntimeError):
@@ -32,9 +45,40 @@ class GeminiContentViolation(GeminiError):
     """Raised when model input or output would violate the P2 context boundary."""
 
 
+def runtime_mode(value: str | None = None) -> str:
+    mode = (value or os.getenv("AKRETIC_RUNTIME_MODE", RUNTIME_LOCAL)).strip().lower()
+    if mode not in {RUNTIME_LOCAL, RUNTIME_CLOUD}:
+        raise GeminiConfigurationError(f"Unknown runtime mode: {mode}")
+    return mode
+
+
+def resolve_model_mode(*, requested_mode: str | None = None, runtime: str | None = None) -> str:
+    active_runtime = runtime_mode(runtime)
+    if active_runtime == RUNTIME_CLOUD:
+        if requested_mode and requested_mode != VERTEX_MODE:
+            raise GeminiConfigurationError("Cloud runtime requires Vertex Gemini mode")
+        legacy_mode = os.getenv("AKRETIC_GEMINI_MODE")
+        if legacy_mode and legacy_mode.strip().lower() != VERTEX_MODE:
+            raise GeminiConfigurationError("Cloud runtime cannot use local deterministic summaries")
+        return VERTEX_MODE
+    return (requested_mode or os.getenv("AKRETIC_GEMINI_MODE", LOCAL_TEST_MODE)).strip().lower()
+
+
+def vertex_config() -> dict[str, str]:
+    return {
+        "project_id": os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("PROJECT_ID", ""),
+        "location": os.getenv("GOOGLE_CLOUD_LOCATION", ""),
+        "model": os.getenv("VERTEX_MODEL", ""),
+    }
+
+
 def _prompt_hash(prompt: dict[str, Any]) -> str:
     material = "\n".join([prompt["system_instruction"], prompt["contents"]])
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def _text_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _assert_no_denied_source_text(
@@ -114,7 +158,7 @@ def build_vendor_review_prompt(
     export_decision: dict[str, Any],
 ) -> dict[str, Any]:
     permitted_chunks = retrieval.get("chunks", [])
-    permitted_source_ids = [chunk["source_id"] for chunk in permitted_chunks]
+    permitted_source_ids = _dedupe([chunk["source_id"] for chunk in permitted_chunks])
     denied_source_ids = [source["source_id"] for source in retrieval.get("denied_sources", [])]
 
     context_blocks = []
@@ -221,10 +265,12 @@ def summarize_vendor_review(
         retrieval=retrieval,
         export_decision=export_decision,
     )
-    mode = (mode or os.getenv("AKRETIC_GEMINI_MODE", LOCAL_TEST_MODE)).strip().lower()
-    model = os.getenv("VERTEX_MODEL", "gemini-2.5-flash")
-    project_id = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("PROJECT_ID", "")
-    location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+    runtime = runtime_mode()
+    mode = resolve_model_mode(requested_mode=mode, runtime=runtime)
+    config = vertex_config()
+    model = config["model"] or "gemini-2.5-flash"
+    project_id = config["project_id"]
+    location = config["location"] or "us-central1"
     prompt_hash = _prompt_hash(prompt)
     guardrails = [
         "denied_source_text_guard",
@@ -240,21 +286,32 @@ def summarize_vendor_review(
             surface="local model output",
         )
         _assert_pending_approval_not_completed(text=text, export_decision=export_decision)
+        output_hash = _text_hash(text)
         return {
             "mode": mode,
+            "runtime_mode": runtime,
             "model": "local-deterministic-test-summary",
             "text": text,
             "prompt": prompt,
             "service_path": "local deterministic summary for tests only",
             "prompt_hash": prompt_hash,
+            "output_hash": output_hash,
+            "completion_hash": output_hash,
             "guardrails": guardrails,
         }
 
     if mode != VERTEX_MODE:
         raise GeminiConfigurationError(f"Unknown Gemini mode: {mode}")
+    missing = []
     if not project_id:
+        missing.append("GOOGLE_CLOUD_PROJECT or PROJECT_ID")
+    if runtime == RUNTIME_CLOUD and not config["location"]:
+        missing.append("GOOGLE_CLOUD_LOCATION")
+    if runtime == RUNTIME_CLOUD and not config["model"]:
+        missing.append("VERTEX_MODEL")
+    if missing:
         raise GeminiConfigurationError(
-            "GOOGLE_CLOUD_PROJECT or PROJECT_ID is required for Vertex Gemini mode"
+            "Vertex Gemini mode requires: " + ", ".join(missing)
         )
 
     try:
@@ -273,8 +330,10 @@ def summarize_vendor_review(
         surface="Vertex model output",
     )
     _assert_pending_approval_not_completed(text=text, export_decision=export_decision)
+    output_hash = _text_hash(text)
     return {
         "mode": mode,
+        "runtime_mode": runtime,
         "model": model,
         "text": text,
         "prompt": prompt,
@@ -282,5 +341,7 @@ def summarize_vendor_review(
         "project_id": project_id,
         "location": location,
         "prompt_hash": prompt_hash,
+        "output_hash": output_hash,
+        "completion_hash": output_hash,
         "guardrails": guardrails,
     }

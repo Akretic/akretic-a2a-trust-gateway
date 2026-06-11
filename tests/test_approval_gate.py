@@ -2,7 +2,7 @@ import pytest
 import httpx
 
 from agents.approval_evidence_agent.main import app as approval_app
-from common.evidence import read_events
+from common.evidence import read_events, verify_chain
 from common.approval import ApprovalStore
 from common.identity import derive_actor
 from common.models import Resource
@@ -98,7 +98,15 @@ def test_approval_service_records_request_and_reviewer_decision(monkeypatch, tmp
 
     events = read_events(run_id, path=tmp_path)
     approval_events = {event["action"]: event for event in events}
+    not_recorded_events = [
+        event
+        for event in events
+        if event["action"] == "approve_action" and event["outcome"] == "not_recorded"
+    ]
     assert approval["status"] == "pending"
     assert decision["status"] == "approved"
     assert approval_events["request_approval"]["outcome"] == "approval_required"
     assert approval_events["approve_action"]["outcome"] == "approved"
+    assert len(not_recorded_events) == 1
+    assert not_recorded_events[0]["metadata"]["attempted_status"] == "approved"
+    assert verify_chain(run_id, path=tmp_path)["valid"] is True

@@ -5,6 +5,8 @@ param(
   [string]$ImageTag = "p0-latest",
   [string]$RuntimeServiceAccount = "akretic-p0-runtime",
   [string]$EvidenceBucket = "akretic-a2a-trust-gateway-evidence",
+  [string]$CorpusBucket = "akretic-a2a-trust-gateway-corpus",
+  [string]$CorpusPrefix = "p0-corpus",
   [string]$ExpectedAccount = "sean.w@akretic.com",
   [switch]$PreflightOnly
 )
@@ -76,6 +78,8 @@ function Test-DeploymentPreflight {
     allowed_services = $AllowedServices
     runtime_service_account = "$RuntimeServiceAccount@$ProjectId.iam.gserviceaccount.com"
     evidence_bucket = $EvidenceBucket
+    corpus_bucket = $CorpusBucket
+    corpus_prefix = $CorpusPrefix
   }
 }
 
@@ -114,6 +118,30 @@ function Ensure-Bucket {
       "--uniform-bucket-level-access"
     )
   }
+}
+
+function Ensure-CorpusBucket {
+  $existing = & gcloud storage buckets describe "gs://$CorpusBucket" --format "value(name)" 2>$null
+  if (-not $existing) {
+    Run-Step "Create private synthetic corpus bucket" @(
+      "gcloud", "storage", "buckets", "create", "gs://$CorpusBucket",
+      "--project", $ProjectId,
+      "--location", $Region,
+      "--uniform-bucket-level-access"
+    )
+  }
+}
+
+function Upload-SyntheticCorpus {
+  $prefix = $CorpusPrefix.Trim("/")
+  $metadataTarget = if ($prefix) { "gs://$CorpusBucket/$prefix/metadata.json" } else { "gs://$CorpusBucket/metadata.json" }
+  $documentsTarget = if ($prefix) { "gs://$CorpusBucket/$prefix/documents" } else { "gs://$CorpusBucket/documents" }
+  Run-Step "Upload synthetic corpus metadata" @(
+    "gcloud", "storage", "cp", "corpus/metadata.json", $metadataTarget
+  )
+  Run-Step "Upload synthetic corpus documents" @(
+    "gcloud", "storage", "cp", "--recursive", "corpus/documents/*", $documentsTarget
+  )
 }
 
 function Ensure-CloudBuildSourceBucket {
@@ -170,6 +198,7 @@ function Deploy-Service {
   $envVars = @(
     "AKRETIC_SERVICE_MODULE=$Module",
     "AKRETIC_ENV=demo",
+    "AKRETIC_RUNTIME_MODE=cloud",
     "PROJECT_ID=$ProjectId",
     "REGION=$Region",
     "GOOGLE_CLOUD_PROJECT=$ProjectId",
@@ -177,8 +206,14 @@ function Deploy-Service {
     "VERTEX_MODEL=gemini-2.5-flash",
     "AKRETIC_GEMINI_MODE=vertex",
     "AKRETIC_CLOUD_RUN_AUTH=identity_token",
+    "AKRETIC_CORPUS_BACKEND=gcs",
+    "AKRETIC_CORPUS_BUCKET=$CorpusBucket",
+    "AKRETIC_CORPUS_PREFIX=$CorpusPrefix",
     "EVIDENCE_GCS_BUCKET=$EvidenceBucket",
-    "EVIDENCE_GCS_PREFIX=p0-evidence"
+    "EVIDENCE_GCS_PREFIX=p0-evidence",
+    "AKRETIC_EVIDENCE_BUCKET=$EvidenceBucket",
+    "AKRETIC_EVIDENCE_PREFIX=p0-evidence",
+    "AKRETIC_RAG_MODE=lexical"
   )
   if ($ExtraEnv) {
     $envVars += $ExtraEnv.Split(",", [System.StringSplitOptions]::RemoveEmptyEntries)
@@ -231,9 +266,11 @@ Run-Step "Enable required APIs" @(
 Ensure-ServiceAccount -Email $RuntimeSaEmail
 Ensure-ArtifactRepo
 Ensure-Bucket
+Ensure-CorpusBucket
 Ensure-CloudBuildSourceBucket
 $BuildServiceAccount = Get-CloudBuildServiceAccount
 Ensure-CloudBuildPermissions -BuildServiceAccount $BuildServiceAccount
+Upload-SyntheticCorpus
 
 Run-Step "Grant Vertex AI user to runtime service account" @(
   "gcloud", "projects", "add-iam-policy-binding", $ProjectId,
@@ -245,6 +282,12 @@ Run-Step "Grant bucket object admin to runtime service account" @(
   "gcloud", "storage", "buckets", "add-iam-policy-binding", "gs://$EvidenceBucket",
   "--member", "serviceAccount:$RuntimeSaEmail",
   "--role", "roles/storage.objectAdmin"
+)
+
+Run-Step "Grant synthetic corpus read access to runtime service account" @(
+  "gcloud", "storage", "buckets", "add-iam-policy-binding", "gs://$CorpusBucket",
+  "--member", "serviceAccount:$RuntimeSaEmail",
+  "--role", "roles/storage.objectViewer"
 )
 
 Run-Step "Build and push shared container image" @(
@@ -295,3 +338,4 @@ Write-Host "Knowledge Agent: $KnowledgeUrl"
 Write-Host "Research Agent: $ResearchUrl"
 Write-Host "Approval/Evidence Agent: $ApprovalUrl"
 Write-Host "Evidence bucket: gs://$EvidenceBucket/p0-evidence/"
+Write-Host "Synthetic corpus: gs://$CorpusBucket/$CorpusPrefix/"

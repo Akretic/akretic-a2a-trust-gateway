@@ -21,6 +21,11 @@
       "description": "Return only permitted corpus chunks."
     },
     {
+      "id": "retrieve_by_query",
+      "name": "retrieve_by_query",
+      "description": "Run lexical or configured embedding retrieval over permitted corpus chunks."
+    },
+    {
       "id": "list_sources",
       "name": "list_sources",
       "description": "List synthetic source metadata."

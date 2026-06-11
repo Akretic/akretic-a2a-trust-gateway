@@ -8,6 +8,7 @@ import httpx
 from fastapi import FastAPI, Header, HTTPException
 
 from common.a2a_client import call_skill
+from common.corpus import EXECUTIVE_CANARY
 from common.evidence import append_event, verify_chain
 from common.gemini import GeminiError, summarize_vendor_review
 from common.identity import derive_actor_from_request
@@ -15,6 +16,16 @@ from common.models import Actor
 from common.models import Resource
 
 app = FastAPI(title="Akretic Root Orchestrator")
+
+
+def _dedupe(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            result.append(value)
+    return result
 
 
 @app.get("/healthz")
@@ -37,7 +48,13 @@ def _record_policy_decision(*, actor: Actor, decision: dict[str, Any]) -> dict[s
         outcome=decision.get("outcome", "unknown"),
         reason=decision.get("reason", "policy decision returned"),
         correlation_id=decision.get("correlation_id"),
-        metadata={"decision_id": decision.get("decision_id")},
+        metadata={
+            "decision_id": decision.get("decision_id"),
+            "identity_source": "demo identity adapter",
+            "browser_transport": "not used for server-side policy event",
+            "verifier_transport": "x-akretic-persona header",
+            "transport": "x-akretic-persona header",
+        },
     )
 
 
@@ -48,12 +65,23 @@ def _a2a_proof(
     result: dict[str, Any],
     outcome: str | None = None,
 ) -> dict[str, Any]:
+    event = result.get("_a2a_event", {}) if isinstance(result.get("_a2a_event"), dict) else {}
     return {
         "agent": agent,
         "skill": skill,
         "correlation_id": result.get("correlation_id", "UNKNOWN"),
         "outcome": outcome or result.get("outcome") or result.get("status") or "result",
         "agent_card_resolved": True,
+        "agent_card_url": event.get("agent_card_url"),
+        "base_url": event.get("base_url"),
+        "caller": event.get("caller"),
+        "callee": event.get("callee"),
+        "evidence_event_id": event.get("event_id"),
+        "evidence_event_hash": event.get("event_hash"),
+        "http_status": event.get("http_status"),
+        "latency_ms": event.get("latency_ms"),
+        "request_hash": event.get("request_hash"),
+        "response_hash": event.get("response_hash"),
     }
 
 
@@ -103,7 +131,7 @@ async def run_vendor_review_workflow(
     It never authorizes, expands context, or completes sensitive actions.
     """
     run_id = payload.get("run_id") or f"run_{uuid4().hex}"
-    persona = x_akretic_persona or payload.get("persona") or os.getenv("AKRETIC_DEMO_PERSONA", "procurement_user")
+    persona = x_akretic_persona or os.getenv("AKRETIC_DEMO_PERSONA", "procurement_user")
     actor = derive_actor_from_request(demo_persona=persona, body_claims=payload.get("actor"))
 
     append_event(
@@ -114,11 +142,18 @@ async def run_vendor_review_workflow(
         resource_id=payload.get("vendor", "VendorNova"),
         outcome="started",
         reason="vendor-risk review started",
+        metadata={
+            "identity_source": "demo identity adapter",
+            "browser_transport": "viewer persona selector",
+            "verifier_transport": "x-akretic-persona header",
+            "transport": "x-akretic-persona header",
+        },
     )
 
     identity_headers = {"x-akretic-persona": persona}
     policy_url = _agent_url("POLICY_AGENT_URL", "http://127.0.0.1:8101")
     knowledge_url = _agent_url("KNOWLEDGE_AGENT_URL", "http://127.0.0.1:8102")
+    research_url = _agent_url("RESEARCH_AGENT_URL", "http://127.0.0.1:8103")
     approval_url = _agent_url("APPROVAL_EVIDENCE_URL", "http://127.0.0.1:8104")
     query = payload.get("query", "VendorNova procurement security policy")
     a2a_calls: list[dict[str, Any]] = []
@@ -163,6 +198,10 @@ async def run_vendor_review_workflow(
                 "query": query,
                 "max_chunks": int(payload.get("max_chunks", 5)),
                 "write_evidence": True,
+                "vendor_id": "vendornova",
+                "purpose": "vendor-risk review",
+                "policy_decision_id": retrieval_decision.get("decision_id"),
+                "policy_decision_receipt": retrieval_decision.get("decision_receipt"),
             },
             run_id=run_id,
             actor=actor,
@@ -192,6 +231,94 @@ async def run_vendor_review_workflow(
             ],
             "correlation_id": retrieval_decision["correlation_id"],
         }
+
+    research_resource = Resource(
+        resource_id="vendornova_seeded_public_research",
+        classification="public",
+        source_type="synthetic_public",
+        allowed_groups=actor.groups,
+        external_release_allowed=True,
+    )
+    research_decision = await _call_a2a(
+        agent_name="Policy Agent",
+        base_url=policy_url,
+        skill="authorize_intent",
+        payload={
+            "persona": persona,
+            "action": "research_public",
+            "resource": research_resource.to_dict(),
+            "context": {
+                "query": query,
+                "vendor": payload.get("vendor", "VendorNova"),
+                "source_scope": "seeded_allowlisted_public",
+            },
+        },
+        run_id=run_id,
+        actor=actor,
+        headers=identity_headers,
+    )
+    a2a_calls.append(
+        _a2a_proof(
+            agent="akretic-policy-agent",
+            skill="authorize_intent",
+            result=research_decision,
+        )
+    )
+    _record_policy_decision(actor=actor, decision=research_decision)
+
+    research = {
+        "run_id": run_id,
+        "vendor": payload.get("vendor", "VendorNova"),
+        "snippets": [],
+        "source_ids": [],
+        "citations": [],
+        "outcome": research_decision.get("outcome"),
+        "reason": research_decision.get("reason"),
+        "correlation_id": research_decision.get("correlation_id"),
+    }
+    if research_decision["outcome"] == "allow":
+        research = await _call_a2a(
+            agent_name="Research Agent",
+            base_url=research_url,
+            skill="check_public_risk_signals",
+            payload={
+                "persona": persona,
+                "vendor": payload.get("vendor", "VendorNova"),
+                "query": query,
+                "source_scope": "seeded_allowlisted_public",
+            },
+            run_id=run_id,
+            actor=actor,
+            headers=identity_headers,
+        )
+        a2a_calls.append(
+            _a2a_proof(
+                agent="akretic-research-agent",
+                skill="check_public_risk_signals",
+                result=research,
+                outcome="result",
+            )
+        )
+        append_event(
+            run_id=run_id,
+            actor=actor,
+            agent_id="research_agent",
+            action="research_public",
+            resource_id=payload.get("vendor", "VendorNova"),
+            outcome="result",
+            reason="seeded allowlisted public snippets returned",
+            correlation_id=research.get("correlation_id"),
+            metadata={
+                "decision_id": research_decision.get("decision_id"),
+                "source_scope": research.get("source_scope", "seeded_allowlisted_public"),
+                "source_ids": research.get("source_ids", []),
+                "citations": research.get("citations", []),
+                "identity_source": "demo identity adapter",
+                "browser_transport": "not used for server-side research event",
+                "verifier_transport": "x-akretic-persona header",
+                "transport": "x-akretic-persona header",
+            },
+        )
 
     side_effect_resource = Resource(
         resource_id="vendornova_exception_export",
@@ -232,7 +359,13 @@ async def run_vendor_review_workflow(
         outcome=export_decision["outcome"],
         reason=export_decision["reason"],
         correlation_id=export_decision["correlation_id"],
-        metadata={"decision_id": export_decision["decision_id"]},
+        metadata={
+            "decision_id": export_decision["decision_id"],
+            "identity_source": "demo identity adapter",
+            "browser_transport": "not used for server-side export event",
+            "verifier_transport": "x-akretic-persona header",
+            "transport": "x-akretic-persona header",
+        },
     )
 
     approval_request = None
@@ -268,18 +401,75 @@ async def run_vendor_review_workflow(
             "status": "blocked_pending_approval",
             "approval_id": approval_request["approval_id"],
             "reason": "external export cannot complete until reviewer decision is recorded",
+            "external_egress_performed": False,
+            "challenge_note": "approval decision recorded later; no external egress is performed in this challenge prototype",
         }
 
     try:
+        model_retrieval = {
+            **retrieval,
+            "chunks": [
+                *retrieval.get("chunks", []),
+                *[
+                    {
+                        "source_id": snippet["source_id"],
+                        "title": snippet["title"],
+                        "classification": snippet.get("classification", "public"),
+                        "text": snippet["text"],
+                    }
+                    for snippet in research.get("snippets", [])
+                ],
+            ],
+        }
         model_summary = summarize_vendor_review(
             query=query,
             actor=actor,
-            retrieval=retrieval,
+            retrieval=model_retrieval,
             export_decision=export_decision,
             mode=payload.get("model_mode"),
         )
     except GeminiError as exc:
         raise RuntimeError(f"Gemini unavailable or misconfigured: {exc}") from exc
+    prompt = model_summary.get("prompt", {})
+    model_context_source_ids = _dedupe(list(prompt.get("permitted_source_ids", [])))
+    denied_source_ids = _dedupe(list(prompt.get("denied_source_ids", [])))
+    permitted_public_source_ids = [
+        source_id
+        for source_id in model_context_source_ids
+        if source_id.startswith("public_seed_")
+    ]
+    permitted_internal_source_ids = [
+        source_id
+        for source_id in model_context_source_ids
+        if source_id not in permitted_public_source_ids
+    ]
+    policy_decision_ids = [
+        decision.get("decision_id")
+        for decision in (retrieval_decision, research_decision, export_decision)
+        if decision.get("decision_id")
+    ]
+    model_context_envelope = {
+        "runtime_mode": model_summary.get("runtime_mode"),
+        "model_mode": model_summary.get("mode"),
+        "model_name": model_summary.get("model"),
+        "project_id": model_summary.get("project_id"),
+        "location": model_summary.get("location"),
+        "prompt_hash": model_summary.get("prompt_hash"),
+        "output_hash": model_summary.get("output_hash") or model_summary.get("completion_hash"),
+        "permitted_internal_source_ids": permitted_internal_source_ids,
+        "permitted_public_source_ids": permitted_public_source_ids,
+        "denied_source_ids": denied_source_ids,
+        "model_context_source_ids": model_context_source_ids,
+        "model_context_source_ids_display": model_context_source_ids,
+        "restricted_canary_absent": (
+            EXECUTIVE_CANARY not in str(prompt.get("contents", ""))
+            and EXECUTIVE_CANARY not in model_summary.get("text", "")
+        ),
+        "model_context_token_count": len(str(prompt.get("contents", "")).split()),
+        "policy_decision_ids": policy_decision_ids,
+        "retrieval_trace_id": retrieval.get("retrieval_trace", {}).get("retrieval_trace_id"),
+        "corpus_manifest_hash": retrieval.get("corpus_manifest_hash"),
+    }
     append_event(
         run_id=run_id,
         actor=actor,
@@ -290,27 +480,53 @@ async def run_vendor_review_workflow(
         reason="review summarized from permitted context only",
         metadata={
             "mode": model_summary["mode"],
+            "runtime_mode": model_summary.get("runtime_mode"),
             "model": model_summary["model"],
             "service_path": model_summary["service_path"],
             "project_id": model_summary.get("project_id"),
             "location": model_summary.get("location"),
             "prompt_hash": model_summary.get("prompt_hash"),
+            "output_hash": model_summary.get("output_hash"),
+            "completion_hash": model_summary.get("completion_hash"),
             "guardrails": model_summary.get("guardrails", []),
             "permitted_source_ids": model_summary["prompt"]["permitted_source_ids"],
             "denied_source_ids": model_summary["prompt"]["denied_source_ids"],
+            "permitted_internal_source_ids": permitted_internal_source_ids,
+            "permitted_public_source_ids": permitted_public_source_ids,
+            "model_context_source_ids": model_context_source_ids,
+            "model_context_source_ids_display": model_context_source_ids,
+            "restricted_canary_absent": model_context_envelope["restricted_canary_absent"],
+            "model_context_token_count": model_context_envelope["model_context_token_count"],
+            "policy_decision_ids": policy_decision_ids,
+            "retrieval_trace_id": model_context_envelope["retrieval_trace_id"],
+            "corpus_manifest_hash": model_context_envelope["corpus_manifest_hash"],
+            "identity_source": "demo identity adapter",
+            "browser_transport": "not used for server-side model event",
+            "verifier_transport": "x-akretic-persona header",
+            "transport": "x-akretic-persona header",
         },
     )
 
     return {
         "run_id": run_id,
         "actor": actor.to_dict(),
+        "identity_context": {
+            "identity_source": "demo identity adapter",
+            "browser_transport": "viewer persona selector",
+            "verifier_transport": "x-akretic-persona header",
+            "transport": "x-akretic-persona header",
+            "body_claims_trusted": False,
+        },
         "retrieval_decision": retrieval_decision,
         "retrieval": retrieval,
+        "research_decision": research_decision,
+        "research": research,
         "export_decision": export_decision,
         "approval_request": approval_request,
         "export_result": export_result,
         "a2a_calls": a2a_calls,
         "model_summary": model_summary,
+        "model_context_envelope": model_context_envelope,
         "summary": model_summary["text"],
         "verification": verify_chain(run_id),
         "model_path_note": (

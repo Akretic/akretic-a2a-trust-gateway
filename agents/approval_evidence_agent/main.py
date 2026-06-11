@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 
 from common.approval import ApprovalStore
 from common.evidence import append_event, build_evidence_report, verify_chain
@@ -22,10 +23,13 @@ def healthz() -> dict[str, str]:
     return {"status": "ok", "service": "approval-evidence-agent"}
 
 
+@app.get("/agent.json")
 @app.get("/agent-card.json")
 @app.get("/.well-known/agent-card.json")
-def agent_card() -> dict[str, Any]:
-    return json.loads(CARD_PATH.read_text(encoding="utf-8"))
+def agent_card(request: Request) -> dict[str, Any]:
+    card = json.loads(CARD_PATH.read_text(encoding="utf-8"))
+    card["url"] = os.getenv("APPROVAL_EVIDENCE_PUBLIC_URL") or str(request.base_url).rstrip("/")
+    return card
 
 
 def _authorize_evidence_action(*, run_id: str, action: str, persona: str | None):
@@ -46,7 +50,13 @@ def _authorize_evidence_action(*, run_id: str, action: str, persona: str | None)
         outcome=decision.outcome,
         reason=decision.reason,
         correlation_id=decision.correlation_id,
-        metadata={"decision_id": decision.decision_id},
+        metadata={
+            "decision_id": decision.decision_id,
+            "identity_source": "demo identity adapter",
+            "browser_transport": "not used for verifier request",
+            "verifier_transport": "x-akretic-persona header",
+            "transport": "x-akretic-persona header",
+        },
     )
     if decision.outcome != ALLOW:
         raise HTTPException(status_code=403, detail=decision.reason)
@@ -73,7 +83,14 @@ def request_approval(payload: dict[str, Any], x_akretic_persona: str | None = He
         outcome="approval_required",
         reason="approval request created",
         correlation_id=payload.get("correlation_id"),
-        metadata={"approval_id": approval.approval_id, "draft_payload_hash": approval.draft_payload_hash},
+        metadata={
+            "approval_id": approval.approval_id,
+            "draft_payload_hash": approval.draft_payload_hash,
+            "identity_source": "demo identity adapter",
+            "browser_transport": "not used for server-side approval request",
+            "verifier_transport": "x-akretic-persona header",
+            "transport": "x-akretic-persona header",
+        },
     )
     return approval.to_dict()
 
@@ -86,6 +103,10 @@ def _decide_approval(
 ) -> dict[str, Any]:
     reviewer = derive_actor_from_request(demo_persona=x_akretic_persona or payload.get("persona", "security_reviewer"), body_claims=payload.get("actor"))
     try:
+        existing = APPROVALS.get(approval_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="approval request not found") from exc
+    try:
         approval = APPROVALS.decide(
             approval_id=approval_id,
             reviewer=reviewer,
@@ -93,6 +114,26 @@ def _decide_approval(
             reason=payload.get("reason", "demo reviewer decision"),
         )
     except PermissionError as exc:
+        append_event(
+            run_id=existing.run_id,
+            actor=reviewer,
+            agent_id="approval_evidence_agent",
+            action="approve_action",
+            resource_id=existing.resource_id,
+            outcome="not_recorded",
+            reason=str(exc),
+            correlation_id=payload.get("correlation_id"),
+            metadata={
+                "approval_id": existing.approval_id,
+                "attempted_status": payload.get("status", "approved"),
+                "approval_status_before": existing.status,
+                "external_egress_performed": False,
+                "identity_source": "demo identity adapter",
+                "browser_transport": "viewer persona selector",
+                "verifier_transport": "x-akretic-persona header",
+                "transport": "x-akretic-persona header",
+            },
+        )
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     append_event(
         run_id=approval.run_id,
@@ -103,7 +144,36 @@ def _decide_approval(
         outcome=approval.status,
         reason=approval.decision_reason or "reviewer decision",
         correlation_id=payload.get("correlation_id"),
-        metadata={"approval_id": approval.approval_id},
+        metadata={
+            "approval_id": approval.approval_id,
+            "reviewer_id": approval.reviewer_id,
+            "decided_at": approval.decided_at,
+            "external_egress_performed": False,
+            "identity_source": "demo identity adapter",
+            "browser_transport": "viewer persona selector",
+            "verifier_transport": "x-akretic-persona header",
+            "transport": "x-akretic-persona header",
+        },
+    )
+    append_event(
+        run_id=approval.run_id,
+        actor=reviewer,
+        agent_id="approval_evidence_agent",
+        action="export_external",
+        resource_id=approval.resource_id,
+        outcome="not_executed",
+        reason="approval decision recorded; no external egress is performed in this challenge prototype",
+        correlation_id=payload.get("correlation_id"),
+        metadata={
+            "approval_id": approval.approval_id,
+            "decision_status": approval.status,
+            "draft_payload_hash": approval.draft_payload_hash,
+            "external_egress_performed": False,
+            "identity_source": "demo identity adapter",
+            "browser_transport": "viewer persona selector",
+            "verifier_transport": "x-akretic-persona header",
+            "transport": "x-akretic-persona header",
+        },
     )
     return approval.to_dict()
 
