@@ -121,11 +121,18 @@ def _write_json(path: Path, value: Any) -> None:
     _write_text(path, json.dumps(value, indent=2, sort_keys=True))
 
 
-def _run_command(command: list[str], *, cwd: Path, timeout: int) -> dict[str, Any]:
+def _local_pytest_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env.pop("AKRETIC_CLOUD_RUN_AUTH", None)
+    return env
+
+
+def _run_command(command: list[str], *, cwd: Path, timeout: int, env: dict[str, str] | None = None) -> dict[str, Any]:
     started_at = datetime.now(timezone.utc).isoformat()
     completed = subprocess.run(
         command,
         cwd=cwd,
+        env=env,
         text=True,
         capture_output=True,
         timeout=timeout,
@@ -1167,7 +1174,12 @@ def build_packet(args: argparse.Namespace) -> Path:
 
     pytest_result = None
     if not args.skip_pytest:
-        pytest_result = _run_command([sys.executable, "-m", "pytest", "-q"], cwd=repo_root, timeout=args.command_timeout)
+        pytest_result = _run_command(
+            [sys.executable, "-m", "pytest", "-q"],
+            cwd=repo_root,
+            timeout=args.command_timeout,
+            env=_local_pytest_env(),
+        )
         _write_json(packet_dir / "pytest-output.json", pytest_result)
         _write_text(
             packet_dir / "pytest-output.txt",

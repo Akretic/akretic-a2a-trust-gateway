@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scripts.make_final_handoff import PRIMARY_ARTIFACTS
+from scripts.make_final_handoff import PRIMARY_ARTIFACTS, _local_pytest_env
 from scripts.p0_verify import build_parser
 
 
@@ -51,3 +51,11 @@ def test_p0_verify_parser_exposes_enhanced_cloud_flags():
     assert args.expect_red_team_cards is True
     assert args.expect_vertex is True
     assert args.fail_on_local is True
+
+
+def test_cloud_handoff_pytest_env_removes_identity_token_auth(monkeypatch):
+    monkeypatch.setenv("AKRETIC_CLOUD_RUN_AUTH", "identity_token")
+
+    env = _local_pytest_env()
+
+    assert "AKRETIC_CLOUD_RUN_AUTH" not in env
