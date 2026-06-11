@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scripts.make_final_handoff import PRIMARY_ARTIFACTS, _local_pytest_env
+from scripts.make_final_handoff import PRIMARY_ARTIFACTS, _local_pytest_env, _omit_cloud_health_body_if_non_success
 from scripts.p0_verify import build_parser
 
 
@@ -59,3 +59,13 @@ def test_cloud_handoff_pytest_env_removes_identity_token_auth(monkeypatch):
     env = _local_pytest_env()
 
     assert "AKRETIC_CLOUD_RUN_AUTH" not in env
+
+
+def test_cloud_health_artifact_omits_non_success_body():
+    artifact = {"status_code": 404, "body": "Error 404: default cloud page"}
+
+    result = _omit_cloud_health_body_if_non_success(artifact, mode="cloud")
+
+    assert result["status_code"] == 404
+    assert result["body"] == ""
+    assert "body_omitted" in result

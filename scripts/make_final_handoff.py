@@ -251,6 +251,13 @@ def _captured_response(
     }
 
 
+def _omit_cloud_health_body_if_non_success(artifact: dict[str, Any], *, mode: str) -> dict[str, Any]:
+    if mode == "cloud" and int(artifact.get("status_code") or 0) != 200:
+        artifact["body"] = ""
+        artifact["body_omitted"] = "non-200 Cloud Run boundary probe body omitted from handoff packet"
+    return artifact
+
+
 def _capture_cloud_service_artifacts(
     urls: dict[str, str],
     packet_dir: Path,
@@ -273,6 +280,7 @@ def _capture_cloud_service_artifacts(
                 response=response,
                 authenticated=authenticated,
             )
+            _omit_cloud_health_body_if_non_success(health_artifact, mode=mode)
             if response.status_code != 200 and (mode != "cloud" or name == "demo_ui"):
                 raise RuntimeError(f"{name} health check returned HTTP {response.status_code}")
             if mode == "cloud" and name == "demo_ui":
@@ -283,6 +291,7 @@ def _capture_cloud_service_artifacts(
                     response=healthz_response,
                     authenticated=False,
                 )
+                _omit_cloud_health_body_if_non_success(health_artifact["alternate_healthz"], mode=mode)
             _write_json(packet_dir / relative, health_artifact)
             captured[f"health_{name}"] = relative
 
