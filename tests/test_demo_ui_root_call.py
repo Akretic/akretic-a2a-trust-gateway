@@ -31,19 +31,17 @@ def test_demo_ui_calls_remote_root_when_configured(monkeypatch):
 
     monkeypatch.setenv("ROOT_ORCHESTRATOR_URL", "https://root.example")
     monkeypatch.delenv("AKRETIC_CLOUD_RUN_AUTH", raising=False)
+    monkeypatch.delenv("AKRETIC_A2A_CONNECT_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("AKRETIC_A2A_READ_TIMEOUT_SECONDS", raising=False)
     monkeypatch.setattr(demo_ui.httpx, "AsyncClient", FakeClient)
 
     result = asyncio.run(demo_ui.run_review_from_ui("security_reviewer", "VendorNova"))
 
     assert result["run_id"] == "remote-run"
-    assert calls == [
-        {
-            "url": "https://root.example/run_vendor_review",
-            "json": {"persona": "security_reviewer", "query": "VendorNova"},
-            "headers": {"x-akretic-persona": "security_reviewer"},
-            "timeout": 45.0,
-        }
-    ]
+    assert calls[0]["url"] == "https://root.example/run_vendor_review"
+    assert calls[0]["json"] == {"persona": "security_reviewer", "query": "VendorNova"}
+    assert calls[0]["headers"] == {"x-akretic-persona": "security_reviewer"}
+    assert calls[0]["timeout"].read == 90.0
 
 
 def test_demo_ui_approval_calls_private_service_with_auth_headers(monkeypatch):

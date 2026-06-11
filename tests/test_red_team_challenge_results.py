@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+import demo_ui.main as demo_ui
 from demo_ui.main import app
 
 
@@ -52,4 +53,25 @@ def test_red_team_run_json_returns_single_challenge_result():
     assert result["challenge"] == "tamper_evidence"
     assert result["expected_outcome"] == "verify=false in simulated tamper view"
     assert result["pass"] is True
+    assert result["restricted_canary_absent"] is True
+
+
+def test_red_team_json_reports_demo_failure_without_500(monkeypatch):
+    async def fail_path(persona: str, prompt: str, vendor_id: str = "vendornova"):
+        raise demo_ui.DemoUiError(
+            title="Root Orchestrator unreachable",
+            detail="ReadTimeout",
+            next_action="Retry after the service is healthy.",
+        )
+
+    monkeypatch.setattr(demo_ui, "run_playground_prompt", fail_path)
+    client = TestClient(app)
+
+    response = client.post("/red-team/run.json", json={"challenge": "retrieve_all"})
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["challenge"] == "retrieve_all"
+    assert result["pass"] is False
+    assert result["actual_outcome"]["status"] == "retryable_demo_path_failure"
     assert result["restricted_canary_absent"] is True

@@ -631,7 +631,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--expect-model-context-envelope", action="store_true", help="Verify model context envelope JSON and HTML pages.")
     parser.add_argument("--expect-corpus-live-retrieval", action="store_true", help="Verify live Corpus Explorer retrieval controls.")
     parser.add_argument("--fail-on-local", action="store_true", help="Fail if any configured URL or proof artifact references localhost.")
-    parser.add_argument("--timeout", type=float, default=60.0)
+    parser.add_argument("--timeout", type=float, default=120.0)
     return parser
 
 

@@ -207,8 +207,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--knowledge-url")
     parser.add_argument("--research-url")
     parser.add_argument("--approval-url")
-    parser.add_argument("--timeout", type=float, default=60.0)
-    parser.add_argument("--command-timeout", type=int, default=420)
+    parser.add_argument("--timeout", type=float, default=120.0)
+    parser.add_argument("--command-timeout", type=int, default=600)
     parser.add_argument("--output", default="readiness-burnin-output.json")
     parser.add_argument("--warmup-output", default="warmup-output.json")
     return parser

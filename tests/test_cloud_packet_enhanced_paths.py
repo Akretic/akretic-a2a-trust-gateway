@@ -35,6 +35,7 @@ def test_enhanced_cloud_verifier_flags_are_accepted():
     assert args.expect_vertex is True
     assert args.fail_on_local is True
     assert args.expect_corpus_backend == "gcs"
+    assert args.timeout == 120.0
 
 
 def test_service_urls_support_cloud_packet_fields():

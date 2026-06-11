@@ -4,6 +4,7 @@ import html
 import json
 import os
 import re
+import time
 from typing import Any
 from uuid import uuid4
 
@@ -26,6 +27,7 @@ from common.gemini import lightweight_vertex_check, resolve_model_mode, runtime_
 from common.identity import derive_actor
 from common.models import Resource
 from common.policy import evaluate, issue_decision_receipt
+from common.structured_logging import log_event
 from common.rag import retrieve_permitted_context
 
 app = FastAPI(title="Akretic Demo UI")
@@ -493,6 +495,19 @@ def _runtime_mode() -> str:
 
 def _is_cloud_mode() -> bool:
     return _runtime_mode() == "cloud"
+
+
+def _float_env(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+def _root_orchestrator_timeout() -> httpx.Timeout:
+    connect = _float_env("AKRETIC_A2A_CONNECT_TIMEOUT_SECONDS", 5.0)
+    read = _float_env("AKRETIC_A2A_READ_TIMEOUT_SECONDS", 90.0)
+    return httpx.Timeout(connect=connect, read=read, write=connect, pool=connect)
 
 
 def _platform_badge() -> str:
@@ -1349,8 +1364,9 @@ async def run_review_from_ui(persona: str, query: str) -> dict:
             ) from exc
 
     headers = cloud_run_auth_headers(root_url, {"x-akretic-persona": persona})
+    started = time.perf_counter()
     try:
-        async with httpx.AsyncClient(timeout=45.0) as client:
+        async with httpx.AsyncClient(timeout=_root_orchestrator_timeout()) as client:
             response = await client.post(
                 f"{root_url.rstrip('/')}/run_vendor_review",
                 json={"persona": persona, "query": query},
@@ -1360,6 +1376,19 @@ async def run_review_from_ui(persona: str, query: str) -> dict:
             return response.json()
     except httpx.HTTPStatusError as exc:
         raise _remote_error("Root Orchestrator", exc) from exc
+    except httpx.TimeoutException as exc:
+        log_event(
+            "a2a_skill_timeout",
+            caller="demo_ui",
+            callee="root_orchestrator",
+            skill="run_vendor_review",
+            service="root_orchestrator",
+            latency_ms=round((time.perf_counter() - started) * 1000, 2),
+            timeout_ms=round(_float_env("AKRETIC_A2A_READ_TIMEOUT_SECONDS", 90.0) * 1000),
+            retry_count=0,
+            error_class=type(exc).__name__,
+        )
+        raise _network_error("Root Orchestrator", exc) from exc
     except httpx.HTTPError as exc:
         raise _network_error("Root Orchestrator", exc) from exc
 
@@ -2881,15 +2910,45 @@ def red_team() -> str:
 
 @app.post("/red-team/run", response_class=HTMLResponse)
 async def red_team_run(challenge: str = Form(...)):
-    actual = await _execute_red_team_challenge(challenge)
+    try:
+        actual = await _execute_red_team_challenge(challenge)
+    except DemoUiError as exc:
+        actual = _red_team_error_result(challenge, exc)
     return _render_red_team_result(actual)
 
 
 @app.post("/red-team/run.json")
 async def red_team_run_json(payload: dict[str, Any]) -> JSONResponse:
     challenge = str(payload.get("challenge", ""))
-    actual = await _execute_red_team_challenge(challenge)
+    try:
+        actual = await _execute_red_team_challenge(challenge)
+    except DemoUiError as exc:
+        actual = _red_team_error_result(challenge, exc)
     return JSONResponse(actual)
+
+
+def _red_team_error_result(challenge: str, error: DemoUiError) -> dict[str, Any]:
+    title, expected, _prompt = RED_TEAM_CHALLENGES.get(
+        challenge,
+        ("Unknown challenge", "unsupported_intent", "unknown"),
+    )
+    return {
+        "challenge": challenge,
+        "title": title,
+        "expected_outcome": expected,
+        "actual_outcome": {
+            "status": "retryable_demo_path_failure",
+            "title": error.title,
+            "detail": error.detail,
+            "next_action": error.next_action,
+        },
+        "pass": False,
+        "persona": "procurement_user",
+        "policy_decision": None,
+        "evidence_link": None,
+        "run_id": None,
+        "restricted_canary_absent": True,
+    }
 
 
 async def _execute_red_team_challenge(challenge: str) -> dict[str, Any]:
