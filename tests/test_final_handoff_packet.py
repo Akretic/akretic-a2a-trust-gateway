@@ -121,11 +121,15 @@ def test_screenshot_manifest_paths_are_packet_relative(tmp_path):
     (raw / "evidence-unauthorized.json").write_text(
         '{"run_id":"run_primary123","status_code":403}', encoding="utf-8"
     )
+    (tmp_path / "process-flowchart.html").write_text(
+        "<main>Akretic A2A Trust Gateway Process Flowchart</main>", encoding="utf-8"
+    )
 
     screenshots = _capture_screenshots_from_artifacts(tmp_path, 10_000)
 
     assert screenshots["home"] == "screenshots/home.png"
     assert screenshots["evidence_unauthorized"] == "screenshots/07-evidence-unauthorized.png"
+    assert screenshots["process_flowchart"] == "screenshots/process-flowchart.png"
     assert all("\\" not in value for key, value in screenshots.items() if key != "source")
     assert all(not value.startswith(str(tmp_path)) for key, value in screenshots.items() if key != "source")
 

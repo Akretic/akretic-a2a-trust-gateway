@@ -734,6 +734,7 @@ def _capture_screenshots_from_artifacts(packet_dir: Path, timeout_ms: int) -> di
         ("red_team_knowledge_no_receipt_403", "red-team-knowledge-no-receipt-403.png", raw_dir / "red-team-knowledge_without_receipt.html", False),
         ("red_team_unauthorized_evidence_403", "red-team-unauthorized-evidence-403.png", raw_dir / "red-team-unauthorized_evidence.html", False),
         ("red_team_tamper_detected", "red-team-tamper-detected.png", raw_dir / "red-team-tamper_evidence.html", False),
+        ("process_flowchart", "process-flowchart.png", packet_dir / "process-flowchart.html", False),
     ]
     captured: dict[str, str] = {"source": "primary raw artifacts"}
     with sync_playwright() as playwright:
@@ -760,6 +761,124 @@ def _capture_screenshots_from_artifacts(packet_dir: Path, timeout_ms: int) -> di
             captured[key] = _packet_relative(packet_dir, target)
         browser.close()
     return captured
+
+
+def _process_flowchart_html(mode: str, urls: dict[str, str]) -> str:
+    service_rows = "".join(
+        f"<tr><td>{html.escape(name)}</td><td>{html.escape(url)}</td></tr>"
+        for name, url in urls.items()
+    )
+    return f"""
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Akretic A2A Trust Gateway Process Flowchart</title>
+  <style>
+    body {{
+      margin: 0;
+      background: #f6f7f9;
+      color: #111827;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }}
+    main {{ max-width: 1180px; margin: 0 auto; padding: 30px 24px 44px; }}
+    h1 {{ margin: 0 0 8px; font-size: 28px; }}
+    p {{ color: #4b5563; line-height: 1.5; }}
+    .flow {{
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 24px 0;
+    }}
+    .node {{
+      background: #fff;
+      border: 1px solid #d9dee7;
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 122px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+      position: relative;
+    }}
+    .node strong {{ display: block; margin-bottom: 8px; font-size: 15px; }}
+    .node span {{ display: block; color: #4b5563; font-size: 13px; line-height: 1.4; }}
+    .node.ok {{ border-left: 5px solid #166534; }}
+    .node.warn {{ border-left: 5px solid #b45309; }}
+    .node.deny {{ border-left: 5px solid #b91c1c; }}
+    .node.info {{ border-left: 5px solid #1d4ed8; }}
+    .arrow {{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      font-weight: 800;
+      font-size: 18px;
+    }}
+    .table-wrap {{ overflow-x: auto; background: #fff; border: 1px solid #d9dee7; border-radius: 8px; }}
+    table {{ width: 100%; border-collapse: collapse; }}
+    th, td {{ padding: 9px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; font-size: 13px; }}
+    th {{ color: #374151; background: #f9fafb; }}
+    code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Akretic A2A Trust Gateway Process Flowchart</h1>
+  <p>
+    Runtime mode: <code>{html.escape(mode)}</code>. This challenge prototype shows
+    policy-mediated A2A collaboration, permission-preserving retrieval,
+    approval-gated side effects, and tamper-evident evidence over a synthetic corpus.
+  </p>
+  <section class="flow" aria-label="Akretic proof process flow">
+    <div class="node info"><strong>1. Demo Identity</strong><span>Browser persona selector or verifier header derives the actor. Request-body claims do not upgrade access.</span></div>
+    <div class="node warn"><strong>2. Policy Agent</strong><span>Gate0-lite returns allow, deny, or approval_required and issues decision receipts.</span></div>
+    <div class="node deny"><strong>3. Knowledge Agent</strong><span>Restricted chunks are filtered before model context; denied source IDs remain visible as proof.</span></div>
+    <div class="node info"><strong>4. Research Agent</strong><span>Seeded allowlisted public snippets are returned through the same A2A evidence path.</span></div>
+    <div class="node ok"><strong>5. Root Orchestrator</strong><span>Gemini summarizes only permitted model context after policy, retrieval, and research controls.</span></div>
+    <div class="node warn"><strong>6. Approval/Evidence</strong><span>External action pauses at approval_required; unauthorized reviewer attempts are not_recorded.</span></div>
+    <div class="node ok"><strong>7. Authorized Decision</strong><span>security_reviewer records the decision; no external egress is performed in this prototype.</span></div>
+    <div class="node ok"><strong>8. Verify And Packet</strong><span>Hash chain, head hash, A2A Trust Receipt, screenshots, pytest, burn-in, and forbidden scans are packaged.</span></div>
+  </section>
+  <h2>Service Map</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Service</th><th>URL</th></tr></thead>
+      <tbody>{service_rows}</tbody>
+    </table>
+  </div>
+</main>
+</body>
+</html>
+""".strip() + "\n"
+
+
+def _process_notes(mode: str) -> str:
+    return f"""
+# Akretic A2A Trust Gateway Review Process
+
+Runtime mode: `{mode}`
+
+## Process Summary
+
+1. Browser persona or verifier header is translated by the demo identity adapter.
+2. Policy Agent evaluates governed actions before retrieval, research, approval, or evidence access.
+3. Knowledge Agent filters the synthetic corpus before any model context is assembled.
+4. Research Agent returns seeded allowlisted public snippets for the VendorNova proof path.
+5. Root Orchestrator calls Vertex Gemini only after permitted context is assembled.
+6. Approval/Evidence Agent records approval_required, unauthorized not_recorded attempts, authorized reviewer decisions, and verify/report actions.
+7. The final packet includes raw responses, screenshots, pytest output, P0 verifier output, warmup, burn-in, deploy manifest, forbidden-string scan, and run-ID integrity evidence.
+
+## Review Surfaces
+
+- `process-flowchart.html`
+- `screenshots/process-flowchart.png`
+- `FINAL_REVIEW.md`
+- `manifest.json`
+- `deploy-manifest.json`
+- `readiness-burnin-output.json`
+- `warmup-output.json`
+- `raw/a2a-trust-receipt.json`
+- `raw/evidence-final.json`
+""".strip() + "\n"
 
 
 def _validate_cloud_manifest(manifest: dict[str, Any]) -> None:
@@ -945,9 +1064,9 @@ The packet does not include customer data, private third-party data, or secrets.
 
 Open `FINAL_REVIEW.md`, `manifest.json`, `verifier-output.json`, `pytest-output.json`,
 `deploy-manifest.json`, `warmup-output.json`, `readiness-burnin-output.json`,
-`raw/`, and `screenshots/` for review evidence. Unauthorized evidence access
-proof is captured in `raw/evidence-unauthorized.json` and
-`screenshots/07-evidence-unauthorized.png`.
+`PROCESS_FLOW.md`, `process-flowchart.html`, `raw/`, and `screenshots/` for
+review evidence. Unauthorized evidence access proof is captured in
+`raw/evidence-unauthorized.json` and `screenshots/07-evidence-unauthorized.png`.
 
 Raw readiness and Agent Card artifacts are captured in:
 
@@ -1062,6 +1181,9 @@ Detailed stdout/stderr are in `verifier-output.json`, `p0-verify-output.txt`, `p
 
 ## Corpus, Playground, Envelope, And Receipt Proof
 
+- Review process notes: `PROCESS_FLOW.md`
+- Review flowchart: `process-flowchart.html`
+- Flowchart screenshot: `screenshots/process-flowchart.png`
 - Synthetic corpus status: `raw/corpus-status.json`
 - Synthetic corpus metadata: `raw/corpus-metadata.json`
 - Free-form allowed prompt: `raw/playground-allowed.json`
@@ -1091,6 +1213,8 @@ and policy, approval, and evidence controls run outside the model.
 - `deploy-manifest.json`
 - `warmup-output.json`
 - `readiness-burnin-output.json`
+- `PROCESS_FLOW.md`
+- `process-flowchart.html`
 - `raw/`
   - `raw/readyz-public.json`
   - `raw/readyz-deep.json`
@@ -1136,6 +1260,7 @@ and policy, approval, and evidence controls run outside the model.
   - `screenshots/red-team-knowledge-no-receipt-403.png`
   - `screenshots/red-team-tamper-detected.png`
   - `screenshots/07-evidence-unauthorized.png`
+  - `screenshots/process-flowchart.png`
 
 ## Known Limitations
 
@@ -1343,6 +1468,9 @@ def build_packet(args: argparse.Namespace) -> Path:
     if integrity_failures:
         raise RuntimeError("primary packet artifacts contain mixed or missing run IDs")
 
+    _write_text(packet_dir / "PROCESS_FLOW.md", _process_notes(mode))
+    _write_text(packet_dir / "process-flowchart.html", _process_flowchart_html(mode, urls))
+
     screenshots = {}
     if not args.skip_screenshots:
         screenshots = _capture_screenshots_from_artifacts(packet_dir, int(args.timeout * 1000))
@@ -1402,6 +1530,8 @@ def build_packet(args: argparse.Namespace) -> Path:
         "a2a_agent_card_urls": agent_card_urls,
         "verifier_command": verifier_command,
         "pytest_command": [sys.executable, "-m", "pytest", "-q"],
+        "process_notes": "PROCESS_FLOW.md",
+        "process_flowchart": "process-flowchart.html",
         "warmup_output": "warmup-output.json" if mode == "cloud" else None,
         "readiness_burnin_output": "readiness-burnin-output.json" if mode == "cloud" else None,
         "deploy_manifest": "deploy-manifest.json" if deploy_manifest else None,
@@ -1447,6 +1577,8 @@ def build_packet(args: argparse.Namespace) -> Path:
             "evidence_final_json": "raw/evidence-final.json",
             "evidence_final_html": "raw/evidence-final.html",
             "verify_final": "raw/verify-final.json",
+            "process_notes": "PROCESS_FLOW.md",
+            "process_flowchart": "process-flowchart.html",
         },
         "cloud_run_revisions": revisions,
         "min_instances": (deploy_manifest or {}).get("min_instances", {}),
