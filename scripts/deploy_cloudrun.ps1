@@ -34,10 +34,33 @@ function Run-Step {
   Write-Host ($Command -join " ")
   $exe = $Command[0]
   $args = $Command[1..($Command.Length - 1)]
-  & $exe @args
-  if ($LASTEXITCODE -ne 0) {
-    throw "Command failed with exit code ${LASTEXITCODE}: $($Command -join ' ')"
+  $previousErrorActionPreference = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    & $exe @args 2>&1 | ForEach-Object { Write-Host $_ }
+    $exitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $previousErrorActionPreference
   }
+  if ($exitCode -ne 0) {
+    throw "Command failed with exit code ${exitCode}: $($Command -join ' ')"
+  }
+}
+
+function Invoke-GcloudValue {
+  param([string[]]$Arguments)
+  $previousErrorActionPreference = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    $output = & $Gcloud @Arguments 2>$null
+    $exitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+  if ($exitCode -ne 0) {
+    return ""
+  }
+  return (($output | Out-String).Trim())
 }
 
 function Assert-Equal {
@@ -60,12 +83,16 @@ function Test-DeploymentPreflight {
     }
   }
 
-  $activeAccount = (& $Gcloud config get-value account).Trim()
-  $activeProject = (& $Gcloud config get-value project).Trim()
+  $activeAccount = Invoke-GcloudValue @("config", "get-value", "account")
+  $activeProject = Invoke-GcloudValue @("config", "get-value", "project")
   Assert-Equal $activeAccount $ExpectedAccount "active gcloud account"
   Assert-Equal $activeProject $ProjectId "active gcloud project"
 
-  $billing = & $Gcloud billing projects describe $ProjectId --format=json | ConvertFrom-Json
+  $billingJson = Invoke-GcloudValue @("billing", "projects", "describe", $ProjectId, "--format=json")
+  if (-not $billingJson) {
+    throw "Failed to read billing state for $ProjectId"
+  }
+  $billing = $billingJson | ConvertFrom-Json
   if (-not [bool]$billing.billingEnabled) {
     throw "Billing is not enabled for $ProjectId"
   }
@@ -86,7 +113,7 @@ function Test-DeploymentPreflight {
 
 function Ensure-ServiceAccount {
   param([string]$Email)
-  $existing = & $Gcloud iam service-accounts describe $Email --project $ProjectId --format "value(email)" 2>$null
+  $existing = Invoke-GcloudValue @("iam", "service-accounts", "describe", $Email, "--project", $ProjectId, "--format", "value(email)")
   if (-not $existing) {
     Run-Step "Create runtime service account" @(
       $Gcloud, "iam", "service-accounts", "create", $RuntimeServiceAccount,
@@ -97,7 +124,7 @@ function Ensure-ServiceAccount {
 }
 
 function Ensure-ArtifactRepo {
-  $existing = & $Gcloud artifacts repositories describe $Repository --project $ProjectId --location $Region --format "value(name)" 2>$null
+  $existing = Invoke-GcloudValue @("artifacts", "repositories", "describe", $Repository, "--project", $ProjectId, "--location", $Region, "--format", "value(name)")
   if (-not $existing) {
     Run-Step "Create Artifact Registry repository" @(
       $Gcloud, "artifacts", "repositories", "create", $Repository,
@@ -110,7 +137,7 @@ function Ensure-ArtifactRepo {
 }
 
 function Ensure-Bucket {
-  $existing = & $Gcloud storage buckets describe "gs://$EvidenceBucket" --format "value(name)" 2>$null
+  $existing = Invoke-GcloudValue @("storage", "buckets", "describe", "gs://$EvidenceBucket", "--format", "value(name)")
   if (-not $existing) {
     Run-Step "Create private evidence bucket" @(
       $Gcloud, "storage", "buckets", "create", "gs://$EvidenceBucket",
@@ -122,7 +149,7 @@ function Ensure-Bucket {
 }
 
 function Ensure-CorpusBucket {
-  $existing = & $Gcloud storage buckets describe "gs://$CorpusBucket" --format "value(name)" 2>$null
+  $existing = Invoke-GcloudValue @("storage", "buckets", "describe", "gs://$CorpusBucket", "--format", "value(name)")
   if (-not $existing) {
     Run-Step "Create private synthetic corpus bucket" @(
       $Gcloud, "storage", "buckets", "create", "gs://$CorpusBucket",
@@ -147,7 +174,7 @@ function Upload-SyntheticCorpus {
 
 function Ensure-CloudBuildSourceBucket {
   $CloudBuildSourceBucket = "${ProjectId}_cloudbuild"
-  $existing = & $Gcloud storage buckets describe "gs://$CloudBuildSourceBucket" --format "value(name)" 2>$null
+  $existing = Invoke-GcloudValue @("storage", "buckets", "describe", "gs://$CloudBuildSourceBucket", "--format", "value(name)")
   if (-not $existing) {
     Run-Step "Create Cloud Build source bucket" @(
       $Gcloud, "storage", "buckets", "create", "gs://$CloudBuildSourceBucket",
@@ -159,8 +186,8 @@ function Ensure-CloudBuildSourceBucket {
 }
 
 function Get-CloudBuildServiceAccount {
-  $email = (& $Gcloud builds get-default-service-account --project $ProjectId).Trim()
-  if ($LASTEXITCODE -ne 0 -or -not $email) {
+  $email = Invoke-GcloudValue @("builds", "get-default-service-account", "--project", $ProjectId)
+  if (-not $email) {
     throw "Failed to read Cloud Build default service account for $ProjectId"
   }
   return $email
@@ -233,11 +260,11 @@ function Deploy-Service {
 
 function Get-ServiceUrl {
   param([string]$Name)
-  $url = (& $Gcloud run services describe $Name --project $ProjectId --region $Region --format "value(status.url)")
-  if ($LASTEXITCODE -ne 0) {
+  $url = Invoke-GcloudValue @("run", "services", "describe", $Name, "--project", $ProjectId, "--region", $Region, "--format", "value(status.url)")
+  if (-not $url) {
     throw "Failed to read Cloud Run service URL for $Name"
   }
-  return $url.Trim()
+  return $url
 }
 
 $RuntimeSaEmail = "$RuntimeServiceAccount@$ProjectId.iam.gserviceaccount.com"
