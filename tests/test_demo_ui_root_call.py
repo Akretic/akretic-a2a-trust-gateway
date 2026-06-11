@@ -129,7 +129,7 @@ def test_demo_ui_home_first_viewport_shows_judge_proof_markers(monkeypatch):
     assert "Challenge prototype" in html
     assert "Synthetic data" in html
     assert "Local proof mode" in html
-    assert "Cloud Run + Vertex Gemini" not in html
+    assert "Cloud Run + Vertex Gemini proof" not in html
     assert "A2A protocol proof" in html
     assert "Run the controlled VendorNova review." in html
     assert "The business scenario" in html
@@ -143,6 +143,18 @@ def test_demo_ui_home_first_viewport_shows_judge_proof_markers(monkeypatch):
     assert "generated per run" in html
     assert "<strong>dynamic</strong>" not in html
     assert "executive_acquisition_memo" in html
+    assert "data-progress-form" in html
+    assert "Running governed A2A review..." in html
+    assert "Deriving demo identity" in html
+    assert "Resolving A2A Agent Cards" in html
+    assert "Policy Agent authorizing retrieval" in html
+    assert "Knowledge Agent filtering synthetic corpus" in html
+    assert "Research Agent checking seeded public signals" in html
+    assert "Local summarizer preparing permitted context" in html
+    assert "Approval/Evidence Agent creating approval_required gate" in html
+    assert "Hash-chain A2A Trust Receipt ready" in html
+    assert "This is a local rehearsal of the governed A2A path. Controls are enforced outside the model." in html
+    assert "Warm demo services" in html
     assert "What this demo proves" in html
     assert "Identity" in html
     assert "Derived persona: <span class=\"code-chip\">procurement_user</span>" in html
@@ -161,6 +173,8 @@ def test_demo_ui_home_cloud_mode_shows_cloud_vertex_badge(monkeypatch):
     html = demo_ui.home()
 
     assert "Cloud Run + Vertex Gemini" in html
+    assert "Vertex Gemini summarizing permitted context" in html
+    assert "This is a live Cloud Run + Vertex Gemini path. Controls are enforced outside the model." in html
     assert "Local proof mode" not in html
 
 
@@ -290,7 +304,13 @@ def test_demo_ui_review_result_shows_p1_proof_markers(monkeypatch):
     assert "External export is blocked" in html
     assert "pending security reviewer approval." in html
     assert "Judge Proof" in html
-    assert "Reviewer path" in html
+    assert "Cloud Run" in html
+    assert "Vertex Gemini" in html
+    assert "A2A Agent Cards resolved" in html
+    assert "Restricted memo denied before Gemini" in html
+    assert "Export gate approval_required" in html
+    assert "Hash chain valid" in html
+    assert "Live run complete - evidence event count: 12." in html
     assert "Permitted-context summary" in html
     assert "Generated in labeled local deterministic mode from permitted source IDs only." in html
     assert "What Akretic prevented" in html

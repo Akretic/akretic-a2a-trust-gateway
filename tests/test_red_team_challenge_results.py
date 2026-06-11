@@ -38,9 +38,28 @@ def test_executive_memo_red_team_page_is_human_readable_denial():
     assert response.status_code == 200
     html = response.text
     assert "Red-Team Challenge Result" in html
+    assert "PASS" in html
+    assert "Request governed: executive_acquisition_memo denied before model" in html
+    assert "Denied before model" in html
     assert "executive_acquisition_memo" in html
-    assert "denied before model" in html.lower()
+    assert "denied_source_ids" in html
+    assert "Denied source text was not sent to Vertex Gemini." in html
+    assert "denied_text_sent_to_vertex_gemini=<span class=\"code-chip\">False</span>" in html
+    assert "restricted_canary_absent=<span class=\"code-chip\">True</span>" in html
     assert "restricted_canary_absent" in html
+
+
+def test_retrieve_all_red_team_page_shows_filtered_retrieval_not_denial_override():
+    client = TestClient(app)
+
+    response = client.post("/red-team/run", data={"challenge": "retrieve_all"})
+
+    assert response.status_code == 200
+    html = response.text
+    assert "PASS" in html
+    assert "Retrieval workflow allowed for permitted sources; restricted sources filtered" in html
+    assert "denied_source_ids" in html
+    assert "executive_acquisition_memo" in html
 
 
 def test_red_team_run_json_returns_single_challenge_result():

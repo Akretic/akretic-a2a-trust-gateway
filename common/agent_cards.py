@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -21,3 +22,16 @@ def load_card(path: str | Path) -> dict[str, Any]:
 
     with Path(path).open("r", encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def normalize_cloud_url(url: str) -> str:
+    value = str(url or "").strip().rstrip("/")
+    if os.getenv("AKRETIC_RUNTIME_MODE", "local").strip().lower() == "cloud":
+        if value.lower().startswith("http://"):
+            return "https://" + value[7:]
+    return value
+
+
+def agent_card_public_url(env_name: str, request_base_url: str) -> str:
+    configured = os.getenv(env_name)
+    return normalize_cloud_url(configured or request_base_url)

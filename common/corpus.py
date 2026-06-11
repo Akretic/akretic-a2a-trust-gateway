@@ -165,6 +165,22 @@ def safe_storage_uri(doc: dict[str, Any]) -> str:
     return f"local://corpus/{path}"
 
 
+def redacted_gcs_storage_uri(doc: dict[str, Any]) -> str:
+    source_id = str(doc.get("source_id") or "source").strip() or "source"
+    return f"gcs://redacted/{source_id}"
+
+
+def public_metadata_documents(documents: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    docs = [dict(doc) for doc in (documents if documents is not None else load_metadata())]
+    if runtime_mode() == RUNTIME_CLOUD and corpus_backend() == GCS_BACKEND:
+        for doc in docs:
+            doc["storage_backend"] = GCS_BACKEND
+            doc["storage_uri_policy"] = "redacted"
+            doc["storage_uris_redacted"] = True
+            doc["storage_uri"] = redacted_gcs_storage_uri(doc)
+    return docs
+
+
 def metadata_validation_errors(
     doc: dict[str, Any],
     *,
@@ -229,7 +245,7 @@ def corpus_status() -> dict[str, Any]:
     public_count = sum(1 for value in classifications if value == "public")
     restricted_count = sum(1 for value in classifications if value in {"restricted", "executive-only"})
     internal_count = sum(1 for value in classifications if value == "internal")
-    return {
+    payload = {
         "backend": corpus_backend(),
         "document_count": len(docs),
         "indexed_count": sum(1 for doc in docs if bool(doc.get("indexed"))),
@@ -244,6 +260,15 @@ def corpus_status() -> dict[str, Any]:
         },
         "runtime_mode": runtime_mode(),
     }
+    if payload["runtime_mode"] == RUNTIME_CLOUD and payload["backend"] == GCS_BACKEND:
+        payload["storage_backend"] = GCS_BACKEND
+        payload["storage_uri_policy"] = "redacted"
+        payload["storage_uris_redacted"] = True
+        payload["storage_uris"] = {
+            str(doc.get("source_id")): redacted_gcs_storage_uri(doc)
+            for doc in sorted(docs, key=lambda item: str(item.get("source_id", "")))
+        }
+    return payload
 
 
 def redact_denied_test_terms(text: str) -> str:

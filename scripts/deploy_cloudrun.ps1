@@ -134,6 +134,16 @@ function Test-DeploymentPreflight {
   }
 }
 
+function Assert-CleanGitCommit {
+  $status = git status --porcelain
+  if ($LASTEXITCODE -ne 0) {
+    throw "Failed to inspect git working tree state"
+  }
+  if ($status) {
+    throw "Working tree has uncommitted changes. Commit or discard changes before deploying current commit.`n$status"
+  }
+}
+
 function Ensure-ServiceAccount {
   param([string]$Email)
   $existing = Invoke-GcloudValue @("iam", "service-accounts", "describe", $Email, "--project", $ProjectId, "--format", "value(email)")
@@ -296,6 +306,7 @@ function Get-ServiceUrl {
 
 $RuntimeSaEmail = "$RuntimeServiceAccount@$ProjectId.iam.gserviceaccount.com"
 $CommitSha = (git rev-parse HEAD).Trim()
+Assert-CleanGitCommit
 if (-not $ImageTag) {
   $ImageTag = $CommitSha
 }

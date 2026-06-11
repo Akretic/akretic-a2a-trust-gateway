@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Request
 
+from common.agent_cards import agent_card_public_url
 from common.corpus import corpus_status
 from common.identity import derive_actor_from_request
 from common.policy import validate_decision_receipt
@@ -41,7 +42,7 @@ def readyz() -> dict[str, Any]:
 @app.get("/.well-known/agent-card.json")
 def agent_card(request: Request) -> dict[str, Any]:
     card = json.loads(CARD_PATH.read_text(encoding="utf-8"))
-    card["url"] = os.getenv("KNOWLEDGE_AGENT_PUBLIC_URL") or str(request.base_url).rstrip("/")
+    card["url"] = agent_card_public_url("KNOWLEDGE_AGENT_PUBLIC_URL", str(request.base_url).rstrip("/"))
     return card
 
 

@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Request
 
+from common.agent_cards import agent_card_public_url
 from common.approval import ApprovalConflict, ApprovalStore
 from common.evidence import append_event, build_evidence_report, verify_chain
 from common.identity import derive_actor_from_request
@@ -39,7 +40,7 @@ def readyz() -> dict[str, Any]:
 @app.get("/.well-known/agent-card.json")
 def agent_card(request: Request) -> dict[str, Any]:
     card = json.loads(CARD_PATH.read_text(encoding="utf-8"))
-    card["url"] = os.getenv("APPROVAL_EVIDENCE_PUBLIC_URL") or str(request.base_url).rstrip("/")
+    card["url"] = agent_card_public_url("APPROVAL_EVIDENCE_PUBLIC_URL", str(request.base_url).rstrip("/"))
     return card
 
 

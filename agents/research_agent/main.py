@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import FastAPI, Request
 
+from common.agent_cards import agent_card_public_url
 from common.corpus import load_metadata, read_document_text
 
 app = FastAPI(title="Akretic Seeded Research Agent")
@@ -61,7 +62,7 @@ def readyz() -> dict[str, Any]:
 @app.get("/.well-known/agent-card.json")
 def agent_card(request: Request) -> dict[str, Any]:
     card = json.loads(CARD_PATH.read_text(encoding="utf-8"))
-    card["url"] = os.getenv("RESEARCH_AGENT_PUBLIC_URL") or str(request.base_url).rstrip("/")
+    card["url"] = agent_card_public_url("RESEARCH_AGENT_PUBLIC_URL", str(request.base_url).rstrip("/"))
     return card
 
 

@@ -174,20 +174,26 @@ Public demo URL placeholder: `https://<PUBLIC_DEMO_URL>`
 Replace the placeholder with the active Cloud Run demo UI URL when preparing the
 final judge packet.
 
-## 2-minute judge walkthrough
+## 1-2 minute final recording path
 
 Target demo URL: `https://akretic-demo-ui-oes3slkexq-uc.a.run.app`
 
-1. Open the public Cloud Run demo URL and confirm the page labels the build as a challenge prototype using synthetic data.
-2. Keep persona as `procurement_user`, keep the VendorNova query, and select `Start VendorNova Review`.
-3. On the review page, scan the Judge Proof panel: service path, Vertex Gemini mode, A2A Agent Cards, denied executive memo, `approval_required`, reviewer path pending, and valid hash chain.
-4. Confirm the model panel says `Mode: vertex`, `Model: gemini-2.5-flash`, project `akretic-a2a-trust-gateway`, and location `us-central1`.
-5. Confirm the page shows `run_id`, permitted source IDs, public research source IDs/citations, and `Denied before model context: executive_acquisition_memo.`
-6. Confirm the external/sensitive action is `approval_required` and the export result is blocked pending reviewer action. The challenge prototype records the approval decision but performs no external egress.
-7. Scan A2A Proof for agent, skill, `correlation_id`, Agent Card resolution, HTTP status/latency, request/response hashes, and evidence event/hash.
-8. Open the current-run evidence report link for that exact `run_id`; confirm the viewer persona, timeline, A2A calls, research citations, policy decisions, retrieval allow/deny IDs, model event hashes, approval events, model context envelope, A2A Trust Receipt, and downloadable JSON.
-9. Record an approve or reject decision as `security_reviewer`.
-10. Confirm Evidence Verification reports a valid hash chain and event count.
+Before recording, run the warmup command in the Cloud Run verification section or open the footer link labeled `Warm demo services`. Keep min instances enabled during judging.
+
+Testing personas:
+
+- `procurement_user`: starts the VendorNova review and is denied executive-only source text before model context.
+- `security_reviewer`: records the approval decision and can inspect evidence and trust receipts.
+- `admin`: alternate evidence-review persona for verifier and handoff checks.
+
+1. Open the public Cloud Run demo URL.
+2. Click `Start VendorNova Review` and show the immediate governed progress overlay.
+3. On the review result page, scan the proof chips: Cloud Run, Vertex Gemini, A2A Agent Cards resolved, restricted memo denied before Gemini, export gate `approval_required`, and hash chain valid.
+4. Open `/playground` and run `Can I see the executive acquisition memo?`; confirm `Denied before model` and `Request governed: executive_acquisition_memo denied`.
+5. Return to the guided run and try the approval form as `procurement_user`; confirm the unauthorized decision is not recorded.
+6. Record an approve or reject decision as `security_reviewer`.
+7. Open the current-run evidence report for that exact `run_id`.
+8. Open the A2A Trust Receipt and confirm the Agent Card URLs, event hashes, final head hash, model context envelope, and approval/evidence trail.
 
 ## Gemini/Vertex behavior
 
@@ -258,13 +264,61 @@ The intended judging flow:
 The public UI uses Cloud Run's no-invoker IAM check mode so it can remain public
 for judging without an `allUsers` IAM binding. Verify the public proof path with:
 
+For Bash or Git Bash:
+
+```bash
+export DEMO_URL="https://<PUBLIC_DEMO_URL>"
+export ROOT_URL="https://<ROOT_SERVICE_URL>"
+export POLICY_URL="https://<POLICY_SERVICE_URL>"
+export KNOWLEDGE_URL="https://<KNOWLEDGE_SERVICE_URL>"
+export RESEARCH_URL="https://<RESEARCH_SERVICE_URL>"
+export APPROVAL_URL="https://<APPROVAL_EVIDENCE_SERVICE_URL>"
+export PROJECT_LABEL="<PROJECT_OR_REDACTED_PROJECT_LABEL>"
+export DEMO_UI_REVISION="<DEMO_UI_REVISION>"
+export ROOT_REVISION="<ROOT_REVISION>"
+export POLICY_REVISION="<POLICY_REVISION>"
+export KNOWLEDGE_REVISION="<KNOWLEDGE_REVISION>"
+export RESEARCH_REVISION="<RESEARCH_REVISION>"
+export APPROVAL_REVISION="<APPROVAL_REVISION>"
+export AKRETIC_CLOUD_RUN_AUTH=identity_token
+
+.venv/Scripts/python.exe scripts/warmup_cloud_demo.py --base-url "$DEMO_URL"
+.venv/Scripts/python.exe scripts/p0_verify.py --base-url "$DEMO_URL" --mode cloud --root-url "$ROOT_URL" --policy-url "$POLICY_URL" --knowledge-url "$KNOWLEDGE_URL" --research-url "$RESEARCH_URL" --approval-url "$APPROVAL_URL" --expect-vertex --fail-on-local
+.venv/Scripts/python.exe scripts/p0_verify.py --base-url "$DEMO_URL" --mode cloud --root-url "$ROOT_URL" --policy-url "$POLICY_URL" --knowledge-url "$KNOWLEDGE_URL" --research-url "$RESEARCH_URL" --approval-url "$APPROVAL_URL" --expect-vertex --fail-on-local --expect-corpus-backend gcs --expect-freeform-playground --expect-corpus-explorer --expect-corpus-live-retrieval --expect-decision-receipts --expect-trust-receipt --expect-model-context-envelope --expect-red-team-cards
+.venv/Scripts/python.exe scripts/make_final_handoff.py --mode cloud --base-url "$DEMO_URL" --root-url "$ROOT_URL" --policy-url "$POLICY_URL" --knowledge-url "$KNOWLEDGE_URL" --research-url "$RESEARCH_URL" --approval-url "$APPROVAL_URL" --project-label "$PROJECT_LABEL" --demo-ui-revision "$DEMO_UI_REVISION" --root-revision "$ROOT_REVISION" --policy-revision "$POLICY_REVISION" --knowledge-revision "$KNOWLEDGE_REVISION" --research-revision "$RESEARCH_REVISION" --approval-revision "$APPROVAL_REVISION"
+powershell.exe -ExecutionPolicy Bypass -File scripts/verify_judge_readiness.ps1
+powershell.exe -ExecutionPolicy Bypass -File scripts/verify_cloudrun_p0.ps1 -RequirePublic
+```
+
+For PowerShell:
+
 ```powershell
-.\.venv\Scripts\python.exe scripts\p0_verify.py --base-url https://<PUBLIC_DEMO_URL> --mode cloud --root-url https://<ROOT_SERVICE_URL> --policy-url https://<POLICY_SERVICE_URL> --knowledge-url https://<KNOWLEDGE_SERVICE_URL> --research-url https://<RESEARCH_SERVICE_URL> --approval-url https://<APPROVAL_EVIDENCE_SERVICE_URL> --expect-vertex --fail-on-local
-.\.venv\Scripts\python.exe scripts\p0_verify.py --base-url https://<PUBLIC_DEMO_URL> --mode cloud --root-url https://<ROOT_SERVICE_URL> --policy-url https://<POLICY_SERVICE_URL> --knowledge-url https://<KNOWLEDGE_SERVICE_URL> --research-url https://<RESEARCH_SERVICE_URL> --approval-url https://<APPROVAL_EVIDENCE_SERVICE_URL> --expect-vertex --fail-on-local --expect-corpus-backend gcs --expect-freeform-playground --expect-corpus-explorer --expect-corpus-live-retrieval --expect-decision-receipts --expect-trust-receipt --expect-model-context-envelope --expect-red-team-cards
-.\.venv\Scripts\python.exe scripts\make_final_handoff.py --mode cloud --base-url https://<PUBLIC_DEMO_URL> --root-url https://<ROOT_SERVICE_URL> --policy-url https://<POLICY_SERVICE_URL> --knowledge-url https://<KNOWLEDGE_SERVICE_URL> --research-url https://<RESEARCH_SERVICE_URL> --approval-url https://<APPROVAL_EVIDENCE_SERVICE_URL> --project-label <PROJECT_OR_REDACTED_PROJECT_LABEL> --demo-ui-revision <DEMO_UI_REVISION> --root-revision <ROOT_REVISION> --policy-revision <POLICY_REVISION> --knowledge-revision <KNOWLEDGE_REVISION> --research-revision <RESEARCH_REVISION> --approval-revision <APPROVAL_REVISION>
+$env:AKRETIC_CLOUD_RUN_AUTH = "identity_token"
+$DemoUrl = "https://<PUBLIC_DEMO_URL>"
+$RootUrl = "https://<ROOT_SERVICE_URL>"
+$PolicyUrl = "https://<POLICY_SERVICE_URL>"
+$KnowledgeUrl = "https://<KNOWLEDGE_SERVICE_URL>"
+$ResearchUrl = "https://<RESEARCH_SERVICE_URL>"
+$ApprovalUrl = "https://<APPROVAL_EVIDENCE_SERVICE_URL>"
+$ProjectLabel = "<PROJECT_OR_REDACTED_PROJECT_LABEL>"
+$DemoUiRevision = "<DEMO_UI_REVISION>"
+$RootRevision = "<ROOT_REVISION>"
+$PolicyRevision = "<POLICY_REVISION>"
+$KnowledgeRevision = "<KNOWLEDGE_REVISION>"
+$ResearchRevision = "<RESEARCH_REVISION>"
+$ApprovalRevision = "<APPROVAL_REVISION>"
+
+.\.venv\Scripts\python.exe scripts\warmup_cloud_demo.py --base-url $DemoUrl
+.\.venv\Scripts\python.exe scripts\p0_verify.py --base-url $DemoUrl --mode cloud --root-url $RootUrl --policy-url $PolicyUrl --knowledge-url $KnowledgeUrl --research-url $ResearchUrl --approval-url $ApprovalUrl --expect-vertex --fail-on-local
+.\.venv\Scripts\python.exe scripts\p0_verify.py --base-url $DemoUrl --mode cloud --root-url $RootUrl --policy-url $PolicyUrl --knowledge-url $KnowledgeUrl --research-url $ResearchUrl --approval-url $ApprovalUrl --expect-vertex --fail-on-local --expect-corpus-backend gcs --expect-freeform-playground --expect-corpus-explorer --expect-corpus-live-retrieval --expect-decision-receipts --expect-trust-receipt --expect-model-context-envelope --expect-red-team-cards
+.\.venv\Scripts\python.exe scripts\make_final_handoff.py --mode cloud --base-url $DemoUrl --root-url $RootUrl --policy-url $PolicyUrl --knowledge-url $KnowledgeUrl --research-url $ResearchUrl --approval-url $ApprovalUrl --project-label $ProjectLabel --demo-ui-revision $DemoUiRevision --root-revision $RootRevision --policy-revision $PolicyRevision --knowledge-revision $KnowledgeRevision --research-revision $ResearchRevision --approval-revision $ApprovalRevision
 .\scripts\verify_judge_readiness.ps1
 .\scripts\verify_cloudrun_p0.ps1 -RequirePublic
 ```
+
+If a real impersonation service account is required for private-service checks,
+set `AKRETIC_CLOUD_RUN_IMPERSONATE_SERVICE_ACCOUNT` before running either
+command block.
 
 For local rehearsal:
 

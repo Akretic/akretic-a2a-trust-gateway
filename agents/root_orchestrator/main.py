@@ -8,6 +8,7 @@ import httpx
 from fastapi import FastAPI, Header, HTTPException
 
 from common.a2a_client import call_skill, fetch_agent_card_cached
+from common.agent_cards import normalize_cloud_url
 from common.corpus import EXECUTIVE_CANARY
 from common.evidence import append_event, verify_chain
 from common.gemini import GeminiError, summarize_vendor_review
@@ -68,7 +69,7 @@ async def readyz() -> dict[str, Any]:
 
 
 def _agent_url(env_name: str, default: str) -> str:
-    return os.getenv(env_name, default)
+    return normalize_cloud_url(os.getenv(env_name, default))
 
 
 def _record_policy_decision(*, actor: Actor, decision: dict[str, Any]) -> dict[str, Any]:

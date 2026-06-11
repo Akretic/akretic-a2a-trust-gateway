@@ -91,6 +91,8 @@ def _check_cloud_urls(urls: dict[str, str]) -> None:
     for name, url in urls.items():
         if not url:
             _fail(f"cloud mode requires {name} URL")
+        if not url.startswith("https://"):
+            _fail(f"cloud mode URL for {name} must be https: {url}")
         if _contains_local(url):
             _fail(f"cloud mode URL for {name} contains localhost: {url}")
 
@@ -128,6 +130,12 @@ def _check_agent_card(
             _fail(f"{expected_name} card at {route} has no skills")
         if mode == "cloud" and _contains_local(str(card)):
             _fail(f"{expected_name} cloud Agent Card contains localhost")
+        if mode == "cloud":
+            card_url = str(card.get("url") or "")
+            if not card_url.startswith("https://"):
+                _fail(f"{expected_name} cloud Agent Card URL must be https: {card_url}")
+            if card_url.startswith("http://akretic"):
+                _fail(f"{expected_name} cloud Agent Card URL uses http://akretic")
         cards.append(card)
     return cards[0]
 
@@ -215,6 +223,19 @@ def verify(args: argparse.Namespace) -> int:
                 _fail("corpus status did not report the expanded synthetic corpus")
             if mode == "cloud" and corpus.get("backend") != "gcs":
                 _fail("cloud corpus status must report gcs backend")
+            if mode == "cloud":
+                if "local://" in corpus_response.text:
+                    _fail("cloud corpus status contains local:// storage URI")
+                storage_uris = corpus.get("storage_uris", {})
+                if not isinstance(storage_uris, dict) or not storage_uris:
+                    _fail("cloud corpus status missing storage_uris")
+                for source_id, uri in storage_uris.items():
+                    uri_text = str(uri)
+                    if not (uri_text.startswith("gs://") or uri_text.startswith("gcs://")):
+                        _fail(f"cloud corpus status storage URI for {source_id} is not GCS/redacted GCS")
+                metadata_response = _get(client, f"{urls['demo_ui']}/corpus/metadata.json")
+                if "local://" in metadata_response.text:
+                    _fail("cloud corpus metadata contains local:// storage URI")
             _ok("corpus status passed")
 
         if args.expect_corpus_explorer:
@@ -306,6 +327,10 @@ def verify(args: argparse.Namespace) -> int:
             ).text
             if "Playground Result" not in freeform_allowed or "summarize_vendor_risk" not in freeform_allowed:
                 _fail("free-form allowed playground prompt did not succeed")
+            if "Denied before model" in freeform_allowed:
+                _fail("free-form allowed playground prompt showed red denial banner")
+            if "Restricted sources filtered" not in freeform_allowed:
+                _fail("free-form allowed playground prompt missing filtered-sources proof")
             freeform_denied = _post_form(
                 client,
                 f"{urls['demo_ui']}/playground/run",
@@ -317,6 +342,8 @@ def verify(args: argparse.Namespace) -> int:
             ).text
             if "executive_acquisition_memo" not in freeform_denied or "deny" not in freeform_denied.lower():
                 _fail("free-form executive memo prompt was not denied before model")
+            if "Request governed: executive_acquisition_memo denied" not in freeform_denied:
+                _fail("free-form executive memo prompt did not show source-level policy denial")
             retrieve_all = _post_form(
                 client,
                 f"{urls['demo_ui']}/playground/run",
@@ -393,7 +420,15 @@ def verify(args: argparse.Namespace) -> int:
         if "sample evidence report" in run_html.lower():
             _fail("run page still links to sample evidence report")
         if mode == "cloud" or args.expect_vertex:
-            banned = ("LOCAL_DETERMINISTIC", "local deterministic", "not applicable", "127.0.0.1", "localhost")
+            banned = (
+                "LOCAL_DETERMINISTIC",
+                "local deterministic",
+                "local-deterministic-test-summary",
+                "local://",
+                "not applicable",
+                "127.0.0.1",
+                "localhost",
+            )
             for token in banned:
                 if token in run_html:
                     _fail(f"cloud run page contains banned token: {token}")
@@ -548,6 +583,12 @@ def verify(args: argparse.Namespace) -> int:
             _fail("A2A Trust Receipt missing or invalid")
         if "Procurement Risk Agent" in str(trust_receipt):
             _fail("A2A Trust Receipt claims unsupported business-facing agents")
+        if mode == "cloud":
+            receipt_text = str(trust_receipt)
+            if "http://akretic" in receipt_text:
+                _fail("A2A Trust Receipt contains http://akretic Agent Card URL")
+            if any(str(url).startswith("http://") for url in trust_receipt.get("agent_cards_resolved", [])):
+                _fail("A2A Trust Receipt contains non-HTTPS Agent Card URL")
         receipt_html = _get(
             client,
             f"{urls['demo_ui']}/runs/{run_id}/a2a-trust-receipt.html",
@@ -605,6 +646,23 @@ def verify(args: argparse.Namespace) -> int:
                 _fail("red-team results did not execute all challenge cards")
             if not all(result.get("pass") for result in red_team_results.get("results", [])):
                 _fail("one or more red-team challenge results failed")
+            by_challenge = {
+                result.get("challenge"): result
+                for result in red_team_results.get("results", [])
+                if isinstance(result, dict)
+            }
+            executive_actual = by_challenge.get("executive_memo", {}).get("actual_outcome", {})
+            if executive_actual.get("verdict") != "Request governed: executive_acquisition_memo denied before model":
+                _fail("executive memo red-team result missing governed denial verdict")
+            if "executive_acquisition_memo" not in executive_actual.get("denied_source_ids", []):
+                _fail("executive memo red-team result missing denied source ID")
+            if executive_actual.get("denied_text_sent_to_vertex_gemini") is not False:
+                _fail("executive memo red-team result did not prove denied text stayed out of Vertex Gemini")
+            if by_challenge.get("executive_memo", {}).get("restricted_canary_absent") is not True:
+                _fail("executive memo red-team result did not assert restricted_canary_absent=true")
+            retrieve_actual = by_challenge.get("retrieve_all", {}).get("actual_outcome", {})
+            if retrieve_actual.get("verdict") != "Retrieval workflow allowed for permitted sources; restricted sources filtered":
+                _fail("retrieve-all red-team result missing filtered retrieval verdict")
             _ok("red-team challenge cards passed")
         _ok("final verification passed")
 

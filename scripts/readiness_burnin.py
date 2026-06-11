@@ -20,7 +20,18 @@ FORBIDDEN = (
     "127.0.0.1",
     "LOCAL_DETERMINISTIC",
     "local deterministic",
+    "local-deterministic-test-summary",
     "sample evidence",
+    "local://",
+    "http://akretic",
+    "<OPTIONAL_SERVICE_ACCOUNT_EMAIL>",
+    "<REPOSITORY_URL>",
+    "TODO",
+    "FIXME",
+    "PLACEHOLDER",
+    "Error 404",
+    "That’s an error",
+    "That's an error",
 )
 
 

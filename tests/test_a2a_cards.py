@@ -52,6 +52,17 @@ def test_policy_and_knowledge_agent_cards_exposed_at_required_routes():
                 assert card["authentication"]["notes"]
 
 
+def test_cloud_agent_card_public_url_is_https(monkeypatch):
+    monkeypatch.setenv("AKRETIC_RUNTIME_MODE", "cloud")
+    monkeypatch.setenv("POLICY_AGENT_PUBLIC_URL", "http://akretic-policy-agent.example")
+    with run_service(policy_app) as base_url:
+        response = httpx.get(f"{base_url}/.well-known/agent-card.json", timeout=5.0)
+        response.raise_for_status()
+        card = response.json()
+
+    assert card["url"] == "https://akretic-policy-agent.example"
+
+
 def test_agent_card_cache_reuses_process_lifetime_entry():
     _AGENT_CARD_CACHE.clear()
     with run_service(policy_app) as base_url:

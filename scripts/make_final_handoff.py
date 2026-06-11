@@ -26,7 +26,9 @@ CLOUD_FORBIDDEN_TOKENS = (
     "localhost",
     "LOCAL_DETERMINISTIC",
     "local deterministic",
+    "local-deterministic-test-summary",
     "sample evidence",
+    "<OPTIONAL_SERVICE_ACCOUNT_EMAIL>",
     "<REPOSITORY_URL>",
     "TODO",
     "FIXME",
@@ -34,6 +36,8 @@ CLOUD_FORBIDDEN_TOKENS = (
     "Error 404",
     "That’s an error",
     "That's an error",
+    "local://",
+    "http://akretic",
 )
 LOCAL_TOKENS = ("127.0.0.1", "localhost", "LOCAL_DETERMINISTIC", "local deterministic")
 DENIED_CANARIES = (
@@ -64,14 +68,24 @@ CLOUD_UNKNOWN_FIELD_HINTS = (
     "location",
     "revision",
     "model",
+    "runtime",
     "cloud service",
     "cloud_run_service",
     "cloud run url",
     "service url",
     "corpus backend",
+    "corpus",
 )
 REQUIRED_SERVICE_KEYS = ("demo_ui", "root", "policy", "knowledge", "research", "approval")
 REQUIRED_AGENT_CARD_KEYS = ("policy", "knowledge", "research", "approval")
+SERVICE_KEY_TO_CLOUD_RUN_SERVICE = {
+    "demo_ui": "akretic-demo-ui",
+    "root": "akretic-root-orchestrator",
+    "policy": "akretic-policy-agent",
+    "knowledge": "akretic-knowledge-agent",
+    "research": "akretic-research-agent",
+    "approval": "akretic-approval-evidence",
+}
 READYZ_ARTIFACTS = {
     "public": "raw/readyz-public.json",
     "deep": "raw/readyz-deep.json",
@@ -87,6 +101,62 @@ AGENT_CARD_ARTIFACTS = {
     "research": "raw/agent-card-research.json",
     "approval": "raw/agent-card-approval.json",
 }
+CLOUD_REQUIRED_PACKET_FILES = (
+    "README.md",
+    "FINAL_REVIEW.md",
+    "manifest.json",
+    "deploy-manifest.json",
+    "forbidden-string-scan.json",
+    "PROCESS_FLOW.md",
+    "process-flowchart.html",
+    "pytest-output.txt",
+    "pytest-output.json",
+    "p0-verify-output.txt",
+    "p0-verify-output.json",
+    "warmup-output.json",
+    "readiness-burnin-output.json",
+    "run-id-integrity.json",
+    "deploy-manifest-integrity.json",
+    "referenced-artifact-integrity.json",
+    "final-review-integrity.json",
+    "raw/readyz-public.json",
+    "raw/readyz-deep.json",
+    "raw/private-health-authenticated-root.json",
+    "raw/private-health-authenticated-policy.json",
+    "raw/private-health-authenticated-knowledge.json",
+    "raw/private-health-authenticated-research.json",
+    "raw/private-health-authenticated-approval.json",
+    "raw/corpus-status.json",
+    "raw/corpus-metadata.json",
+    "raw/playground-allowed.json",
+    "raw/playground-denied-executive-memo.json",
+    "raw/playground-unsupported-intent.json",
+    "raw/corpus-retrieval-allowed.json",
+    "raw/corpus-retrieval-denied.json",
+    "raw/model-context-envelope.json",
+    "raw/a2a-trust-receipt.json",
+    "raw/red-team-results.json",
+    "screenshots/home.png",
+    "screenshots/guided-run.png",
+    "screenshots/evidence-before-decision.png",
+    "screenshots/approval-unauthorized.png",
+    "screenshots/approval-authorized.png",
+    "screenshots/evidence-final-after-decision.png",
+    "screenshots/corpus-explorer.png",
+    "screenshots/corpus-retrieval-allowed.png",
+    "screenshots/corpus-retrieval-denied.png",
+    "screenshots/playground.png",
+    "screenshots/playground-result-allowed.png",
+    "screenshots/playground-result-denied.png",
+    "screenshots/model-context-envelope.png",
+    "screenshots/a2a-trust-receipt.png",
+    "screenshots/red-team-executive-memo-denied.png",
+    "screenshots/red-team-procurement-approval-denied.png",
+    "screenshots/red-team-knowledge-no-receipt-403.png",
+    "screenshots/red-team-tamper-detected.png",
+    "screenshots/07-evidence-unauthorized.png",
+    "screenshots/process-flowchart.png",
+)
 
 
 def _timestamp() -> str:
@@ -180,6 +250,8 @@ def _assert_cloud_urls(urls: dict[str, str]) -> None:
     for name, url in urls.items():
         if not url:
             raise RuntimeError(f"cloud handoff requires {name} URL")
+        if not url.startswith("https://"):
+            raise RuntimeError(f"cloud handoff URL for {name} must be https")
         if _contains_local(url):
             raise RuntimeError(f"cloud handoff URL for {name} references a local endpoint")
 
@@ -202,6 +274,285 @@ def scan_forbidden_strings(packet_dir: Path, *, mode: str) -> list[dict[str, str
             ):
                 findings.append({"path": str(path), "token": "UNKNOWN", "line": line[:200]})
     return findings
+
+
+def validate_required_packet_files(packet_dir: Path, *, mode: str) -> list[str]:
+    if mode != "cloud":
+        return []
+    return [
+        relative
+        for relative in CLOUD_REQUIRED_PACKET_FILES
+        if not (packet_dir / relative).exists()
+    ]
+
+
+def referenced_artifact_paths(packet_dir: Path) -> dict[str, list[str]]:
+    references: dict[str, list[str]] = {}
+    scanned = ("README.md", "FINAL_REVIEW.md", "PROCESS_FLOW.md", "manifest.json")
+    pattern = re.compile(
+        r"(?:raw|screenshots)/[A-Za-z0-9_.\\/-]+|"
+        r"(?:README|FINAL_REVIEW|PROCESS_FLOW|manifest|deploy-manifest|deploy-manifest-integrity|"
+        r"referenced-artifact-integrity|final-review-integrity|forbidden-string-scan|verifier-output|"
+        r"run-id-integrity|process-flowchart|pytest-output|p0-verify-output|warmup-output|"
+        r"warmup-command-output|readiness-burnin-output|readiness-burnin-command-output)"
+        r"\.(?:md|json|txt|html|png)"
+    )
+    for relative in scanned:
+        path = packet_dir / relative
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        refs = sorted(
+            {
+                match.group(0).replace("\\", "/")
+                for match in pattern.finditer(text)
+                if not match.group(0).startswith("http")
+            }
+        )
+        references[relative] = refs
+    return references
+
+
+def validate_referenced_artifacts(packet_dir: Path, manifest: dict[str, Any], *, mode: str) -> list[dict[str, str]]:
+    if mode != "cloud":
+        return []
+    failures: list[dict[str, str]] = []
+    screenshots = manifest.get("screenshots")
+    if not isinstance(screenshots, dict) or not screenshots:
+        failures.append({"path": "manifest.json", "reference": "screenshots", "reason": "empty"})
+    for source, refs in referenced_artifact_paths(packet_dir).items():
+        for ref in refs:
+            if not (packet_dir / ref).exists():
+                failures.append({"path": source, "reference": ref, "reason": "missing"})
+    return failures
+
+
+def _artifact_body(packet_dir: Path, relative: str) -> Any:
+    path = packet_dir / relative
+    if not path.exists():
+        return None
+    try:
+        artifact = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    if isinstance(artifact, dict) and "body" in artifact:
+        return artifact.get("body")
+    return artifact
+
+
+def _record_mismatch(
+    failures: list[dict[str, str]],
+    *,
+    field: str,
+    expected: Any,
+    actual: Any,
+    source: str,
+) -> None:
+    if expected != actual:
+        failures.append(
+            {
+                "field": field,
+                "source": source,
+                "expected": str(expected),
+                "actual": str(actual),
+            }
+        )
+
+
+def validate_deploy_manifest_consistency(
+    packet_dir: Path,
+    deploy_manifest: dict[str, Any],
+    manifest: dict[str, Any],
+    *,
+    packet_zip_name: str,
+    packet_generator_commit_sha: str,
+    mode: str,
+) -> list[dict[str, str]]:
+    if mode != "cloud":
+        return []
+    failures: list[dict[str, str]] = []
+    _record_mismatch(
+        failures,
+        field="deploy_manifest.commit_sha",
+        expected=packet_generator_commit_sha,
+        actual=deploy_manifest.get("commit_sha"),
+        source="deploy-manifest.json",
+    )
+    _record_mismatch(
+        failures,
+        field="manifest.commit_sha",
+        expected=packet_generator_commit_sha,
+        actual=manifest.get("commit_sha"),
+        source="manifest.json",
+    )
+    _record_mismatch(
+        failures,
+        field="image_digest",
+        expected=deploy_manifest.get("image_digest"),
+        actual=manifest.get("image_digest"),
+        source="deploy-manifest.json",
+    )
+    _record_mismatch(
+        failures,
+        field="packet_filename",
+        expected=packet_zip_name,
+        actual=deploy_manifest.get("packet_filename"),
+        source="deploy-manifest.json",
+    )
+    _record_mismatch(
+        failures,
+        field="corpus_backend",
+        expected=deploy_manifest.get("corpus_backend"),
+        actual=manifest.get("corpus_backend"),
+        source="deploy-manifest.json",
+    )
+
+    deploy_model = deploy_manifest.get("model_metadata") if isinstance(deploy_manifest.get("model_metadata"), dict) else {}
+    for deploy_field, manifest_field in (
+        ("runtime_mode", "runtime_mode"),
+        ("model_mode", "model_mode"),
+        ("model", "model"),
+        ("project_id", "project_label"),
+        ("location", "location"),
+    ):
+        _record_mismatch(
+            failures,
+            field=f"model_metadata.{deploy_field}",
+            expected=deploy_model.get(deploy_field),
+            actual=manifest.get(manifest_field),
+            source="deploy-manifest.json",
+        )
+
+    deploy_urls = deploy_manifest.get("service_urls") if isinstance(deploy_manifest.get("service_urls"), dict) else {}
+    deploy_revisions = deploy_manifest.get("service_revisions") if isinstance(deploy_manifest.get("service_revisions"), dict) else {}
+    for key, service in SERVICE_KEY_TO_CLOUD_RUN_SERVICE.items():
+        _record_mismatch(
+            failures,
+            field=f"cloud_run_service_urls.{key}",
+            expected=deploy_urls.get(service),
+            actual=manifest.get("cloud_run_service_urls", {}).get(key),
+            source="deploy-manifest.json",
+        )
+        _record_mismatch(
+            failures,
+            field=f"cloud_run_revisions.{key}",
+            expected=deploy_revisions.get(service),
+            actual=manifest.get("cloud_run_revisions", {}).get(key),
+            source="deploy-manifest.json",
+        )
+
+    latest_model = manifest.get("model_metadata") if isinstance(manifest.get("model_metadata"), dict) else {}
+    for model_field, manifest_field in (
+        ("runtime_mode", "runtime_mode"),
+        ("mode", "model_mode"),
+        ("model", "model"),
+        ("project_id", "project_label"),
+        ("location", "location"),
+    ):
+        _record_mismatch(
+            failures,
+            field=f"evidence.latest_model.{model_field}",
+            expected=manifest.get(manifest_field),
+            actual=latest_model.get(model_field),
+            source="raw/evidence-final.json",
+        )
+
+    readyz = _artifact_body(packet_dir, "raw/readyz-public.json")
+    if not isinstance(readyz, dict):
+        failures.append({"field": "readyz", "source": "raw/readyz-public.json", "expected": "dict", "actual": type(readyz).__name__})
+        return failures
+    for field in ("runtime_mode", "model_mode", "model", "corpus_backend"):
+        _record_mismatch(
+            failures,
+            field=f"readyz.{field}",
+            expected=manifest.get(field),
+            actual=readyz.get(field),
+            source="raw/readyz-public.json",
+        )
+    readyz_service_urls = readyz.get("service_urls") if isinstance(readyz.get("service_urls"), dict) else {}
+    readyz_revisions = readyz.get("revision_map") if isinstance(readyz.get("revision_map"), dict) else {}
+    for key in ("root", "policy", "knowledge", "research", "approval"):
+        _record_mismatch(
+            failures,
+            field=f"readyz.service_urls.{key}",
+            expected=manifest.get("cloud_run_service_urls", {}).get(key),
+            actual=readyz_service_urls.get(key),
+            source="raw/readyz-public.json",
+        )
+    for key in REQUIRED_SERVICE_KEYS:
+        _record_mismatch(
+            failures,
+            field=f"readyz.revision_map.{key}",
+            expected=manifest.get("cloud_run_revisions", {}).get(key),
+            actual=readyz_revisions.get(key),
+            source="raw/readyz-public.json",
+        )
+    readyz_checks = readyz.get("checks") if isinstance(readyz.get("checks"), dict) else {}
+    corpus_check = readyz_checks.get("corpus_backend") if isinstance(readyz_checks.get("corpus_backend"), dict) else {}
+    vertex_check = readyz_checks.get("vertex_config") if isinstance(readyz_checks.get("vertex_config"), dict) else {}
+    _record_mismatch(
+        failures,
+        field="readyz.checks.corpus_backend.corpus_manifest_hash",
+        expected=manifest.get("corpus_manifest_hash"),
+        actual=corpus_check.get("corpus_manifest_hash"),
+        source="raw/readyz-public.json",
+    )
+    _record_mismatch(
+        failures,
+        field="readyz.checks.corpus_backend.document_count",
+        expected=manifest.get("corpus_document_count"),
+        actual=corpus_check.get("document_count"),
+        source="raw/readyz-public.json",
+    )
+    for readyz_field, manifest_field in (
+        ("runtime_mode", "runtime_mode"),
+        ("model_mode", "model_mode"),
+        ("model", "model"),
+        ("project_id", "project_label"),
+        ("location", "location"),
+    ):
+        _record_mismatch(
+            failures,
+            field=f"readyz.checks.vertex_config.{readyz_field}",
+            expected=manifest.get(manifest_field),
+            actual=vertex_check.get(readyz_field),
+            source="raw/readyz-public.json",
+        )
+    return failures
+
+
+def validate_final_review_consistency(packet_dir: Path, manifest: dict[str, Any], *, mode: str) -> list[dict[str, str]]:
+    if mode != "cloud":
+        return []
+    path = packet_dir / "FINAL_REVIEW.md"
+    if not path.exists():
+        return [{"field": "FINAL_REVIEW.md", "source": "FINAL_REVIEW.md", "expected": "present", "actual": "missing"}]
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    required_fragments = [
+        f"- commit SHA: `{manifest['commit_sha']}`",
+        f"- build ID: `{manifest.get('build_id')}`",
+        f"- image digest: `{manifest.get('image_digest')}`",
+        f"- model mode: `{manifest['model_mode']}`",
+        f"- runtime mode: `{manifest['runtime_mode']}`",
+        f"- corpus backend: `{manifest.get('corpus_backend')}`",
+        f"- corpus manifest hash: `{manifest.get('corpus_manifest_hash')}`",
+    ]
+    required_fragments.extend(
+        f"- `{key}`: {value}" for key, value in manifest.get("cloud_run_service_urls", {}).items()
+    )
+    required_fragments.extend(
+        f"- `{key}`: {value}" for key, value in manifest.get("cloud_run_revisions", {}).items()
+    )
+    return [
+        {
+            "field": "FINAL_REVIEW.md",
+            "source": "FINAL_REVIEW.md",
+            "expected": fragment,
+            "actual": "missing",
+        }
+        for fragment in required_fragments
+        if fragment not in text
+    ]
 
 
 def _extract_verifier_run_id(verifier: dict[str, Any]) -> str | None:
@@ -936,7 +1287,7 @@ def _validate_cloud_manifest(manifest: dict[str, Any]) -> None:
         if name not in manifest.get("a2a_agent_card_urls", {}):
             raise RuntimeError(f"cloud manifest missing Agent Card URL for {name}")
     for name, url in manifest.get("cloud_run_service_urls", {}).items():
-        if not url or _contains_local(str(url)):
+        if not url or _contains_local(str(url)) or not str(url).startswith("https://"):
             raise RuntimeError(f"cloud manifest has invalid Cloud Run URL for {name}")
     for name, revision in manifest.get("cloud_run_revisions", {}).items():
         if not revision or revision in {"UNKNOWN", "not_reported"}:
@@ -953,7 +1304,7 @@ def _validate_cloud_manifest(manifest: dict[str, Any]) -> None:
         if service not in min_instances:
             raise RuntimeError(f"cloud manifest missing min instance setting for {service}")
     for name, url in manifest.get("a2a_agent_card_urls", {}).items():
-        if not url or _contains_local(str(url)):
+        if not url or _contains_local(str(url)) or not str(url).startswith("https://"):
             raise RuntimeError(f"cloud manifest has invalid Agent Card URL for {name}")
         if not str(url).endswith("/.well-known/agent-card.json"):
             raise RuntimeError(f"cloud manifest Agent Card URL for {name} is not public Agent Card route")
@@ -981,14 +1332,20 @@ def _packet_readme(manifest: dict[str, Any]) -> str:
         "--expect-trust-receipt --expect-model-context-envelope --expect-red-team-cards"
     )
     cloud_flags = "--expect-vertex --fail-on-local " if is_cloud else ""
-    portable_verifier = (
-        "AKRETIC_CLOUD_RUN_AUTH=identity_token "
-        "AKRETIC_CLOUD_RUN_IMPERSONATE_SERVICE_ACCOUNT=<OPTIONAL_SERVICE_ACCOUNT_EMAIL> "
+    verifier_command = (
         "python scripts/p0_verify.py "
         f"--base-url {urls['demo_ui']} --mode {manifest['mode']} "
         f"--root-url {urls['root']} --policy-url {urls['policy']} "
         f"--knowledge-url {urls['knowledge']} --research-url {urls['research']} "
         f"--approval-url {urls['approval']} {cloud_flags}{verifier_extra_flags}"
+    )
+    bash_verifier = (
+        "export AKRETIC_CLOUD_RUN_AUTH=identity_token\n"
+        f"{verifier_command}"
+    )
+    powershell_verifier = (
+        '$env:AKRETIC_CLOUD_RUN_AUTH = "identity_token"\n'
+        f"{verifier_command}"
     )
     return f"""
 # Akretic A2A Trust Gateway Handoff Packet
@@ -1020,8 +1377,16 @@ reviewer/admin demo personas listed below.
 
 ## P0 Verifier
 
+For Bash or Git Bash:
+
+```bash
+{bash_verifier}
+```
+
+For PowerShell:
+
 ```powershell
-{portable_verifier}
+{powershell_verifier}
 ```
 
 The exact captured Windows verifier command is recorded in `FINAL_REVIEW.md`.
@@ -1052,8 +1417,9 @@ The exact captured Windows verifier command is recorded in `FINAL_REVIEW.md`.
 
 ## Direct Private Service Checks
 
-The verifier supports `AKRETIC_CLOUD_RUN_AUTH=identity_token` and optional
-`AKRETIC_CLOUD_RUN_IMPERSONATE_SERVICE_ACCOUNT` for direct Cloud Run checks.
+The verifier supports `AKRETIC_CLOUD_RUN_AUTH=identity_token` for direct Cloud
+Run checks. If a real impersonation service account is required, set
+`AKRETIC_CLOUD_RUN_IMPERSONATE_SERVICE_ACCOUNT` before running either command.
 The public aggregate readiness endpoint is captured in `raw/readyz-public.json`
 and `raw/readyz-deep.json`. Private services remain protected by Cloud Run IAM;
 authenticated private readiness artifacts are captured as
@@ -1305,6 +1671,8 @@ def build_packet(args: argparse.Namespace) -> Path:
         _assert_cloud_urls(urls)
         if args.skip_pytest:
             raise RuntimeError("cloud handoff requires pytest output; do not use --skip-pytest")
+        if args.skip_screenshots:
+            raise RuntimeError("cloud handoff requires screenshots; do not use --skip-screenshots")
 
     packet_dir = Path(args.output_dir) / f"akretic-a2a-final-{mode}-handoff-{_timestamp()}"
     if packet_dir.exists():
@@ -1406,6 +1774,13 @@ def build_packet(args: argparse.Namespace) -> Path:
             },
         )
         _write_text(packet_dir / "pytest-output.txt", "pytest skipped by --skip-pytest\n")
+    if mode == "cloud" and (
+        not pytest_result
+        or pytest_result.get("returncode") != 0
+        or not pytest_result.get("timestamp")
+        or not pytest_result.get("command")
+    ):
+        raise RuntimeError("cloud handoff requires captured passing pytest command, timestamp, stdout, and stderr")
 
     warmup_result = None
     burnin_result = None
@@ -1617,10 +1992,31 @@ def build_packet(args: argparse.Namespace) -> Path:
     }
     if mode == "cloud":
         _validate_cloud_manifest(manifest)
+        deploy_consistency_failures = validate_deploy_manifest_consistency(
+            packet_dir,
+            deploy_manifest or {},
+            manifest,
+            packet_zip_name=packet_dir.with_suffix(".zip").name,
+            packet_generator_commit_sha=packet_generator_commit_sha,
+            mode=mode,
+        )
+        _write_json(
+            packet_dir / "deploy-manifest-integrity.json",
+            {"mode": mode, "failures": deploy_consistency_failures},
+        )
+        if deploy_consistency_failures:
+            raise RuntimeError("cloud deploy manifest disagrees with manifest, readyz, or evidence artifacts")
     _write_json(packet_dir / "manifest.json", manifest)
 
     _write_text(packet_dir / "FINAL_REVIEW.md", _final_review(manifest, verifier, pytest_result))
     _write_text(packet_dir / "README.md", _packet_readme(manifest))
+    final_review_failures = validate_final_review_consistency(packet_dir, manifest, mode=mode)
+    _write_json(
+        packet_dir / "final-review-integrity.json",
+        {"mode": mode, "failures": final_review_failures},
+    )
+    if final_review_failures:
+        raise RuntimeError("cloud FINAL_REVIEW.md disagrees with manifest values")
 
     for canary in DENIED_CANARIES:
         for path in packet_dir.rglob("*"):
@@ -1630,6 +2026,18 @@ def build_packet(args: argparse.Namespace) -> Path:
 
     findings = scan_forbidden_strings(packet_dir, mode=mode)
     _write_json(packet_dir / "forbidden-string-scan.json", {"mode": mode, "findings": findings})
+    referenced_artifact_failures = validate_referenced_artifacts(packet_dir, manifest, mode=mode)
+    _write_json(
+        packet_dir / "referenced-artifact-integrity.json",
+        {"mode": mode, "failures": referenced_artifact_failures},
+    )
+    missing_packet_files = validate_required_packet_files(packet_dir, mode=mode)
+    if missing_packet_files:
+        raise RuntimeError(
+            "cloud packet missing required artifacts: " + ", ".join(missing_packet_files)
+        )
+    if referenced_artifact_failures:
+        raise RuntimeError("cloud packet has missing referenced artifacts or no screenshots")
     if findings:
         raise RuntimeError("cloud packet contains forbidden local strings")
 
