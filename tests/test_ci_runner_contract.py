@@ -14,7 +14,7 @@ def test_public_ci_preserves_tests_and_fork_coverage_without_write_credentials()
     assert 'if' not in job
     assert job['runs-on'] == {
         'group': 'akretic-public-ci',
-        'labels': ['self-hosted', 'Linux', 'X64', 'akretic-public-ci'],
+        'labels': ['self-hosted', 'Linux', 'ARM64', 'akretic-public-ci'],
     }
     assert job['timeout-minutes'] == 20
     assert job['steps'][0]['with']['persist-credentials'] is False
